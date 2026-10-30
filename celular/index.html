@@ -24,6 +24,8 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; min-height: 100%; }
+html { height: -webkit-fill-available; }
+body { min-height: 100vh; min-height: -webkit-fill-available; overscroll-behavior-y: none; }
 body { font-family: var(--font); color: var(--tinta); background: var(--ceu1);
   background-image: radial-gradient(120% 60% at 80% 0%, var(--ceu3) 0%, transparent 60%), linear-gradient(180deg, var(--ceu1) 0%, var(--ceu2) 55%, #3A1F5F 100%);
   background-attachment: fixed; font-weight: 500; -webkit-font-smoothing: antialiased; }
@@ -292,7 +294,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-30.15';
+  var V = '2026-10-30.16';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;
@@ -304,6 +306,23 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 })();
 </script>
 <script src="entrada.js?v=1"></script>
+<script>
+/* iPhone (app na tela de início): depois que o teclado fecha, a barra de baixo às vezes fica "flutuando"
+   e a página para de rolar. Isto força o iPhone a recalcular a tela. */
+(function () {
+  function conserta() {
+    setTimeout(function () {
+      window.scrollTo(window.scrollX, window.scrollY);
+      var n = document.querySelector('nav.abas'); if (n) { n.style.display = 'none'; void n.offsetHeight; n.style.display = ''; }
+      document.documentElement.style.height = window.innerHeight + 'px'; void document.body.offsetHeight; document.documentElement.style.height = '';
+    }, 120);
+  }
+  document.addEventListener('focusout', function (e) { if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) conserta(); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { if (Math.abs(window.visualViewport.height - window.innerHeight) < 40) conserta(); });
+  window.addEventListener('orientationchange', conserta);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) conserta(); });
+})();
+</script>
 <script src="capas.js?v=2"></script>
 <script src="dados.js?v=15"></script>
 
