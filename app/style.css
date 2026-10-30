@@ -205,3 +205,31 @@ body.discreto .hoje2 .trab { display: none; }
 .lanc-info small { font-size: 20px; color: #C9CFF0; }
 .plats-tv { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
 .plats-tv i { font-style: normal; font-size: 16px; font-weight: 800; border: 2px solid; border-radius: 8px; padding: 2px 8px; }
+
+/* ---------- Início com clipes do YouTube (layout Janela) ---------- */
+.clipe { display: none; }
+.topo-ini, .ini-esq { display: contents; }
+#p-inicio .wrap > .topo-ini { order: 0; }
+#p-inicio .wrap header { order: 0; }
+#p-inicio .apps-sec { order: 1; }
+#p-inicio .hoje2 { order: 2; }
+#p-inicio .pnav { order: 3; }
+#p-inicio.com-clipe .topo-ini { display: grid; grid-template-columns: 1fr 1024px; gap: 48px; align-items: start; }
+#p-inicio.com-clipe .ini-esq { display: flex; flex-direction: column; gap: 30px; min-width: 0; }
+#p-inicio.com-clipe header.row { flex-direction: column; align-items: flex-start; gap: 10px; }
+#p-inicio.com-clipe header .col.end { order: -1; align-items: flex-start; }
+#p-inicio.com-clipe header .clock { font-size: 96px; }
+#p-inicio.com-clipe h1.big { font-size: 60px; }
+#p-inicio.com-clipe .hoje2 { grid-template-columns: 1fr; gap: 20px; }
+#p-inicio.com-clipe .hoje2 .hj { font-size: 27px; }
+#p-inicio.com-clipe .clipe { display: flex; flex-direction: column; gap: 12px; padding: 0; background: none; border: 0; box-shadow: none; }
+.clipe-v { width: 1024px; height: 576px; border-radius: 24px; border: 4px solid var(--acc); overflow: hidden; background: #000; }
+.clipe-v iframe { width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
+.clipe-leg { display: flex; justify-content: space-between; gap: 20px; font-size: 24px; font-weight: 700; text-shadow: 0 2px 0 rgba(10,8,30,.7); }
+#clipe-tit { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.clipe-ok { flex: none; opacity: .85; }
+.clipe.f.focus { transform: none; outline-offset: 8px; border-radius: 28px; }
+.clipe.focus .clipe-v { border-color: #FFF; }
+#p-inicio.com-clipe .apps-sec { margin-top: auto; }
+#p-inicio.com-clipe .apps-sec h2 { display: none; }
+#p-inicio.com-clipe .app { height: 150px; gap: 10px; }

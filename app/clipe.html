@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Clipes</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>
+</head><body><div id="p"></div>
+<script>
+/* Player dos clipes da Central: toca a playlist (id vem no #list=...) sem som, aleatória, em loop.
+   A TV manda {cmd:'prox'|'pausa'|'toca'} e recebe {clipe:'tit'|'erro'|'falhou'}. */
+var lista = (location.hash.match(/list=([\w-]+)/) || [])[1], P = null, pronto = false, erros = 0;
+function avisa(o) { try { parent.postMessage(JSON.stringify(o), '*'); } catch (e) {} }
+window.onYouTubeIframeAPIReady = function () {
+  P = new YT.Player('p', { width: '100%', height: '100%',
+    playerVars: { listType: 'playlist', list: lista, autoplay: 1, mute: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, iv_load_policy: 3, playsinline: 1, loop: 1, origin: location.origin },
+    events: {
+      onReady: function (e) { pronto = true; e.target.mute(); setTimeout(function () { try { e.target.setShuffle(true); e.target.setLoop(true); e.target.playVideoAt(0); } catch (x) {} }, 800); },
+      onStateChange: function (e) { if (e.data === 1) { erros = 0; var d = P.getVideoData() || {}; avisa({ clipe: 'tit', t: d.title || '' }); } },
+      onError: function (e) { erros++; if (erros >= 6) { avisa({ clipe: 'falhou', c: e.data }); return; } avisa({ clipe: 'erro', c: e.data }); setTimeout(function () { try { P.nextVideo(); } catch (x) {} }, 1500); }
+    } });
+};
+window.addEventListener('message', function (ev) {
+  var m; try { m = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
+  if (!m || !m.cmd || !P || !pronto) return;
+  if (m.cmd === 'prox') P.nextVideo(); else if (m.cmd === 'pausa') P.pauseVideo(); else if (m.cmd === 'toca') P.playVideo();
+});
+if (lista) { var s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s); } else avisa({ clipe: 'falhou', c: 'sem lista' });
+</script>
+</body></html>

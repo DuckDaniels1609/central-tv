@@ -149,6 +149,7 @@
     document.documentElement.style.setProperty('--acc', cfg.cor);
     document.body.classList.toggle('semanim', !cfg.anim);
     document.body.classList.toggle('discreto', cfg.modo === 'discreto');
+    setTimeout(clipeAtualizar, 0);
     var mb = document.querySelector('.modobtn'); if (mb) mb.textContent = 'Modo: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[cfg.modo] || 'Normal');
     if (!cfg.musica) cfg.musica = { on: true, vol: 40 };
     PAGS.forEach(function (p) {
@@ -166,6 +167,34 @@
       dim.style.opacity = (cfg.escuro || 0) / 100;
     });
   }
+
+  /* ---------- clipes do YouTube no Início (layout Janela) ----------
+     A playlist vem do config.json (privado). O player fica numa página do site
+     (app/clipe.html) porque o YouTube exige um endereço de site para tocar. */
+  var clipeFr = null, clipeFalhou = false, clipeTocando = false;
+  function clipeLista() { return (cfg.clipes && cfg.clipes.lista) || ''; }
+  function clipeDeve() { var h = new Date().getHours(); return !!clipeLista() && !clipeFalhou && cfg.modo !== 'discreto' && h >= 6 && h < 23; }
+  function clipeCmd(c) { try { if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: c }), '*'); } catch (e) {} }
+  function clipeAtualizar() {
+    var sec = document.getElementById('p-inicio'), box = document.getElementById('clipe'); if (!sec || !box) return;
+    var on = clipeDeve(); sec.classList.toggle('com-clipe', on);
+    if (!on) { if (clipeFr) { box.querySelector('.clipe-v').innerHTML = ''; clipeFr = null; } return; }
+    if (!clipeFr) {
+      clipeFr = document.createElement('iframe');
+      clipeFr.setAttribute('allow', 'autoplay; encrypted-media'); clipeFr.setAttribute('frameborder', '0'); clipeFr.setAttribute('tabindex', '-1');
+      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista());
+      box.querySelector('.clipe-v').appendChild(clipeFr); clipeTocando = true;
+    }
+    var ver = pagina === HOME && !document.hidden;
+    if (ver !== clipeTocando) { clipeCmd(ver ? 'toca' : 'pausa'); clipeTocando = ver; }
+  }
+  window.addEventListener('message', function (ev) {
+    var m; try { m = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
+    if (!m || !m.clipe) return;
+    if (m.clipe === 'tit') { var t = document.getElementById('clipe-tit'); if (t) t.textContent = m.t || 'Clipes'; }
+    else if (m.clipe === 'erro') registrar('Clipe pulado (erro ' + m.c + ')');
+    else if (m.clipe === 'falhou') { clipeFalhou = true; registrar('Clipes do YouTube não tocaram (erro ' + m.c + ')'); clipeAtualizar(); }
+  });
 
   /* ---------- utilidades ---------- */
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -395,6 +424,7 @@
     var exAntes = JSON.stringify(cfg.despertar.extras || {}), exNovo = d.despertarExtra || {};
     var hj = isoD(new Date()); Object.keys(exNovo).forEach(function (k) { if (k < hj) delete exNovo[k]; });
     if (JSON.stringify(exNovo) !== exAntes) { cfg.despertar.extras = exNovo; gravar('cfg', cfg); agendarAlarmeSistema(); registrar('Despertar extra: ' + (Object.keys(exNovo).map(function (k) { return k.split('-').reverse().slice(0, 2).join('/') + ' ' + exNovo[k]; }).join(', ') || 'nenhum')); }
+    var cl = d.clipes || {}; if (JSON.stringify(cl) !== JSON.stringify(cfg.clipes || {})) { cfg.clipes = cl; clipeFalhou = false; gravar('cfg', cfg); clipeAtualizar(); registrar(cl.lista ? 'Clipes do YouTube ligados' : 'Clipes do YouTube desligados'); }
     var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
     cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
     var nomes = cfg.discreto.musicas;
@@ -1181,7 +1211,7 @@
     if (cfg.modo === 'discreto' && i !== HOME) return;
     pagina = i;
     $('track').style.transform = 'translateX(' + (-1920 * i) + 'px)';
-    tocarMusica();
+    tocarMusica(); clipeAtualizar();
     var l = focaveis(), alvo = null;
     if (lado === 'esq') alvo = l.filter(function (e) { return e.classList.contains('navbtn'); }).pop();
     if (lado === 'dir') alvo = l.filter(function (e) { return e.classList.contains('navbtn'); })[0];
@@ -1227,6 +1257,7 @@
     var cf = foco.getAttribute('data-cfg');
     if (cf) { mudarCfg(cf); return; }
     var act = foco.getAttribute('data-act'), k = 'gym:' + hojeISO(), est = ler(k, {});
+    if (act === 'clipe') { clipeCmd('prox'); toast('Próximo clipe'); return; }
     if (act === 'cfg') { abrirCfg(); return; }
     if (act === 'samsung') { menuSamsung = true; registrar('Abriu o menu da Samsung'); if (tizenOk) { try { tizen.application.launch('com.samsung.tv.csfs', function () {}, function () { toast('Não consegui abrir o menu da Samsung'); }); } catch (e) { toast('Não consegui abrir o menu da Samsung'); } } return; }
     if (act === 'modo') { var ord = ['normal', 'discreto', 'ferias']; mudarModo(ord[(ord.indexOf(cfg.modo || 'normal') + 1) % ord.length]); return; }
@@ -1353,5 +1384,6 @@
   setInterval(celOuvir, 4000); setTimeout(celOuvir, 2500);
   setTimeout(function () { celEstado(true); }, 9000); setInterval(function () { celEstado(false); }, 60000); setInterval(function () { celEstado(true); }, 30 * 60000);
   setInterval(renderAgenda, 60000);
+  setInterval(clipeAtualizar, 60000); document.addEventListener('visibilitychange', clipeAtualizar);
   irPara(HOME);
 })();
