@@ -474,7 +474,6 @@
         return '<div class="grupo-t">' + g[0] + '</div>' + g[1].map(function (f) { return '<div class="linha" style="font-size:14px"><span>"' + f + '"</span></div>'; }).join('');
       }).join('') +
       '<div class="grupo-t">Datas e horas</div><p class="aviso" style="margin:4px 0">hoje, amanhã, depois de amanhã, sexta, dia 5, 5/11, 5 de novembro · às 20h, às 9:30</p>' +
-      '<div class="grupo-t">O que tenho hoje?</div><p class="aviso" style="margin:4px 0">Diga <b>"Hey Siri, o que tenho hoje"</b> (atalho próprio) e ela lê reuniões, aniversários, eventos e tarefas do dia.</p>' +
       '<button class="b novo" data-cd="fechaColinha">Fechar</button></div></div>';
   }
 
