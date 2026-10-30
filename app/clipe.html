@@ -4,24 +4,55 @@
 <style>html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>
 </head><body><div id="p"></div>
 <script>
-/* Player dos clipes da Central: toca a playlist (id vem no #list=...) sem som, aleatória, em loop.
-   A TV manda {cmd:'prox'|'pausa'|'toca'} e recebe {clipe:'tit'|'erro'|'falhou'}. */
-var lista = (location.hash.match(/list=([\w-]+)/) || [])[1], P = null, pronto = false, erros = 0;
+/* Player dos clipes da Central: toca a playlist (#list=...&vol=..) em ordem aleatória e em loop.
+   A TV manda {cmd:'prox'|'pausa'|'toca'|'vol',v} e recebe {clipe:'tit'|'erro'|'falhou'|'diag'}. */
+var q = {}; location.hash.slice(1).split('&').forEach(function (kv) { var a = kv.split('='); q[a[0]] = decodeURIComponent(a[1] || ''); });
+var lista = q.list, vol = +q.vol || 40, P = null, pronto = false, erros = 0, ultimoPlay = 0, ids = [], pos = 0;
 function avisa(o) { try { parent.postMessage(JSON.stringify(o), '*'); } catch (e) {} }
+function diag(t) { avisa({ clipe: 'diag', t: t }); }
+function embaralha(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function tocaPos() { if (!ids.length) return; pos = (pos + ids.length) % ids.length; P.loadVideoById(ids[pos]); }
+function proximo() { if (ids.length) { pos++; tocaPos(); } else P.nextVideo(); }
+function som() { try { P.unMute(); P.setVolume(vol); } catch (e) {} }
 window.onYouTubeIframeAPIReady = function () {
+  diag('api pronta, lista ' + lista);
   P = new YT.Player('p', { width: '100%', height: '100%',
-    playerVars: { listType: 'playlist', list: lista, autoplay: 1, mute: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, iv_load_policy: 3, playsinline: 1, loop: 1, origin: location.origin },
+    playerVars: { listType: 'playlist', list: lista, autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, iv_load_policy: 3, playsinline: 1, origin: location.origin },
     events: {
-      onReady: function (e) { pronto = true; e.target.mute(); setTimeout(function () { try { e.target.setShuffle(true); e.target.setLoop(true); e.target.playVideoAt(0); } catch (x) {} }, 800); },
-      onStateChange: function (e) { if (e.data === 1) { erros = 0; var d = P.getVideoData() || {}; avisa({ clipe: 'tit', t: d.title || '' }); } },
-      onError: function (e) { erros++; if (erros >= 6) { avisa({ clipe: 'falhou', c: e.data }); return; } avisa({ clipe: 'erro', c: e.data }); setTimeout(function () { try { P.nextVideo(); } catch (x) {} }, 1500); }
+      onReady: function (e) {
+        pronto = true; diag('player pronto');
+        /* pega os ids da playlist e passa a tocar um por um, em ordem aleatória (pula os bloqueados) */
+        setTimeout(function () {
+          try { ids = (P.getPlaylist() || []).slice(); } catch (x) { ids = []; }
+          diag('playlist com ' + ids.length + ' videos');
+          if (ids.length) { embaralha(ids); pos = 0; tocaPos(); }
+          else P.playVideo();
+          som();
+        }, 1500);
+      },
+      onStateChange: function (e) {
+        diag('estado ' + e.data);
+        if (e.data === 1) { erros = 0; ultimoPlay = Date.now(); som(); var d = P.getVideoData() || {}; avisa({ clipe: 'tit', t: d.title || '' }); }
+        if (e.data === 0) proximo();
+      },
+      onError: function (e) {
+        erros++; var vid = ids[pos] || ''; diag('erro ' + e.data + ' no video ' + vid);
+        if (erros >= Math.max(6, ids.length)) { avisa({ clipe: 'falhou', c: e.data }); return; }
+        setTimeout(proximo, 1200);
+      }
     } });
 };
+/* vigia: se nada começou a tocar em 25 s, pula */
+setInterval(function () { if (!pronto || pausado) return; try { var st = P.getPlayerState(); if (st !== 1 && st !== 2 && st !== 3 && Date.now() - ultimoPlay > 25000) { diag('travado no estado ' + st + ', pulando'); ultimoPlay = Date.now(); proximo(); } } catch (e) {} }, 10000);
+var pausado = false;
 window.addEventListener('message', function (ev) {
   var m; try { m = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
   if (!m || !m.cmd || !P || !pronto) return;
-  if (m.cmd === 'prox') P.nextVideo(); else if (m.cmd === 'pausa') P.pauseVideo(); else if (m.cmd === 'toca') P.playVideo();
+  if (m.cmd === 'prox') proximo();
+  else if (m.cmd === 'pausa') { pausado = true; P.pauseVideo(); }
+  else if (m.cmd === 'toca') { pausado = false; ultimoPlay = Date.now(); P.playVideo(); som(); }
+  else if (m.cmd === 'vol') { vol = +m.v || vol; som(); }
 });
-if (lista) { var s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s); } else avisa({ clipe: 'falhou', c: 'sem lista' });
+if (lista) { var s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.onerror = function () { avisa({ clipe: 'falhou', c: 'api do youtube nao carregou' }); }; document.head.appendChild(s); } else avisa({ clipe: 'falhou', c: 'sem lista' });
 </script>
 </body></html>

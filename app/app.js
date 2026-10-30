@@ -116,6 +116,8 @@
     LISTA = nova; faixa = 0; pl.pause(); pl.removeAttribute('src');
   }
   function tocarMusica() {
+    /* com os clipes ligados, o som vem do clipe: as músicas param (o despertador continua) */
+    if (typeof clipeDeve === 'function' && clipeDeve()) { players.forEach(function (p) { if (!p.paused) p.pause(); }); srcAtual = null; return; }
     if (LISTA.length) { tocarPlaylist(); return; }
     if (!cfg.musica.on || document.hidden) { players.forEach(function (p) { p.pause(); }); srcAtual = null; return; }
     achaSrc(PAGNOME[pagina], function (src) {
@@ -178,22 +180,23 @@
   function clipeAtualizar() {
     var sec = document.getElementById('p-inicio'), box = document.getElementById('clipe'); if (!sec || !box) return;
     var on = clipeDeve(); sec.classList.toggle('com-clipe', on);
-    if (!on) { if (clipeFr) { box.querySelector('.clipe-v').innerHTML = ''; clipeFr = null; } return; }
+    if (!on) { if (clipeFr) { box.querySelector('.clipe-v').innerHTML = ''; clipeFr = null; tocarMusica(); } return; }
     if (!clipeFr) {
       clipeFr = document.createElement('iframe');
       clipeFr.setAttribute('allow', 'autoplay; encrypted-media'); clipeFr.setAttribute('frameborder', '0'); clipeFr.setAttribute('tabindex', '-1');
-      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista());
-      box.querySelector('.clipe-v').appendChild(clipeFr); clipeTocando = true;
+      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista()) + '&vol=' + ((cfg.musica && cfg.musica.vol) || 40);
+      box.querySelector('.clipe-v').appendChild(clipeFr); clipeTocando = true; tocarMusica(); diagAdd('clipe: abrindo player');
     }
-    var ver = pagina === HOME && !document.hidden;
+    var ver = !document.hidden && !despAtivo;  /* toca em qualquer página da Central; pausa fora dela e no despertador */
     if (ver !== clipeTocando) { clipeCmd(ver ? 'toca' : 'pausa'); clipeTocando = ver; }
   }
   window.addEventListener('message', function (ev) {
     var m; try { m = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
     if (!m || !m.clipe) return;
     if (m.clipe === 'tit') { var t = document.getElementById('clipe-tit'); if (t) t.textContent = m.t || 'Clipes'; }
+    else if (m.clipe === 'diag') diagAdd('clipe: ' + m.t);
     else if (m.clipe === 'erro') registrar('Clipe pulado (erro ' + m.c + ')');
-    else if (m.clipe === 'falhou') { clipeFalhou = true; registrar('Clipes do YouTube não tocaram (erro ' + m.c + ')'); clipeAtualizar(); }
+    else if (m.clipe === 'falhou') { diagAdd('clipe: falhou ' + m.c); clipeFalhou = true; registrar('Clipes do YouTube não tocaram (erro ' + m.c + ')'); clipeAtualizar(); }
   });
 
   /* ---------- utilidades ---------- */
