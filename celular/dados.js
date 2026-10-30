@@ -29,7 +29,7 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json' };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json' };
   var S = {}, FILA = {};
   Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
@@ -228,7 +228,7 @@
     return { ids: ids, novos: ids.filter(function (t) { return !done[t]; }), semPar: it.abertos.length - ids.length };
   }
   function renderImport(J, ids) {
-    if (!imp.aberto) return '<div class="btns dois" style="margin-bottom:12px"><button class="b sel" data-cd="impAbre">Importar do PS5</button><button class="b" data-cd="sync">Atualizar</button></div>';
+    if (!imp.aberto) return '<button class="b novo" style="margin:0 0 10px" data-cd="irLanc">🎮 Lançamentos de jogos</button><div class="btns dois" style="margin-bottom:12px"><button class="b sel" data-cd="impAbre">Importar do PS5</button><button class="b" data-cd="sync">Atualizar</button></div>';
     var links = ids.filter(function (k) { return J[k].npwr; }).map(function (k) {
       return '<a class="b" style="display:block;text-align:center;text-decoration:none" href="' + PS5 + '/fs?path=' + encodeURIComponent(PS5_DIR + J[k].npwr + '/TRPTITLE.DAT') + '" target="_blank" rel="noopener">Baixar · ' + esc(J[k].short || J[k].name) + '</a>';
     }).join('');
@@ -401,6 +401,42 @@
     else op('ev', 'evNovo', { id: 'e' + Date.now().toString(36), d: calDia, h: hr, t: t, tipo: tipoNovo, anual: tipoNovo === 'aniversario' });
   });
 
+  /* ---- lançamentos de jogos: calendário com capas + lista ---- */
+  var PLAT_COR = { 'PS5': '#4F86F7', 'Xbox': '#5CC46B', 'PC': '#B9B6DA', 'Switch 2': '#FF5A5F', 'Switch': '#FF8A8C' };
+  var lMes = null, lDia = null, lFiltro = ler('cd-lanc-filtro', '');
+  function lancFiltrados() {
+    var J = (S.lanc && S.lanc.jogos) || [];
+    return J.filter(function (j) { return !lFiltro || (lFiltro === 'meu' ? j.meu : j.plat.indexOf(lFiltro) >= 0); }).sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+  }
+  function renderLanc() {
+    var el = $('lanc-dados'); if (!el) return;
+    if (!token()) { el.innerHTML = semChave(); return; }
+    if (!S.lanc) { el.innerHTML = '<div class="card aviso">Carregando lançamentos…</div>'; return; }
+    var hj = hoje(), L = lancFiltrados(); if (!lMes) lMes = (L.filter(function (j) { return j.d >= hj; })[0] || { d: hj }).d.slice(0, 7);
+    var y = +lMes.slice(0, 4), m = +lMes.slice(5, 7) - 1, ini = new Date(y, m, 1), porDia = {};
+    L.forEach(function (j) { (porDia[j.d] = porDia[j.d] || []).push(j); });
+    var g = '<div class="mes lanc-mes">' + ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (x) { return '<div class="ds">' + x + '</div>'; }).join('');
+    for (var i = 0; i < 42; i++) {
+      var dd = new Date(y, m, 1 - ini.getDay() + i), id = iso(dd); if (i === 35 && dd.getMonth() !== m) break;
+      var js = porDia[id] || [], j0 = js.filter(function (x) { return x.meu; })[0] || js[0];
+      g += '<button data-cd="lDia" data-v="' + id + '" class="' + (dd.getMonth() !== m ? 'fora ' : '') + (id === hj ? 'hoje ' : '') + (id === lDia ? 'sel ' : '') + (j0 ? 'tem-jogo' : '') + '"' + (j0 ? ' data-capa="' + j0.id + '"' : '') + '><span class="n">' + dd.getDate() + '</span>' + (js.length > 1 ? '<span class="qt">' + js.length + '</span>' : '') + '</button>';
+    }
+    g += '</div>';
+    var lista = lDia ? (porDia[lDia] || []) : L.filter(function (j) { return j.d >= hj; });
+    var DSC = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    var itens = lista.map(function (j) {
+      var p = j.d.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]), falta = Math.round((dt - new Date(hj.replace(/-/g, '/'))) / 864e5);
+      return '<div class="jogo"><div class="capa" data-capa="' + j.id + '"><span>' + esc(j.nome) + '</span></div><div class="info"><b>' + (j.meu ? '★ ' : '') + esc(j.nome) + '</b>' +
+        '<small>' + DSC[dt.getDay()] + ', ' + p[2] + '/' + p[1] + '/' + p[0] + (falta === 0 ? ' · hoje!' : falta === 1 ? ' · amanhã' : falta > 1 ? ' · em ' + falta + ' dias' : ' · já saiu') + '</small>' +
+        '<div class="plats">' + j.plat.map(function (x) { return '<i style="border-color:' + (PLAT_COR[x] || '#888') + ';color:' + (PLAT_COR[x] || '#ccc') + '">' + esc(x) + '</i>'; }).join('') + '</div></div></div>';
+    }).join('');
+    el.innerHTML = '<div class="filtros lanc-f">' + [['', 'Todos'], ['meu', '★ Quero'], ['PS5', 'PS5'], ['Switch 2', 'Switch 2'], ['PC', 'PC']].map(function (f) { return '<button class="b' + (lFiltro === f[0] ? ' sel' : '') + '" data-cd="lFiltro" data-v="' + f[0] + '">' + f[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="card"><div class="mes-cab"><button data-cd="lMes" data-v="-1" aria-label="Mês anterior">‹</button><h2>' + MESES_N[m] + ' ' + y + '</h2><button data-cd="lMes" data-v="1" aria-label="Próximo mês">›</button></div>' + g + '</div>' +
+      '<div class="card" style="margin-top:10px"><h2>' + (lDia ? 'Dia ' + lDia.split('-').reverse().slice(0, 2).join('/') + ' <button class="data-chip" data-cd="lDia" data-v="">ver todos</button>' : 'Próximos lançamentos') + '</h2>' + (itens || '<div class="aviso">Nenhum lançamento.</div>') + '</div>' +
+      '<p class="aviso" style="margin:10px 4px">Capas: Wikipedia. Datas: VGC, releasecalendar.games e gamegator (atualizado em ' + ((S.lanc.atualizado || '').slice(8, 10) + '/' + (S.lanc.atualizado || '').slice(5, 7)) + ').</p>';
+    if (window.CAPAS) CAPAS.aplicar(el, S.lanc.jogos);
+  }
+
   /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function espelhaMarc() {
@@ -414,7 +450,7 @@
     document.querySelectorAll('#modos button').forEach(function (b) { b.classList.toggle('sel', b.dataset.v === m); if (token()) b.disabled = false; });
     var av = $('modo-repo'); if (av) av.textContent = 'Modo escolhido: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[m] || m) + '. Se a TV estiver desligada, ela entra nesse modo quando ligar.';
   }
-  function render() { renderProj(); renderEst(); renderTar(); renderCal(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
+  function render() { renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
 
   function novoId(nome) { var b = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'projeto', id = b, n = 2; while (S.proj.projetos[id]) id = b + '-' + n++; return id; }
 
@@ -461,6 +497,10 @@
       var d5 = lerData(r5); if (d5 === null) { toast('Data inválida. Use dia/mês, ex.: 05/11'); return; }
       op('tar', 'tarData', { id: t5.id, data: d5 });
     }
+    else if (a === 'lDia') { lDia = b.dataset.v || null; render(); }
+    else if (a === 'lMes') { var pl = lMes.split('-'), nl = new Date(+pl[0], +pl[1] - 1 + +b.dataset.v, 1); lMes = iso(nl).slice(0, 7); lDia = null; render(); }
+    else if (a === 'lFiltro') { lFiltro = b.dataset.v; gravar('cd-lanc-filtro', lFiltro); lMes = null; lDia = null; render(); }
+    else if (a === 'irLanc') { if (window.CEL_ABA) CEL_ABA('lanc'); }
     else if (a === 'calDia') { calDia = b.dataset.v; if (calDia.slice(0, 7) !== calMes) calMes = calDia.slice(0, 7); render(); }
     else if (a === 'calMes') { var pm = calMes.split('-'), nm = new Date(+pm[0], +pm[1] - 1 + +b.dataset.v, 1); calMes = iso(nm).slice(0, 7); render(); }
     else if (a === 'tipoNovo') { tipoNovo = b.dataset.v; render(); }

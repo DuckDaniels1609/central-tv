@@ -6,7 +6,7 @@
   var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   var DIAS_C = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-  var NPAG = 5, HOME = 2;
+  var NPAG = 6, HOME = 2;
   var pagina = HOME, foco = null, ultimoFoco = {}, cfgAberto = false;
   var tizenOk = typeof window.tizen !== 'undefined';
   var appsTV = []; /* {id, name} dos apps instalados */
@@ -61,7 +61,7 @@
     });
   }
   /* ---------- música de fundo (arquivos em musicas/) ---------- */
-  var PAGNOME = ['agenda', 'projetos', 'inicio', 'treino', 'exercicios'];
+  var PAGNOME = ['agenda', 'projetos', 'inicio', 'treino', 'exercicios', 'lancamentos'];
   var players = [new Audio(), new Audio()], ativo = 0, srcAtual = null, fadeT = null, semMusica = {};
   players.forEach(function (p) { p.loop = true; p.preload = 'auto'; });
   function volAlvo() { return Math.max(0, Math.min(1, (cfg.musica.vol || 0) / 100)); }
@@ -531,6 +531,61 @@
     }).catch(function () { lendoEntrada = false; });
   }
 
+  /* lançamentos de jogos: próximos 8, com capa (Wikipedia) */
+  /* Capas dos jogos: imagem principal do artigo do jogo na Wikipedia (carregada na hora, guardada por 7 dias).
+     Só aceita a página se ela for de um jogo, para não pegar a foto de outra coisa com o mesmo nome. */
+  var CAPAS = (function () {
+    function ler(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+    function gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    var fila = [], ativos = 0;
+    function proximo() {
+      if (ativos >= 3 || !fila.length) return;
+      var t = fila.shift(); ativos++;
+      t(function () { ativos--; proximo(); });
+      proximo();
+    }
+    function buscar(j, cb) {
+      var k = 'capa-' + j.id, c = ler(k);
+      if (c && Date.now() - c.em < (c.u ? 7 : 1) * 864e5) { cb(c.u); return; }
+      fila.push(function (fim) {
+        var base = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages|description&piprop=thumbnail&pithumbsize=480&';
+        var url = base + (j.wiki ? 'titles=' + encodeURIComponent(j.wiki) : 'generator=search&gsrlimit=3&gsrsearch=' + encodeURIComponent('"' + j.nome + '" video game'));
+        fetch(url).then(function (r) { return r.json(); }).then(function (r) {
+          var pages = r && r.query && r.query.pages ? Object.keys(r.query.pages).map(function (x) { return r.query.pages[x]; }) : [];
+          pages.sort(function (a, b) { return (a.index || 0) - (b.index || 0); });
+          var palavra = j.nome.toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length > 3; })[0] || j.nome.toLowerCase();
+          var ok = pages.filter(function (p) { return p.thumbnail && (j.wiki || (/game/i.test(p.description || '') && p.title.toLowerCase().indexOf(palavra) >= 0)); })[0];
+          var u = ok ? ok.thumbnail.source : '';
+          gravar(k, { u: u, em: Date.now() }); cb(u); fim();
+        }).catch(function () { cb(''); fim(); });
+      });
+      proximo();
+    }
+    /* coloca a capa em todos os elementos com data-capa="id" */
+    function aplicar(raiz, jogos) {
+      var por = {}; (jogos || []).forEach(function (j) { por[j.id] = j; });
+      Array.prototype.forEach.call((raiz || document).querySelectorAll('[data-capa]'), function (el) {
+        var j = por[el.getAttribute('data-capa')]; if (!j || el.getAttribute('data-ok')) return;
+        el.setAttribute('data-ok', '1');
+        buscar(j, function (u) { if (u) { el.style.backgroundImage = 'url("' + u + '")'; el.classList.add('tem'); } });
+      });
+    }
+    return { buscar: buscar, aplicar: aplicar };
+  })();
+
+  var PLAT_COR = { 'PS5': '#4F86F7', 'Xbox': '#5CC46B', 'PC': '#C9CFF0', 'Switch 2': '#FF5A5F', 'Switch': '#FF8A8C' };
+  function renderLancTV() {
+    var el = $('lanc-grid'); if (!el) return;
+    var d = ler('dados-lanc', null); if (!d || !d.jogos) { el.innerHTML = '<div class="card"><span class="vazio">Os lançamentos aparecem aqui quando a TV tiver a chave dos dados.</span></div>'; return; }
+    var hj = isoD(new Date()), h0 = new Date(); h0.setHours(0, 0, 0, 0);
+    var L = d.jogos.filter(function (j) { return j.d >= hj; }).sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : (b.meu ? 1 : 0) - (a.meu ? 1 : 0); }).slice(0, 8);
+    el.innerHTML = L.map(function (j) {
+      var p = j.d.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]), falta = Math.round((dt - h0) / 864e5);
+      return '<div class="lanc-card' + (j.meu ? ' meu' : '') + '"><div class="lanc-capa" data-capa="' + j.id + '"><span>' + esc(j.nome) + '</span></div><div class="lanc-info"><b>' + (j.meu ? '★ ' : '') + esc(j.nome) + '</b><small>' + DIAS_C[dt.getDay()] + ' ' + p[2] + '/' + p[1] + (falta === 0 ? ' · hoje!' : falta === 1 ? ' · amanhã' : ' · em ' + falta + ' dias') + '</small><div class="plats-tv">' + j.plat.map(function (x) { return '<i style="border-color:' + (PLAT_COR[x] || '#888') + ';color:' + (PLAT_COR[x] || '#ddd') + '">' + esc(x) + '</i>'; }).join('') + '</div></div></div>';
+    }).join('');
+    CAPAS.aplicar(el, d.jogos);
+  }
+
   function dadosSync() {
     if (!window.DADOS_GH) return;
     ghBuscar('projetos.json', 'dados-proj', function (d, mudou) { if (mudou) { renderProjetos(); renderEvoPassos(); registrar('Projetos atualizados do celular'); } });
@@ -541,6 +596,7 @@
     ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
     ghBuscar('eventos.json', 'dados-ev', function (d, mudou) { if (mudou) renderAgenda(); });
     ghBuscar('clientes.json', 'dados-cli', function () {});
+    ghBuscar('lancamentos.json', 'dados-lanc', function (d, mudou) { if (mudou) renderLancTV(); });
     Object.keys(ghFila).forEach(function (a) { ghEnviar(a, 0); });
   }
 
@@ -1198,7 +1254,7 @@
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
   setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(entradaTV, 7000); setInterval(entradaTV, 30000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
-  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV();
+  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV();
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();

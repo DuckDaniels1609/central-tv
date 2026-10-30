@@ -192,3 +192,16 @@ body.discreto .hoje2 .trab { display: none; }
 .mes-tv span i { display: flex; gap: 4px; height: 9px; }
 .mes-tv span u { width: 9px; height: 9px; border-radius: 50%; display: block; }
 .mes-tv span.hoje u { outline: 2px solid #1C1838; }
+
+#p-lanc .bg-lanc { position: absolute; inset: 0; background: radial-gradient(120% 80% at 80% 0%, #5B2E7A 0%, transparent 60%), linear-gradient(180deg, #0B0F33 0%, #2A1B5C 60%, #3A1F5F 100%); }
+.lanc-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 24px; flex-grow: 1; min-height: 0; }
+.lanc-card { display: flex; gap: 18px; background: rgba(16,20,58,.88); border: 3px solid rgba(255,255,255,.14); border-radius: 22px; padding: 16px; min-width: 0; overflow: hidden; }
+.lanc-card.meu { border-color: var(--acc); }
+.lanc-capa { flex: none; width: 150px; border-radius: 14px; background: linear-gradient(160deg, #3A2A7A, #1B1A4A) center/cover; display: grid; place-items: center; }
+.lanc-capa span { font-size: 18px; font-weight: 800; text-align: center; padding: 8px; color: #C9CFF0; }
+.lanc-capa.tem span { display: none; }
+.lanc-info { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.lanc-info b { font-size: 24px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lanc-info small { font-size: 20px; color: #C9CFF0; }
+.plats-tv { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.plats-tv i { font-style: normal; font-size: 16px; font-weight: 800; border: 2px solid; border-radius: 8px; padding: 2px 8px; }
