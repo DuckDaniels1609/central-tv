@@ -70,8 +70,8 @@ h1 { font-size: 30px; line-height: 1.1; margin: 8px 0 4px; font-weight: 800; tex
 .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .btns.dois { grid-template-columns: 1fr 1fr; }
-button.b { font: inherit; font-weight: 800; font-size: 14px; color: var(--tinta); background: rgba(255,255,255,.08); border: 1px solid var(--linha); border-radius: 14px; padding: 13px 6px; cursor: pointer; }
-button.b:active { transform: scale(.97); }
+button.b, a.b { font: inherit; font-weight: 800; font-size: 14px; color: var(--tinta); background: rgba(255,255,255,.08); border: 1px solid var(--linha); border-radius: 14px; padding: 13px 6px; cursor: pointer; }
+button.b:active, a.b:active { transform: scale(.97); }
 button.b.sel { background: var(--acc); color: #2A0E1C; border-color: var(--acc); }
 button.b:disabled { opacity: .4; }
 input.cod { width: 100%; font: inherit; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-align: center; text-transform: uppercase; padding: 12px; border-radius: 14px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--ouro); }
@@ -194,7 +194,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
   <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
 </nav>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=2"></script>
+<script src="dados.js?v=3"></script>
 
 <script>
 (function () {

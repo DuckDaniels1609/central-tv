@@ -44,6 +44,12 @@
     projNovo: function (d, a) { if (!d.projetos[a.id]) d.projetos[a.id] = { nome: a.nome, objetivo: a.obj || '', ordem: a.ordem, status: 'ativo', etapas: [] }; },
     projCampo: function (d, a) { var p = d.projetos[a.p]; if (p) p[a.campo] = a.v; },
     trofeu: function (d, a) { var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {}; if (a.ok) g.done[a.t] = true; else delete g.done[a.t]; },
+    importa: function (d, a) {
+      var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {};
+      a.ids.forEach(function (t) { g.done[t] = true; });
+      if (a.ids.length && (!g.status || g.status === 'fila')) g.status = 'jogando';
+      if (a.npwr && d.jogos[a.g] && !d.jogos[a.g].npwr) d.jogos[a.g].npwr = a.npwr;
+    },
     jogoStatus: function (d, a) { var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.status = a.v; }
   };
 
@@ -144,7 +150,7 @@
     if (!S.est) { el.innerHTML = '<div class="card aviso">Carregando a estante…</div>'; return; }
     var J = S.est.jogos, P = S.est.progresso || {};
     var ids = Object.keys(J).sort(function (a, b) { return (J[a].order || 99) - (J[b].order || 99); });
-    el.innerHTML = ids.map(function (id) {
+    el.innerHTML = renderImport(J, ids) + ids.map(function (id) {
       var g = J[id], pr = P[id] || {}, done = pr.done || {}, tr = g.trophies || [];
       var feitos = tr.filter(function (t) { return done[t.id]; }).length, plat = tr.filter(function (t) { return t.type === 'platina'; })[0];
       var st = g.tbd ? 'lancamento' : (plat && done[plat.id] ? 'platinado' : (pr.status || 'fila'));
@@ -169,6 +175,68 @@
       return h + '</div>';
     }).join('');
   }
+
+  /* ---- importar troféus do PS5 (TRPTITLE.DAT), igual ao botão da Estante no PC ---- */
+  var PS5 = 'http://192.168.7.5:8888', PS5_DIR = '/user/home/13b5b6f1/trophy2/nobackup/data/';
+  var imp = { aberto: false, itens: [], msg: '' };
+  function parseTrp(buf) {
+    var b = new Uint8Array(buf);
+    if (b.length < 0x80 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'T2PD') throw new Error('não é um TRPTITLE.DAT');
+    var partes = [b.subarray(0, 0x40)];
+    for (var o = 0x40; o < b.length; o += 0x420) partes.push(b.subarray(o, Math.min(o + 0x400, b.length)));
+    var len = 0; partes.forEach(function (x) { len += x.length; });
+    var d = new Uint8Array(len), p = 0; partes.forEach(function (x) { d.set(x, p); p += x.length; });
+    var dv = new DataView(d.buffer), txt = '';
+    for (var i = 0; i < b.length; i++) txt += String.fromCharCode(b[i]);
+    var m = txt.match(/NPWR\d{5}_\d{2}/), npwr = m ? m[0] : null;
+    function acha(sig) { var out = []; for (var i = 0; i + 8 <= d.length; i += 4) { var ok = true; for (var k = 0; k < 8; k++) if (d[i + k] !== sig[k]) { ok = false; break; } if (ok) out.push(i); } return out; }
+    var r5 = acha([0, 0, 5, 0, 0, 0, 0, 0xc0]).slice(1), r8 = acha([0, 0, 8, 0, 0, 0, 0, 0x50]).slice(1), abertos = [];
+    r8.forEach(function (o) { if (o + 0x40 <= d.length && (dv.getUint32(o + 0x14) & 0x10)) abertos.push(dv.getUint32(o + 0x10)); });
+    return { npwr: npwr, total: r5.length, abertos: abertos };
+  }
+  function adivinha(r) {
+    var J = S.est.jogos, ids = Object.keys(J);
+    for (var i = 0; i < ids.length; i++) if (J[ids[i]].npwr && J[ids[i]].npwr === r.npwr) return ids[i];
+    var mesmos = ids.filter(function (k) { return !J[k].npwr && !J[k].tbd && (J[k].trophies || []).length === r.total; });
+    return mesmos.length === 1 ? mesmos[0] : '';
+  }
+  function plano(it) {
+    var g = S.est.jogos[it.g]; if (!g) return null;
+    var mapa = {}; (g.trophies || []).forEach(function (t, i) { mapa[t.psnId != null ? t.psnId : i] = t.id; });
+    var done = ((S.est.progresso[it.g] || {}).done) || {};
+    var ids = it.abertos.map(function (n) { return mapa[n]; }).filter(Boolean);
+    return { ids: ids, novos: ids.filter(function (t) { return !done[t]; }), semPar: it.abertos.length - ids.length };
+  }
+  function renderImport(J, ids) {
+    if (!imp.aberto) return '<div class="btns dois" style="margin-bottom:12px"><button class="b sel" data-cd="impAbre">Importar do PS5</button><button class="b" data-cd="sync">Atualizar</button></div>';
+    var links = ids.filter(function (k) { return J[k].npwr; }).map(function (k) {
+      return '<a class="b" style="display:block;text-align:center;text-decoration:none" href="' + PS5 + '/fs?path=' + encodeURIComponent(PS5_DIR + J[k].npwr + '/TRPTITLE.DAT') + '" target="_blank" rel="noopener">Baixar · ' + esc(J[k].short || J[k].name) + '</a>';
+    }).join('');
+    var opc = function (sel) { return '<option value="">— qual jogo? —</option>' + ids.filter(function (k) { return !J[k].tbd; }).map(function (k) { return '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + esc(J[k].short || J[k].name) + '</option>'; }).join(''); };
+    var linhas = imp.itens.map(function (it, i) {
+      if (it.erro) return '<div class="aviso" style="color:var(--acc);padding:8px 0">' + esc(it.nome) + ': ' + esc(it.erro) + '</div>';
+      var pl = plano(it);
+      return '<div class="et" style="display:block"><b>' + esc(it.npwr || it.nome) + '</b> <span class="aviso">· ' + it.abertos.length + ' de ' + it.total + ' no PS5</span>' +
+        '<select class="impsel" data-i="' + i + '" style="display:block;width:100%;margin:6px 0;font:inherit;font-size:16px;padding:8px;border-radius:10px;background:rgba(0,0,0,.25);color:var(--tinta);border:1px solid var(--linha)">' + opc(it.g) + '</select>' +
+        '<div class="aviso">' + (pl ? pl.novos.length + ' troféus novos para marcar' + (pl.semPar ? ' · ' + pl.semPar + ' sem par na lista' : '') + ((S.est.jogos[it.g].trophies || []).length !== it.total ? ' · Atenção: quantidade de troféus diferente, confira o jogo' : '') : 'Escolha o jogo deste arquivo.') + '</div></div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:12px"><h2>Importar troféus do PS5</h2>' +
+      '<p class="aviso">1. Em casa, no Wi-Fi, com o jailbreak ativo, toque em <b>Baixar</b> no jogo (abre o Safari e salva o arquivo em Arquivos › Downloads). Para outro jogo, use o gerenciador: <a style="color:var(--azul)" href="' + PS5 + '" target="_blank" rel="noopener">abrir o PS5</a>.<br>2. Volte aqui e toque em <b>Escolher arquivos</b>. Pode escolher vários. Só marca; nada é desmarcado.</p>' +
+      '<div style="display:grid;gap:8px;margin:10px 0">' + links + '</div>' + linhas +
+      '<div class="btns" style="margin-top:10px"><button class="b' + (imp.itens.length ? '' : ' sel') + '" data-cd="impEscolhe">Escolher arquivos</button>' +
+      (imp.itens.length ? '<button class="b sel" data-cd="impAplica">Aplicar</button>' : '<span></span>') + '<button class="b" data-cd="impFecha">Fechar</button></div>' +
+      (imp.msg ? '<p class="aviso" style="color:var(--verde);margin:10px 0 0">' + esc(imp.msg) + '</p>' : '') +
+      '<input type="file" id="impArq" multiple hidden></div>';
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'impArq') {
+      var fs = Array.prototype.slice.call(e.target.files || []); imp.itens = []; imp.msg = '';
+      Promise.all(fs.map(function (f) {
+        return f.arrayBuffer().then(function (buf) { var r = parseTrp(buf); r.nome = f.name; r.g = adivinha(r); imp.itens.push(r); })
+          .catch(function (er) { imp.itens.push({ nome: f.name, erro: er.message || 'arquivo inválido' }); });
+      })).then(render);
+    } else if (e.target.classList.contains('impsel')) { imp.itens[+e.target.dataset.i].g = e.target.value; render(); }
+  });
 
   function renderInicio() {
     var el = $('h-proj'); if (!el || !S.proj) return;
@@ -219,6 +287,14 @@
     else if (a === 'tr') {
       var g = b.dataset.g, t = b.dataset.t, dn = ((S.est.progresso[g] || {}).done || {});
       op('est', 'trofeu', { g: g, t: t, ok: !dn[t] });
+    }
+    else if (a === 'impAbre') { imp.aberto = true; imp.itens = []; imp.msg = ''; render(); }
+    else if (a === 'impFecha') { imp.aberto = false; imp.itens = []; render(); }
+    else if (a === 'impEscolhe') { var f = $('impArq'); if (f) { f.value = ''; f.click(); } }
+    else if (a === 'impAplica') {
+      var n = 0, jg = 0;
+      imp.itens.forEach(function (it) { if (it.erro || !it.g) return; var pl = plano(it); if (!pl) return; n += pl.novos.length; jg++; op('est', 'importa', { g: it.g, ids: pl.ids, npwr: it.npwr }); });
+      imp.itens = []; imp.msg = 'Pronto: ' + n + ' troféus novos marcados em ' + jg + ' jogo(s).'; render();
     }
     else if (a === 'jgSt') op('est', 'jogoStatus', { g: b.dataset.g, v: b.dataset.v });
     else if (a === 'faltam' || a === 'todos') { filtroFaltam = a === 'faltam'; gravar('cd-faltam', filtroFaltam); render(); }
