@@ -655,7 +655,6 @@
       });
       diagAdd('escuta de apps ligada');
     } catch (e) { diagAdd('escuta de apps indisponível: ' + e.message); }
-    setInterval(function () { if (document.hidden && bgAvisos < 3) { bgAvisos++; diagAdd('Central viva em segundo plano'); } }, 5000);
     var ultimaLista = '';
     function listaApps(rotulo) {
       try {
@@ -666,9 +665,8 @@
       } catch (e) { diagAdd('lista de apps indisponível: ' + e.message); }
       try { if (tizen.tvwindow && tizen.tvwindow.getSource) diagAdd('entrada: ' + JSON.stringify(tizen.tvwindow.getSource())); } catch (e2) {}
     }
-    setInterval(function () { if (document.hidden) listaApps(''); }, 3000);
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) { bgAvisos = 0; diagAdd('Central saiu da tela' + (menuSamsung ? ' (Menu Samsung)' : '') + (Date.now() - (window.ultimoLancamento || 0) < 5000 ? ' (abriu app pela Central)' : '')); setTimeout(function () { listaApps('apps rodando'); }, 1200); }
+      if (document.hidden) { bgAvisos = 0; diagAdd('Central saiu da tela' + (menuSamsung ? ' (Menu Samsung)' : '') + (Date.now() - (window.ultimoLancamento || 0) < 5000 ? ' (abriu app pela Central)' : '')); }
       else { menuSamsung = false; diagAdd('Central voltou para a tela'); }
     });
   })();
