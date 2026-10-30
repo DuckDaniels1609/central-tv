@@ -16,7 +16,7 @@
 <style>
 /* Central no celular: mesma noite anime da TV, em coluna; abas fixas embaixo, como app */
 :root {
-  --ceu1: #0B0F33; --ceu2: #2A1B5C; --ceu3: #5B2E7A;
+  --ceu1: #0B0F33; --ceu2: #2A1B5C; --ceu3: #5B2E7A; --ceu4: #3A1F5F;
   --card: rgba(18, 20, 52, .72); --linha: rgba(255, 255, 255, .10);
   --tinta: #F2F0FF; --suave: #B9B6DA; --acc: #FF7FA8; --azul: #8FE3FF; --ouro: #FFD36E; --verde: #9CF2A8;
   --font: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', ui-rounded, system-ui, sans-serif;
@@ -27,7 +27,7 @@ html, body { margin: 0; min-height: 100%; }
 html { height: -webkit-fill-available; }
 body { min-height: 100vh; min-height: -webkit-fill-available; overscroll-behavior-y: none; }
 body { font-family: var(--font); color: var(--tinta); background: var(--ceu1);
-  background-image: radial-gradient(120% 60% at 80% 0%, var(--ceu3) 0%, transparent 60%), linear-gradient(180deg, var(--ceu1) 0%, var(--ceu2) 55%, #3A1F5F 100%);
+  background-image: radial-gradient(120% 60% at 80% 0%, var(--ceu3) 0%, transparent 60%), linear-gradient(180deg, var(--ceu1) 0%, var(--ceu2) 55%, var(--ceu4) 100%);
   background-attachment: fixed; font-weight: 500; -webkit-font-smoothing: antialiased; }
 .estrelas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 .wrap { position: relative; z-index: 1; max-width: 560px; margin: 0 auto;
@@ -95,6 +95,7 @@ section.pag[hidden] { display: none !important; }
 .gav-grid button { font: inherit; color: var(--tinta); background: rgba(255,255,255,.06); border: 1px solid var(--linha); border-radius: 18px; padding: 16px 6px; display: grid; justify-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .gav-grid button svg { width: 28px; height: 28px; color: var(--acc); }
 .gav-grid button.on { border-color: var(--acc); }
+.gav-grid button[hidden] { display: none; }
 .mes-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .mes-cab h2 { margin: 0; text-transform: capitalize; }
 .mes-cab button { font: inherit; font-size: 20px; font-weight: 800; color: var(--tinta); background: rgba(255,255,255,.08); border: 1px solid var(--linha); border-radius: 12px; width: 42px; height: 38px; cursor: pointer; }
@@ -281,6 +282,8 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
   <div class="gav-box" role="dialog" aria-label="Mais seções">
     <div class="gav-alca"></div>
     <div class="gav-grid">
+      <button data-ir="tar" hidden></button>
+      <button data-ir="cal" hidden></button>
       <button data-ir="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Projetos</span></button>
       <button data-ir="est"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 6h3a3 3 0 0 1-3 3M7 6H4a3 3 0 0 0 3 3"/></svg><span>Estante</span></button>
       <button data-ir="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Evo Brazil</span></button>
@@ -294,7 +297,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-30.23';
+  var V = '2026-10-30.24';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;
@@ -324,7 +327,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 })();
 </script>
 <script src="capas.js?v=2"></script>
-<script src="dados.js?v=19"></script>
+<script src="dados.js?v=20"></script>
 
 <script>
 (function () {
@@ -453,7 +456,8 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
     if (!document.getElementById('p-' + p)) p = 'inicio';
     document.querySelectorAll('section.pag').forEach(function (s) { s.hidden = s.id !== 'p-' + p; });
     document.querySelectorAll('nav.abas button[data-p]').forEach(function (b) { b.classList.toggle('on', b.dataset.p === p); });
-    $('mais-btn').classList.toggle('on', MAIS_P.indexOf(p) >= 0);
+    var naBarra = Array.prototype.map.call(document.querySelectorAll('nav.abas button[data-p]'), function (b) { return b.dataset.p; });
+    $('mais-btn').classList.toggle('on', naBarra.indexOf(p) < 0);
     document.querySelectorAll('.gav-grid button').forEach(function (b) { b.classList.toggle('on', b.dataset.ir === p); });
     $('gaveta').hidden = true;
     window.scrollTo(0, 0); try { sessionStorage.setItem('aba', p); } catch (e) {}

@@ -29,7 +29,7 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json', res: 'resumo.json' };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json', res: 'resumo.json', cfg: 'config.json' };
   var S = {}, FILA = {};
   Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
@@ -477,6 +477,37 @@
       '<button class="b novo" data-cd="fechaColinha">Fechar</button></div></div>';
   }
 
+  /* ---- personalização do app (vem do Editor da Central TV, em config.json → celular) ---- */
+  var TEMAS = { noite: ['#0B0F33', '#2A1B5C', '#5B2E7A', '#3A1F5F'], oceano: ['#06202E', '#0E3B57', '#1F6E8C', '#0B2F44'], sakura: ['#2A0F24', '#4A1D3D', '#8A3B6A', '#3A1430'], floresta: ['#081C15', '#12372A', '#2D6A4F', '#16302A'], grafite: ['#0E0F14', '#1C1E26', '#3A3F4F', '#22252E'] };
+  var NOMES_ABA = { tar: 'Tarefas', cal: 'Calendário', proj: 'Projetos', est: 'Estante', lanc: 'Lançamentos', treino: 'Evo', gym: 'Academia', tv: 'TV' };
+  var icones = null, celAplicado = '';
+  function pegaIcones() {
+    if (icones) return icones; icones = {};
+    document.querySelectorAll('nav.abas button[data-p], .gav-grid button[data-ir]').forEach(function (b) { var k = b.dataset.p || b.dataset.ir, sv = b.querySelector('svg'); if (sv && !icones[k]) icones[k] = sv.outerHTML; });
+    return icones;
+  }
+  function aplicarCelular() {
+    var c = S.cfg && S.cfg.celular; if (!c) return;
+    var chave = JSON.stringify(c); if (chave === celAplicado) return; celAplicado = chave;
+    var r = document.documentElement.style;
+    if (c.cor) r.setProperty('--acc', c.cor);
+    var t = TEMAS[c.tema] || TEMAS.noite; r.setProperty('--ceu1', t[0]); r.setProperty('--ceu2', t[1]); r.setProperty('--ceu3', t[2]); r.setProperty('--ceu4', t[3]);
+    var ini = c.inicio || {};
+    var mostra = function (el, v) { if (el) el.style.display = v === false ? 'none' : ''; };
+    mostra($('tvcard'), ini.tv); mostra(document.querySelector('.hoje3'), ini.treino);
+    mostra($('h-tar') && $('h-tar').closest('.card'), ini.tarefas); mostra($('h-proj') && $('h-proj').closest('.card'), ini.projetos);
+    var abas = (c.abas || []).filter(function (a) { return NOMES_ABA[a]; }).slice(0, 2);
+    if (abas.length === 2) {
+      var ic = pegaIcones(), bts = document.querySelectorAll('nav.abas button[data-p]');
+      abas.forEach(function (a, i) { var b = bts[i + 1]; if (!b) return; b.dataset.p = a; b.innerHTML = (ic[a] || '') + ' ' + NOMES_ABA[a]; });
+      document.querySelectorAll('.gav-grid button[data-ir]').forEach(function (b) {
+        var k = b.dataset.ir; if (k !== 'tar' && k !== 'cal' && !b.innerHTML) return;
+        if ((k === 'tar' || k === 'cal') && !b.innerHTML) b.innerHTML = (ic[k] || '') + '<span>' + NOMES_ABA[k] + '</span>';
+        b.hidden = abas.indexOf(k) >= 0;
+      });
+    }
+  }
+
   /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function espelhaMarc() {
@@ -490,7 +521,7 @@
     document.querySelectorAll('#modos button').forEach(function (b) { b.classList.toggle('sel', b.dataset.v === m); if (token()) b.disabled = false; });
     var av = $('modo-repo'); if (av) av.textContent = 'Modo escolhido: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[m] || m) + '. Se a TV estiver desligada, ela entra nesse modo quando ligar.';
   }
-  function render() { renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); resumoAtualizar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
+  function render() { aplicarCelular(); renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); resumoAtualizar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
 
   function novoId(nome) { var b = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'projeto', id = b, n = 2; while (S.proj.projetos[id]) id = b + '-' + n++; return id; }
 
