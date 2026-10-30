@@ -57,7 +57,8 @@
       var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
       Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
     },
-    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em }); },
+    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal' }); },
+    tarCat: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cat = a.cat; }); },
     tarOk: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) { t.ok = a.ok; if (a.ok) t.feita = a.em; else delete t.feita; } }); },
     tarTexto: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.t = a.t; }); },
     tarApaga: function (d, a) { d.tarefas = (d.tarefas || []).filter(function (t) { return t.id !== a.id; }); },
@@ -264,20 +265,30 @@
     mostraStatus(status);
   }
   /* ---- tarefas ---- */
+  var CATS = [['trabalho', 'Trabalho', '#FFD36E'], ['pessoal', 'Pessoal', '#8FE3FF'], ['condominio', 'Condomínio', '#C8A6FF']];
+  function catInfo(c) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === c) return CATS[i]; return CATS[1]; }
+  var catNova = ler('cd-cat-nova', 'trabalho'), catFiltro = ler('cd-cat-filtro', '');
+  function chipCat(t) { var c = catInfo(t.cat || 'pessoal'); return '<button class="chip catchip" data-cd="tarCat" data-id="' + t.id + '" style="background:' + c[2] + '22;color:' + c[2] + '">' + c[1] + '</button>'; }
   function renderTar() {
     var el = $('tar-dados'); if (!el) return;
     if (!token()) { el.innerHTML = semChave(); return; }
     if (!S.tar) { el.innerHTML = '<div class="card aviso">Carregando tarefas…</div>'; return; }
-    var L = S.tar.tarefas || [], pend = L.filter(function (t) { return !t.ok; }), sem = Date.now() - 7 * 86400000;
-    var feitas = L.filter(function (t) { return t.ok && (t.feita || 0) > sem; }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
+    var L = S.tar.tarefas || [], sem = Date.now() - 7 * 86400000;
+    var filt = function (t) { return !catFiltro || (t.cat || 'pessoal') === catFiltro; };
+    var pend = L.filter(function (t) { return !t.ok && filt(t); });
+    var feitas = L.filter(function (t) { return t.ok && (t.feita || 0) > sem && filt(t); }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
     function linha(t) {
       return '<div class="et' + (t.ok ? ' ok' : '') + '"><button class="box" data-cd="tarOk" data-id="' + t.id + '" aria-label="Marcar">' + (t.ok ? '✓' : '') + '</button>' +
-        '<span class="tx">' + esc(t.t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
+        '<span class="tx">' + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
     }
-    el.innerHTML = '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
+    var conta = function (c) { return L.filter(function (t) { return !t.ok && (!c || (t.cat || 'pessoal') === c); }).length; };
+    el.innerHTML = '<div class="filtros">' + [['', 'Todas']].concat(CATS).map(function (c) { return '<button class="b' + (catFiltro === c[0] ? ' sel' : '') + '" data-cd="tarFiltro" data-v="' + c[0] + '">' + c[1] + ' <span style="opacity:.7">' + conta(c[0]) + '</span></button>'; }).join('') + '</div>' +
+      '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
+      '<div class="cats">' + CATS.map(function (c) { return '<button class="b' + (catNova === c[0] ? ' sel' : '') + '" data-cd="tarCatNova" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>' +
       (pend.length ? pend.map(linha).join('') : '<div class="aviso" style="padding:12px 0 2px">Nada pendente ✓</div>') + '</div>' +
       (feitas.length ? '<div class="card" style="margin-top:10px"><h2>Feitas nos últimos 7 dias</h2>' + feitas.map(linha).join('') + '</div>' : '');
-    var h = $('h-tar'); if (h) h.innerHTML = pend.length ? pend.slice(0, 3).map(function (t) { return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px">• ' + esc(t.t) + '</div></div>'; }).join('') + (pend.length > 3 ? '<div class="aviso">+' + (pend.length - 3) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
+    var todas = L.filter(function (t) { return !t.ok; });
+    var h = $('h-tar'); if (h) h.innerHTML = todas.length ? todas.slice(0, 4).map(function (t) { var c = catInfo(t.cat || 'pessoal'); return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px"><span style="color:' + c[2] + ';font-weight:800">' + c[1] + '</span> · ' + esc(t.t) + '</div></div>'; }).join('') + (todas.length > 4 ? '<div class="aviso">+' + (todas.length - 4) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
   }
   /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -329,6 +340,9 @@
       op('est', 'trofeu', { g: g, t: t, ok: !dn[t] });
     }
     else if (a === 'tarOk') { var t0 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (t0) op('tar', 'tarOk', { id: t0.id, ok: !t0.ok, em: Date.now() }); }
+    else if (a === 'tarFiltro') { catFiltro = b.dataset.v; gravar('cd-cat-filtro', catFiltro); render(); }
+    else if (a === 'tarCatNova') { catNova = b.dataset.v; gravar('cd-cat-novo', catNova); gravar('cd-cat-nova', catNova); render(); }
+    else if (a === 'tarCat') { var t2 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t2) return; var ord = CATS.map(function (c) { return c[0]; }); op('tar', 'tarCat', { id: t2.id, cat: ord[(ord.indexOf(t2.cat || 'pessoal') + 1) % ord.length] }); }
     else if (a === 'tarMenu') {
       var t1 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t1) return;
       var r1 = prompt('Editar a tarefa (apague o texto para excluir):', t1.t); if (r1 === null) return; r1 = r1.trim();
@@ -354,7 +368,7 @@
   document.addEventListener('submit', function (e) {
     if (e.target.id === 'tarNova') {
       e.preventDefault(); var ti = e.target.querySelector('input'), tv = ti.value.trim(); if (!tv || !S.tar) return;
-      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now() }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
+      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
     }
     var f = e.target.closest('form.nova'); if (!f) return; e.preventDefault();
     var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;

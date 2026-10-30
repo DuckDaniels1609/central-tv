@@ -352,6 +352,21 @@
     el.parentNode.style.display = '';
     el.innerHTML = lista.length ? '<b>' + lista.length + (lista.length === 1 ? ' tarefa' : ' tarefas') + '</b> · ' + lista.slice(0, 2).map(function (t) { return esc(t.t); }).join(' · ') : 'Nenhuma tarefa pendente ✓';
   }
+  function renderEvoPassos() {
+    var el = $('evo-passos'); if (!el) return;
+    var d = ler('dados-proj', null), p = d && d.projetos && d.projetos.evo;
+    if (!p) { $('evo-passos-card').style.display = 'none'; return; }
+    $('evo-passos-card').style.display = '';
+    var falta = (p.etapas || []).filter(function (e) { return !e.ok; });
+    el.innerHTML = falta.length ? falta.slice(0, 3).map(function (e) { return '<div class="passo-evo">• ' + esc(e.t) + '</div>'; }).join('') + (falta.length > 3 ? '<div class="passo-evo" style="opacity:.7">+' + (falta.length - 3) + ' etapas</div>' : '') : '<div class="passo-evo">Tudo feito ✓</div>';
+  }
+  var CAT_NOME = { trabalho: 'Trabalho', pessoal: 'Pessoal', condominio: 'Condomínio' };
+  function renderTrabalhoTV() {
+    var el = $('tv-trab'); if (!el) return;
+    var d = ler('dados-tar', null);
+    var L = d && d.tarefas ? d.tarefas.filter(function (t) { return !t.ok && (t.cat || 'pessoal') === 'trabalho'; }) : [];
+    el.innerHTML = !d ? '–' : L.length ? '<b>' + L.length + '</b> · ' + L.slice(0, 2).map(function (t) { return esc(t.t); }).join(' · ') : 'nada pendente ✓';
+  }
   function renderEstanteTV() {
     var el = $('tv-estante'); if (!el) return;
     var d = ler('dados-est', null); if (!d || !d.jogos) { el.parentNode.style.display = 'none'; return; }
@@ -389,10 +404,10 @@
 
   function dadosSync() {
     if (!window.DADOS_GH) return;
-    ghBuscar('projetos.json', 'dados-proj', function (d, mudou) { if (mudou) { renderProjetos(); registrar('Projetos atualizados do celular'); } });
+    ghBuscar('projetos.json', 'dados-proj', function (d, mudou) { if (mudou) { renderProjetos(); renderEvoPassos(); registrar('Projetos atualizados do celular'); } });
     ghBuscar('estado.json', 'dados-estado', function (d) { estadoAplicar(d); });
     ghBuscar('marcacoes.json', 'dados-marc', function (d) { marcAplicar(d); });
-    ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) renderTarefasTV(); });
+    ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) { renderTarefasTV(); renderTrabalhoTV(); } });
     ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) renderEstanteTV(); });
     ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
     Object.keys(ghFila).forEach(function (a) { ghEnviar(a, 0); });
@@ -409,8 +424,9 @@
   }
   function renderTreino() {
     var dow = new Date().getDay(), dia = D.sf6[dow];
-    $('treino-titulo').textContent = 'Treino de ' + DIAS[dow];
-    $('treino-sub').textContent = '今日 · Hoje';
+    $('treino-titulo').textContent = 'Evo Brazil 2027';
+    $('treino-sub').textContent = 'Treino de hoje · ' + DIAS[dow];
+    renderEvoPassos();
     $('sf6-tarefas').innerHTML = checklist(dia.tarefas, 'sf6:' + hojeISO());
     $('sf6-semana').innerHTML = D.sf6.map(function (s, i) {
       var j = (i + 1) % 7; s = D.sf6[j]; /* começa na segunda */
@@ -1026,7 +1042,7 @@
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
   setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
-  renderTarefasTV(); renderEstanteTV();
+  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV();
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();

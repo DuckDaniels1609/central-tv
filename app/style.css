@@ -169,3 +169,11 @@ body.discreto #p-inicio .pnav { justify-content: center; }
 .hoje2 .hj { font-size: 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 body.discreto .hoje2 { display: none; }
 .hoje2 + .apps-sec { margin-top: 0; }
+
+.hojebar { display: flex; align-items: center; gap: 20px; min-width: 0; }
+.hojebar #prox-reuniao { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42%; }
+.hojebar .sep { width: 3px; height: 40px; background: rgba(255,255,255,.18); border-radius: 2px; flex: none; }
+.hojebar .hj { font-size: 28px; flex: 1; }
+body.discreto .hojebar .sep, body.discreto .hojebar .sep ~ * { display: none; }
+.passo-evo { font-size: 24px; line-height: 1.35; padding: 6px 0; }
+#sf6-semana[hidden] { display: none; }

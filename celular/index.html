@@ -104,6 +104,10 @@ form.nova .b { padding: 0 16px; font-size: 20px; }
 button.b.novo { width: 100%; margin-top: 12px; }
 .cd-sync { display: inline-block; font-size: 12px; color: var(--suave); }
 .cd-sync.ok { color: var(--verde); } .cd-sync.erro, .cd-sync.chave { color: var(--acc); }
+.filtros { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 10px; padding-bottom: 2px; }
+.filtros .b, .cats .b { padding: 8px 12px; font-size: 13px; white-space: nowrap; flex: none; }
+.cats { display: flex; gap: 6px; margin: 8px 0 4px; flex-wrap: wrap; }
+.chip.catchip { border: 0; font: inherit; font-size: 11px; font-weight: 800; padding: 2px 8px; cursor: pointer; vertical-align: 1px; }
 .subt { display: flex; justify-content: space-between; align-items: center; margin: -6px 0 12px; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--ouro); color: #2A1E00; font-weight: 800; font-size: 14px; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .25s; z-index: 9; pointer-events: none; max-width: 90vw; text-align: center; }
 .toast.on { opacity: 1; }
@@ -134,7 +138,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
   </section>
 
   <section class="pag" id="p-treino" hidden>
-    <header class="top"><div><span class="tag">トレーニング · SF6</span><h1>Treino de hoje</h1><div class="data" id="t-fase"></div></div></header>
+    <header class="top"><div><span class="tag">エボ · Evo Brazil</span><h1>Treino de hoje</h1><div class="data" id="t-fase"></div></div></header>
     <div class="stack">
       <div class="card"><h2>Tarefas do dia</h2><div id="t-lista"></div></div>
       <div class="card"><h2>Meta da semana</h2><div class="aviso" id="t-meta"></div></div>
@@ -195,7 +199,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
 
 <nav class="abas" aria-label="Seções">
   <button data-p="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Início</button>
-  <button data-p="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg>SF6</button>
+  <button data-p="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg>Evo</button>
   <button data-p="gym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg>Academia</button>
   <button data-p="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Projetos</button>
   <button data-p="tar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Tarefas</button>
@@ -203,7 +207,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
   <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
 </nav>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=4"></script>
+<script src="dados.js?v=5"></script>
 
 <script>
 (function () {

@@ -61,28 +61,21 @@
           <span class="sub" id="clima">&nbsp;</span>
         </div>
       </header>
-      <section class="grid2 hoje2">
-        <div class="card row"><span class="tag" style="background:#9CF2A8">やること · Tarefas</span><span class="hj" id="tv-tarefas"></span></div>
-        <div class="card row"><span class="tag" style="background:#FFD36E">トロフィー</span><span class="hj" id="tv-estante"></span></div>
-      </section>
       <section class="col apps-sec">
         <h2>Meus apps <small>アプリ</small></h2>
         <div id="apps" class="grid8"></div>
       </section>
-      <section class="grid3">
-        <a class="card row f" data-go="4"><span class="tag" style="background:#C8A6FF">予定</span><b id="prox-reuniao">Agenda</b></a>
-        <a class="card row f" data-go="2"><span class="tag" style="background:#8FE3FF">今日 · Hoje</span><b id="hoje-sf6"></b></a>
-        <a class="card row f" data-go="3"><span class="tag acc-bg">ジム</span><b id="hoje-gym"></b></a>
-      </section>
+      <a class="card row f hojebar" data-go="4"><span class="tag" style="background:#C8A6FF">予定</span><b id="prox-reuniao">Agenda</b><span class="sep"></span><span class="tag" style="background:#9CF2A8">仕事 · Trabalho</span><span class="hj" id="tv-trab"></span></a>
+      <div hidden><b id="hoje-sf6"></b><b id="hoje-gym"></b><span><span id="tv-tarefas"></span></span><span><span id="tv-estante"></span></span></div>
       <nav class="pnav">
         <a class="navbtn f" data-go="0">◀ Projetos</a>
         <div class="row" style="gap:30px"><div class="dots" data-i="1"></div><a class="navbtn f modobtn" data-act="modo">Modo: Normal</a><a class="navbtn f cfgbtn" data-act="cfg">Personalizar</a><a class="navbtn f smbtn" data-act="samsung">Menu Samsung</a></div>
-        <a class="navbtn f" data-go="2">Treino ▶</a>
+        <a class="navbtn f" data-go="2">Evo Brazil ▶</a>
       </nav>
     </div>
   </section>
 
-  <!-- 2: Treino SF6 -->
+  <!-- 2: Projeto Evo Brazil (treino de SF6) -->
   <section class="page" id="p-treino">
     <svg class="bg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
@@ -100,7 +93,7 @@
     <div class="wrap">
       <header class="row between end-items">
         <div class="col">
-          <span class="pill" style="background:#8FE3FF;color:#102A4A">トレーニング · Treino</span>
+          <span class="pill" style="background:#8FE3FF;color:#102A4A">エボ · Projeto</span>
           <h1 id="treino-titulo">Treino</h1>
         </div>
         <div class="card row baseline"><b>Evo Brazil em</b><span class="evo-n acc-tx" id="evo1">--</span><b>dias</b></div>
@@ -111,7 +104,8 @@
             <h3 id="treino-sub">Hoje</h3>
             <div id="sf6-tarefas" class="col"></div>
           </section>
-          <div id="sf6-semana" class="grid7"></div>
+          <section class="card col" id="evo-passos-card"><h3>Próximos passos do projeto</h3><div id="evo-passos" class="col"></div></section>
+          <div id="sf6-semana" class="grid7" hidden></div>
           <div class="fase" id="fase"></div>
         </div>
         <section class="card col">
@@ -163,7 +157,7 @@
         </div>
       </div>
       <nav class="pnav">
-        <a class="navbtn f" data-go="2">◀ Treino SF6</a>
+        <a class="navbtn f" data-go="2">◀ Evo Brazil</a>
         <div class="dots" data-i="3"></div>
         <a class="navbtn f" data-go="4">Agenda ▶</a>
       </nav>
