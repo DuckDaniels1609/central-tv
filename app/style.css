@@ -182,3 +182,13 @@ body.discreto .hojebar .sep, body.discreto .hojebar .sep ~ * { display: none; }
 .hoje2 .hj { font-size: 30px; }
 body.discreto .hoje2 { display: grid; grid-template-columns: 1fr; }
 body.discreto .hoje2 .trab { display: none; }
+
+#p-agenda .agrid { grid-template-columns: 1fr 1fr; }
+.mes-tv { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
+.mes-tv b { text-align: center; font-size: 20px; color: #C9CFF0; padding-bottom: 4px; }
+.mes-tv span { text-align: center; font-size: 28px; font-weight: 700; padding: 18px 0 12px; border-radius: 14px; background: rgba(255,255,255,.05); display: grid; justify-items: center; gap: 4px; }
+.mes-tv span.fora { opacity: .3; }
+.mes-tv span.hoje { background: var(--acc); color: #1C1838; }
+.mes-tv span i { display: flex; gap: 4px; height: 9px; }
+.mes-tv span u { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.mes-tv span.hoje u { outline: 2px solid #1C1838; }

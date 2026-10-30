@@ -58,7 +58,7 @@ h1 { font-size: 30px; line-height: 1.1; margin: 8px 0 4px; font-weight: 800; tex
 .chk .tx { font-size: 15px; line-height: 1.35; }
 .chk .tx small { display: block; color: var(--suave); font-size: 12px; text-decoration: none; }
 .grupo-t { font-size: 12px; font-weight: 800; color: var(--ouro); letter-spacing: .5px; margin: 14px 0 2px; text-transform: uppercase; }
-.semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.semana { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .semana div { text-align: center; padding: 8px 2px; border-radius: 12px; background: rgba(255,255,255,.05); font-size: 12px; }
 .semana div b { display: block; font-size: 11px; color: var(--suave); }
 .semana div.hoje { background: var(--acc); color: #2A0E1C; }
@@ -79,10 +79,44 @@ input.cod { width: 100%; font: inherit; font-size: 22px; font-weight: 800; lette
 nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(7, 1fr);
   padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(11, 15, 51, .88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--linha); }
-nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 10px; letter-spacing: -.2px; font-weight: 700; padding: 4px 0; cursor: pointer; }
+nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 4px 0; cursor: pointer; }
 nav.abas button svg { width: 24px; height: 24px; }
 nav.abas button.on { color: var(--acc); }
 section.pag[hidden] { display: none !important; }
+.gaveta { position: fixed; inset: 0; z-index: 8; background: rgba(5,6,25,.55); display: flex; align-items: flex-end; }
+.gaveta[hidden] { display: none; }
+.gav-box { width: 100%; max-width: 560px; margin: 0 auto; background: #15173F; border-top: 1px solid var(--linha); border-radius: 26px 26px 0 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 18px); animation: sobe .22s ease-out; }
+@keyframes sobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gav-box { animation: none; } }
+.gav-alca { width: 44px; height: 5px; border-radius: 9px; background: rgba(255,255,255,.25); margin: 0 auto 14px; }
+.gav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.gav-grid button { font: inherit; color: var(--tinta); background: rgba(255,255,255,.06); border: 1px solid var(--linha); border-radius: 18px; padding: 16px 6px; display: grid; justify-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.gav-grid button svg { width: 28px; height: 28px; color: var(--acc); }
+.gav-grid button.on { border-color: var(--acc); }
+.mes-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mes-cab h2 { margin: 0; text-transform: capitalize; }
+.mes-cab button { font: inherit; font-size: 20px; font-weight: 800; color: var(--tinta); background: rgba(255,255,255,.08); border: 1px solid var(--linha); border-radius: 12px; width: 42px; height: 38px; cursor: pointer; }
+.mes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.mes .ds { text-align: center; font-size: 11px; font-weight: 800; color: var(--suave); padding: 2px 0 4px; }
+.mes button { font: inherit; color: var(--tinta); background: rgba(255,255,255,.04); border: 1px solid transparent; border-radius: 12px; min-height: 48px; padding: 5px 0 4px; display: grid; justify-items: center; align-content: start; gap: 4px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.mes button.fora { opacity: .35; }
+.mes button.hoje { background: var(--acc); color: #2A0E1C; }
+.mes button.sel { border-color: var(--azul); }
+.mes .pts { display: flex; gap: 3px; height: 6px; }
+.mes .pts i { width: 6px; height: 6px; border-radius: 50%; }
+.item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--linha); }
+.item:first-of-type { border-top: 0; }
+.item .barra-c { width: 4px; align-self: stretch; border-radius: 4px; flex: none; }
+.item .hr { width: 46px; flex: none; font-size: 13px; font-weight: 800; color: var(--suave); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.item .tx { flex: 1; min-width: 0; font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.item .tx small { display: block; font-size: 12px; color: var(--suave); }
+.item.ok .tx { color: var(--suave); text-decoration: line-through; }
+.data-chip { all: unset; display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 6px; background: rgba(156,242,168,.15); color: var(--verde); cursor: pointer; margin-left: 4px; }
+.data-chip.atraso { background: rgba(255,127,168,.18); color: var(--acc); }
+.tipos { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.tipos .b { padding: 8px 10px; font-size: 13px; }
+.linha2 { display: flex; gap: 8px; }
+.linha2 input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--tinta); color-scheme: dark; }
 .pj { padding: 14px 16px; }
 .pj + .pj { margin-top: 10px; }
 .pj-cab { all: unset; display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer; }
@@ -164,6 +198,12 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
     </div>
   </section>
 
+  <section class="pag" id="p-cal" hidden>
+    <header class="top"><div><span class="tag">カレンダー · Calendário</span><h1>Calendário</h1><div class="data">Reuniões, aniversários, eventos e prazos</div></div></header>
+    <div class="subt"><span class="cd-sync"></span></div>
+    <div id="cal-dados"></div>
+  </section>
+
   <section class="pag" id="p-proj" hidden>
     <header class="top"><div><span class="tag">プロジェクト · Projetos</span><h1>Projetos</h1><div class="data">Toque num projeto para ver todas as etapas</div></div></header>
     <div class="subt"><span class="cd-sync"></span></div>
@@ -207,16 +247,25 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 </div>
 
 <nav class="abas" aria-label="Seções">
-  <button data-p="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Início</button>
-  <button data-p="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg>Evo</button>
-  <button data-p="gym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg>Academia</button>
-  <button data-p="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Projetos</button>
-  <button data-p="tar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Tarefas</button>
-  <button data-p="est"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 6h3a3 3 0 0 1-3 3M7 6H4a3 3 0 0 0 3 3"/></svg>Estante</button>
-  <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
+  <button data-p="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg> Início</button>
+  <button data-p="tar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg> Tarefas</button>
+  <button data-p="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg> Calendário</button>
+  <button id="mais-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg> Mais</button>
 </nav>
+<div class="gaveta" id="gaveta" hidden>
+  <div class="gav-box" role="dialog" aria-label="Mais seções">
+    <div class="gav-alca"></div>
+    <div class="gav-grid">
+      <button data-ir="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Projetos</span></button>
+      <button data-ir="est"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 6h3a3 3 0 0 1-3 3M7 6H4a3 3 0 0 0 3 3"/></svg><span>Estante</span></button>
+      <button data-ir="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Evo Brazil</span></button>
+      <button data-ir="gym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg><span>Academia</span></button>
+      <button data-ir="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg><span>Controle da TV</span></button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=9"></script>
+<script src="dados.js?v=10"></script>
 
 <script>
 (function () {
@@ -340,12 +389,20 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
   }
 
   /* abas */
+  var MAIS_P = ['proj', 'est', 'treino', 'gym', 'tv'];
   function aba(p) {
+    if (!document.getElementById('p-' + p)) p = 'inicio';
     document.querySelectorAll('section.pag').forEach(function (s) { s.hidden = s.id !== 'p-' + p; });
-    document.querySelectorAll('nav.abas button').forEach(function (b) { b.classList.toggle('on', b.dataset.p === p); });
+    document.querySelectorAll('nav.abas button[data-p]').forEach(function (b) { b.classList.toggle('on', b.dataset.p === p); });
+    $('mais-btn').classList.toggle('on', MAIS_P.indexOf(p) >= 0);
+    document.querySelectorAll('.gav-grid button').forEach(function (b) { b.classList.toggle('on', b.dataset.ir === p); });
+    $('gaveta').hidden = true;
     window.scrollTo(0, 0); try { sessionStorage.setItem('aba', p); } catch (e) {}
   }
-  document.querySelectorAll('nav.abas button').forEach(function (b) { b.onclick = function () { aba(b.dataset.p); }; });
+  window.CEL_ABA = aba;
+  document.querySelectorAll('nav.abas button[data-p]').forEach(function (b) { b.onclick = function () { aba(b.dataset.p); }; });
+  $('mais-btn').onclick = function () { $('gaveta').hidden = !$('gaveta').hidden; };
+  $('gaveta').onclick = function (e) { var b = e.target.closest('[data-ir]'); if (b) aba(b.dataset.ir); else if (e.target === $('gaveta')) $('gaveta').hidden = true; };
   try { var a0 = sessionStorage.getItem('aba'); if (a0) aba(a0); } catch (e) {}
   document.addEventListener('visibilitychange', function () { if (!document.hidden && D) { relogio(); renderInicio(); estado(); } });
 

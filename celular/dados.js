@@ -29,7 +29,7 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json' };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json' };
   var S = {}, FILA = {};
   Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
@@ -57,8 +57,12 @@
       var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
       Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
     },
-    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '', resp: a.resp || [] }); },
+    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) { var nt = { id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '', resp: a.resp || [] }; if (a.data) nt.data = a.data; d.tarefas.push(nt); } },
     tarResp: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.resp = a.resp; }); },
+    tarData: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) { if (a.data) t.data = a.data; else delete t.data; } }); },
+    evNovo: function (d, a) { d.eventos = d.eventos || []; if (!d.eventos.some(function (e) { return e.id === a.id; })) d.eventos.push({ id: a.id, d: a.d, h: a.h || '', t: a.t, tipo: a.tipo, anual: !!a.anual }); },
+    evMuda: function (d, a) { (d.eventos || []).forEach(function (e) { if (e.id === a.id) { e.t = a.t; e.d = a.d; e.h = a.h || ''; } }); },
+    evApaga: function (d, a) { d.eventos = (d.eventos || []).filter(function (e) { return e.id !== a.id; }); },
     tarCli: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cli = a.cli; }); },
     cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) { d.clientes.push(a.nome); d.clientes.sort(function (x, y) { return x.localeCompare(y, 'pt'); }); } },
     tarCat: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cat = a.cat; }); },
@@ -273,6 +277,17 @@
   var catNova = ler('cd-cat-nova', 'trabalho'), catFiltro = ler('cd-cat-filtro', '');
   function chipCat(t) { var c = catInfo(t.cat || 'pessoal'); return '<button class="chip catchip" data-cd="tarCat" data-id="' + t.id + '" style="background:' + c[2] + '22;color:' + c[2] + '">' + c[1] + '</button>'; }
   var verArq = false;
+  function dmy(iso) { var p = iso.split('-'); return p[2] + '/' + p[1]; }
+  function chipData(t) { if (!t.data && t.ok) return ''; var at = t.data && !t.ok && t.data < hoje(); return t.data ? '<button class="data-chip' + (at ? ' atraso' : '') + '" data-cd="tarData" data-id="' + t.id + '">' + (at ? 'atrasada · ' : '') + dmy(t.data) + '</button>' : '<button class="data-chip" style="background:none;color:var(--suave)" data-cd="tarData" data-id="' + t.id + '">+ data</button>'; }
+  function lerData(txt, base) {
+    txt = (txt || '').trim(); if (!txt) return '';
+    var m = txt.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?$/); if (!m) return null;
+    var y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : +(base || hoje()).slice(0, 4);
+    var d = new Date(y, +m[2] - 1, +m[1]); if (d.getMonth() !== +m[2] - 1) return null;
+    if (!m[3] && iso(d) < hoje()) d.setFullYear(y + 1);
+    return iso(d);
+  }
+  function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   var cliFiltro = '', respFiltro = '', RESP = ['DBA', 'MSS', 'PAA'], respNova = ler('cd-resp-nova', ['DBA']);
   function chipsResp(t) { var r = t.resp || []; return '<button class="resp" data-cd="tarResp" data-id="' + t.id + '">' + (r.length ? r.map(function (x) { return '<i' + (x === 'DBA' ? ' class="eu"' : '') + '>' + esc(x) + '</i>'; }).join('') : '<i class="vazio">+ resp.</i>') + '</button>'; }
   function listaClientes() {
@@ -295,12 +310,13 @@
     function quando(t) { if (!t.feita) return ''; var d = new Date(t.feita); return '<small style="display:block;color:var(--suave);font-size:12px">feita em ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '</small>'; }
     function linha(t) {
       return '<div class="et' + (t.ok ? ' ok' : '') + '"><button class="box" data-cd="tarOk" data-id="' + t.id + '" aria-label="Marcar">' + (t.ok ? '✓' : '') + '</button>' +
-        '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<span class="linha-cli"><button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' + chipsResp(t) + '</span>' : '') + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
+        '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<span class="linha-cli"><button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' + chipsResp(t) + '</span>' : '') + esc(t.t) + ' ' + chipCat(t) + chipData(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
     }
     var conta = function (c) { return L.filter(function (t) { return !t.ok && (!c || (t.cat || 'pessoal') === c); }).length; };
     el.innerHTML = '<div class="filtros">' + [['', 'Todas']].concat(CATS).map(function (c) { return '<button class="b' + (catFiltro === c[0] ? ' sel' : '') + '" data-cd="tarFiltro" data-v="' + c[0] + '"><span>' + conta(c[0]) + '</span>' + c[1] + '</button>'; }).join('') + '</div>' +
       '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
       '<div class="cats">' + CATS.map(function (c) { return '<button class="b' + (catNova === c[0] ? ' sel' : '') + '" data-cd="tarCatNova" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="linha2" style="margin:6px 0"><input type="date" id="tarDataIn" form="tarNova" aria-label="Prazo (opcional)"></div>' +
       (catNova === 'trabalho' ? '<input class="cli-in" id="tarCliIn" list="cliLista" placeholder="Cliente (opcional)" autocomplete="off" form="tarNova">' +
         '<div class="cats"><span class="aviso" style="align-self:center">Responsáveis:</span>' + RESP.map(function (r) { return '<button class="b' + (respNova.indexOf(r) >= 0 ? ' sel' : '') + '" data-cd="respNova" data-v="' + r + '">' + r + '</button>'; }).join('') + '</div>' : '') +
       '<datalist id="cliLista">' + listaClientes().map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>' +
@@ -314,6 +330,62 @@
     var todas = L.filter(function (t) { return !t.ok; });
     var h = $('h-tar'); if (h) h.innerHTML = todas.length ? todas.slice(0, 4).map(function (t) { var c = catInfo(t.cat || 'pessoal'); return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px"><span style="color:' + c[2] + ';font-weight:800">' + c[1] + '</span> · ' + (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t) + '</div></div>'; }).join('') + (todas.length > 4 ? '<div class="aviso">+' + (todas.length - 4) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
   }
+  /* ---- calendário: reuniões (copiadas pela TV), eventos (aniversário repete todo ano) e tarefas com prazo ---- */
+  var CORES_CAL = { reuniao: '#C8A6FF', aniversario: '#FF7FA8', evento: '#8FE3FF', lembrete: '#FFD36E', tarefa: '#9CF2A8' };
+  var NOME_TIPO = { reuniao: 'Reunião', aniversario: 'Aniversário', evento: 'Evento', lembrete: 'Lembrete', tarefa: 'Tarefa' };
+  var MESES_N = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var calMes = null, calDia = null, tipoNovo = 'evento';
+  function itensDoDia(dia) {
+    var out = [], md = dia.slice(5);
+    ((S.ag && S.ag.reunioes) || []).forEach(function (r) { if (r.d === dia) out.push({ k: 'reuniao', h: r.dt ? '' : r.h, t: r.t, fim: r.f }); });
+    ((S.ev && S.ev.eventos) || []).forEach(function (e) { if (e.d === dia || (e.anual && e.d.slice(5) === md && e.d <= dia)) out.push({ k: e.tipo || 'evento', h: e.h, t: e.t, id: e.id, ev: e }); });
+    ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (t.data === dia) out.push({ k: 'tarefa', h: '', t: (t.cli ? t.cli + ': ' : '') + t.t, id: t.id, ok: t.ok, cat: t.cat }); });
+    return out.sort(function (a, b) { return (a.h || '') < (b.h || '') ? -1 : (a.h || '') > (b.h || '') ? 1 : 0; });
+  }
+  function renderCal() {
+    var el = $('cal-dados'); if (!el) return;
+    if (!token()) { el.innerHTML = semChave(); return; }
+    if (!S.ev || !S.tar) { el.innerHTML = '<div class="card aviso">Carregando o calendário…</div>'; return; }
+    var hj = hoje(); if (!calDia) calDia = hj; if (!calMes) calMes = hj.slice(0, 7);
+    var y = +calMes.slice(0, 4), m = +calMes.slice(5, 7) - 1, ini = new Date(y, m, 1), d0 = new Date(y, m, 1 - ini.getDay());
+    var g = '<div class="mes">' + ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (x) { return '<div class="ds">' + x + '</div>'; }).join('');
+    for (var i = 0; i < 42; i++) {
+      var dd = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i), id = iso(dd);
+      if (i === 35 && dd.getMonth() !== m) break;
+      var its = itensDoDia(id), tipos = [];
+      its.forEach(function (x) { if (!x.ok && tipos.indexOf(x.k) < 0) tipos.push(x.k); });
+      g += '<button data-cd="calDia" data-v="' + id + '" class="' + (dd.getMonth() !== m ? 'fora ' : '') + (id === hj ? 'hoje ' : '') + (id === calDia ? 'sel' : '') + '">' + dd.getDate() +
+        '<span class="pts">' + tipos.slice(0, 4).map(function (k) { return '<i style="background:' + CORES_CAL[k] + '"></i>'; }).join('') + '</span></button>';
+    }
+    g += '</div>';
+    var lista = itensDoDia(calDia), p = calDia.split('-'), dSel = new Date(+p[0], +p[1] - 1, +p[2]);
+    var DS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    var itens = lista.map(function (x) {
+      var acao = x.k === 'tarefa' ? '<button class="box" data-cd="tarOk" data-id="' + x.id + '" style="all:unset;width:22px;height:22px;border-radius:7px;border:2px solid var(--suave);display:grid;place-items:center;font-size:13px;font-weight:800;color:#1B2A1D;' + (x.ok ? 'background:var(--verde);border-color:var(--verde)' : '') + '">' + (x.ok ? '✓' : '') + '</button>'
+        : x.ev ? '<button class="mais" data-cd="evMenu" data-id="' + x.id + '" style="all:unset;color:var(--suave);font-size:20px;padding:0 4px;cursor:pointer">⋯</button>' : '';
+      return '<div class="item' + (x.ok ? ' ok' : '') + '"><span class="barra-c" style="background:' + CORES_CAL[x.k] + '"></span><span class="hr">' + esc(x.h || '') + '</span>' +
+        '<span class="tx">' + esc(x.t) + '<small>' + NOME_TIPO[x.k] + (x.fim ? ' · até ' + esc(x.fim) : '') + '</small></span>' + acao + '</div>';
+    }).join('');
+    var semAg = !S.ag || !(S.ag.reunioes || []).length;
+    el.innerHTML = '<div class="card"><div class="mes-cab"><button data-cd="calMes" data-v="-1" aria-label="Mês anterior">‹</button><h2>' + MESES_N[m] + ' ' + y + '</h2><button data-cd="calMes" data-v="1" aria-label="Próximo mês">›</button></div>' + g +
+      '<div class="aviso" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">' + Object.keys(CORES_CAL).map(function (k) { return '<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + CORES_CAL[k] + '"></i> ' + NOME_TIPO[k] + '</span>'; }).join('') + '</div></div>' +
+      '<div class="card" style="margin-top:10px"><h2>' + (calDia === hj ? 'Hoje · ' : '') + DS[dSel.getDay()] + ', ' + dSel.getDate() + ' de ' + MESES_N[dSel.getMonth()] + '</h2>' +
+      (itens || '<div class="aviso">Nada neste dia.</div>') +
+      '<form class="nova" id="calNovo"><input placeholder="Adicionar neste dia…" enterkeyhint="done"><button class="b sel">+</button></form>' +
+      '<div class="tipos">' + ['evento', 'aniversario', 'lembrete', 'tarefa'].map(function (k) { return '<button class="b' + (tipoNovo === k ? ' sel' : '') + '" data-cd="tipoNovo" data-v="' + k + '">' + NOME_TIPO[k] + '</button>'; }).join('') + '</div>' +
+      (tipoNovo !== 'aniversario' && tipoNovo !== 'tarefa' ? '<div class="linha2"><input type="time" id="calHora" aria-label="Hora (opcional)"></div>' : '') +
+      (tipoNovo === 'tarefa' ? '<p class="aviso" style="margin:4px 0 0">Entra em Tarefas como ' + catInfo(catNova)[1] + ', com prazo neste dia.</p>' : '') +
+      (tipoNovo === 'aniversario' ? '<p class="aviso" style="margin:4px 0 0">Repete todo ano.</p>' : '') + '</div>' +
+      (semAg ? '<p class="aviso" style="margin:10px 4px">As reuniões do Outlook aparecem aqui depois que a TV ligar com a versão nova da Central.</p>' : '');
+  }
+  document.addEventListener('submit', function (e) {
+    if (e.target.id !== 'calNovo') return; e.preventDefault();
+    var inp = e.target.querySelector('input'), t = inp.value.trim(); if (!t) return; inp.value = '';
+    var hr = $('calHora') ? $('calHora').value : '';
+    if (tipoNovo === 'tarefa') op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: t, em: Date.now(), cat: catNova, cli: '', resp: catNova === 'trabalho' ? respNova.slice() : [], data: calDia });
+    else op('ev', 'evNovo', { id: 'e' + Date.now().toString(36), d: calDia, h: hr, t: t, tipo: tipoNovo, anual: tipoNovo === 'aniversario' });
+  });
+
   /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function espelhaMarc() {
@@ -327,7 +399,7 @@
     document.querySelectorAll('#modos button').forEach(function (b) { b.classList.toggle('sel', b.dataset.v === m); if (token()) b.disabled = false; });
     var av = $('modo-repo'); if (av) av.textContent = 'Modo escolhido: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[m] || m) + '. Se a TV estiver desligada, ela entra nesse modo quando ligar.';
   }
-  function render() { renderProj(); renderEst(); renderTar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
+  function render() { renderProj(); renderEst(); renderTar(); renderCal(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
 
   function novoId(nome) { var b = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'projeto', id = b, n = 2; while (S.proj.projetos[id]) id = b + '-' + n++; return id; }
 
@@ -368,6 +440,24 @@
     else if (a === 'tarCatNova') { catNova = b.dataset.v; gravar('cd-cat-novo', catNova); gravar('cd-cat-nova', catNova); render(); }
     else if (a === 'tarCat') { var t2 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t2) return; var ord = CATS.map(function (c) { return c[0]; }); op('tar', 'tarCat', { id: t2.id, cat: ord[(ord.indexOf(t2.cat || 'pessoal') + 1) % ord.length] }); }
     else if (a === 'respNova') { var rv = b.dataset.v, ix = respNova.indexOf(rv); if (ix >= 0) respNova.splice(ix, 1); else respNova.push(rv); respNova.sort(function (x, y) { return RESP.indexOf(x) - RESP.indexOf(y); }); gravar('cd-resp-nova', respNova); render(); }
+    else if (a === 'tarData') {
+      var t5 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t5) return;
+      var r5 = prompt('Prazo (dia/mês, ex.: 05/11). Apague para tirar:', t5.data ? dmy(t5.data) : ''); if (r5 === null) return;
+      var d5 = lerData(r5); if (d5 === null) { toast('Data inválida. Use dia/mês, ex.: 05/11'); return; }
+      op('tar', 'tarData', { id: t5.id, data: d5 });
+    }
+    else if (a === 'calDia') { calDia = b.dataset.v; if (calDia.slice(0, 7) !== calMes) calMes = calDia.slice(0, 7); render(); }
+    else if (a === 'calMes') { var pm = calMes.split('-'), nm = new Date(+pm[0], +pm[1] - 1 + +b.dataset.v, 1); calMes = iso(nm).slice(0, 7); render(); }
+    else if (a === 'tipoNovo') { tipoNovo = b.dataset.v; render(); }
+    else if (a === 'evMenu') {
+      var e6 = ((S.ev && S.ev.eventos) || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!e6) return;
+      var r6 = prompt('Editar (apague o texto para excluir):', e6.t); if (r6 === null) return; r6 = r6.trim();
+      if (!r6) { if (confirm('Excluir "' + e6.t + '"?')) op('ev', 'evApaga', { id: e6.id }); return; }
+      var dd6 = prompt('Data (dia/mês):', dmy(e6.d)); if (dd6 === null) return; var d6 = lerData(dd6, e6.d); if (!d6) { toast('Data inválida'); return; }
+      if (e6.anual) d6 = e6.d.slice(0, 4) + d6.slice(4);
+      var h6 = e6.tipo === 'aniversario' ? '' : prompt('Hora (ex.: 14:30), ou vazio:', e6.h || ''); if (h6 === null) return;
+      op('ev', 'evMuda', { id: e6.id, t: r6, d: d6, h: (h6 || '').trim() });
+    }
     else if (a === 'verArq') { verArq = !verArq; render(); }
     else if (a === 'respFiltro') { respFiltro = b.dataset.v; render(); }
     else if (a === 'tarResp') {
@@ -407,8 +497,9 @@
     if (e.target.id === 'tarNova') {
       e.preventDefault(); var ti = e.target.querySelector('input'), tv = ti.value.trim(); if (!tv || !S.tar) return;
       var ci = $('tarCliIn'), nmC = catNova === 'trabalho' && ci ? nomeCliente(ci.value) : '';
-      ti.value = ''; if (ci) ci.value = '';
-      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova, cli: nmC, resp: catNova === 'trabalho' ? respNova.slice() : [] });
+      var di = $('tarDataIn'), dt = di && di.value ? di.value : '';
+      ti.value = ''; if (ci) ci.value = ''; if (di) di.value = '';
+      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova, cli: nmC, resp: catNova === 'trabalho' ? respNova.slice() : [], data: dt });
       if (nmC && S.cli) op('cli', 'cliNovo', { nome: nmC }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
     }
     var f = e.target.closest('form.nova'); if (!f) return; e.preventDefault();

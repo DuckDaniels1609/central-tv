@@ -6,7 +6,7 @@
   var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   var DIAS_C = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-  var NPAG = 5, HOME = 1;
+  var NPAG = 5, HOME = 2;
   var pagina = HOME, foco = null, ultimoFoco = {}, cfgAberto = false;
   var tizenOk = typeof window.tizen !== 'undefined';
   var appsTV = []; /* {id, name} dos apps instalados */
@@ -61,7 +61,7 @@
     });
   }
   /* ---------- música de fundo (arquivos em musicas/) ---------- */
-  var PAGNOME = ['projetos', 'inicio', 'treino', 'exercicios', 'agenda'];
+  var PAGNOME = ['agenda', 'projetos', 'inicio', 'treino', 'exercicios'];
   var players = [new Audio(), new Audio()], ativo = 0, srcAtual = null, fadeT = null, semMusica = {};
   players.forEach(function (p) { p.loop = true; p.preload = 'auto'; });
   function volAlvo() { return Math.max(0, Math.min(1, (cfg.musica.vol || 0) / 100)); }
@@ -271,7 +271,8 @@
       var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
       Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
     },
-    inventario: function (d, a) { d.musicas = a.musicas; d.fundosImg = a.fundosImg; }
+    inventario: function (d, a) { d.musicas = a.musicas; d.fundosImg = a.fundosImg; },
+    agenda: function (d, a) { d.reunioes = a.lista; }
   };
   var ghFila = ler('gh-fila', {}), ghGravando = {}, ghTimer = {};
   function ghOp(arq, op) {
@@ -394,6 +395,12 @@
       if (d.versao) registrar('Modo discreto atualizado pelo Editor');
     }
   }
+  function agendaEnviar() {
+    if (!window.DADOS_GH) return;
+    var lista = EVENTOS.map(function (e) { return { d: isoD(e.ini), h: e.diaTodo ? '' : hhmm(e.ini), f: e.diaTodo ? '' : hhmm(e.fim), t: e.titulo, dt: !!e.diaTodo }; });
+    var chave = JSON.stringify(lista); if (ler('ag-enviada', '') === chave) return;
+    gravar('ag-enviada', chave); ghOp('agenda.json', { op: 'agenda', lista: lista });
+  }
   function inventarioEnviar() {
     var musicas = LISTA_N.map(function (s) { return s.split('/').pop().replace(/\.mp3$/i, ''); });
     var fundosImg = Object.keys(imgOk).filter(function (k) { return imgOk[k]; });
@@ -407,9 +414,10 @@
     ghBuscar('projetos.json', 'dados-proj', function (d, mudou) { if (mudou) { renderProjetos(); renderEvoPassos(); registrar('Projetos atualizados do celular'); } });
     ghBuscar('estado.json', 'dados-estado', function (d) { estadoAplicar(d); });
     ghBuscar('marcacoes.json', 'dados-marc', function (d) { marcAplicar(d); });
-    ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) { renderTarefasTV(); renderTrabalhoTV(); } });
+    ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) { renderTarefasTV(); renderTrabalhoTV(); renderAgenda(); } });
     ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) renderEstanteTV(); });
     ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
+    ghBuscar('eventos.json', 'dados-ev', function (d, mudou) { if (mudou) renderAgenda(); });
     Object.keys(ghFila).forEach(function (a) { ghEnviar(a, 0); });
   }
 
@@ -574,8 +582,9 @@
     url = url.replace(/^webcal:/i, 'https:');
     fetch(url, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.text(); }).then(function (t) {
       var hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
-      var fimJ = new Date(hoje0.getTime() + 8 * 86400000);
-      EVENTOS = expandir(lerICS(t), hoje0, fimJ); agErro = null; agAtualizado = new Date();
+      var fimJ = new Date(hoje0.getTime() + 61 * 86400000), iniJ = new Date(hoje0.getTime() - 7 * 86400000);
+      EVENTOS = expandir(lerICS(t), iniJ, fimJ); agErro = null; agAtualizado = new Date();
+      agendaEnviar();
       gravar('agenda-cache', { em: agAtualizado.getTime(), ev: EVENTOS.map(function (e) { return [e.ini.getTime(), e.fim.getTime(), e.titulo, e.diaTodo]; }) });
       renderAgenda();
     }).catch(function () {
@@ -584,30 +593,48 @@
       agErro = 'rede'; renderAgenda();
     });
   }
+  /* calendário: reuniões + eventos (aniversário repete todo ano) + tarefas com prazo */
+  var COR_CAL = { reuniao: '#C8A6FF', aniversario: '#FF7FA8', evento: '#8FE3FF', lembrete: '#FFD36E', tarefa: '#9CF2A8' };
+  function isoD(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function itensDia(a) {
+    var b = new Date(a.getTime() + 86400000), id = isoD(a), md = id.slice(5), out = [], agora = new Date();
+    EVENTOS.forEach(function (e) { if (e.ini < b && e.fim > a) out.push({ k: 'reuniao', h: e.diaTodo ? '' : hhmm(e.ini), f: e.diaTodo ? '' : hhmm(e.fim), t: e.titulo, passou: !e.diaTodo && e.fim < agora, agora: !e.diaTodo && e.ini <= agora && e.fim > agora }); });
+    var ev = ler('dados-ev', null);
+    ((ev && ev.eventos) || []).forEach(function (e) { if (e.d === id || (e.anual && e.d.slice(5) === md && e.d <= id)) out.push({ k: e.tipo || 'evento', h: e.h || '', t: e.t }); });
+    var tr = ler('dados-tar', null);
+    ((tr && tr.tarefas) || []).forEach(function (t) { var r = t.resp || []; if (t.data === id && !t.ok && !((t.cat || 'pessoal') === 'trabalho' && r.length && r.indexOf('DBA') < 0)) out.push({ k: 'tarefa', h: '', t: (t.cli ? t.cli + ': ' : '') + t.t }); });
+    return out.sort(function (x, y) { return (x.h || '') < (y.h || '') ? -1 : (x.h || '') > (y.h || '') ? 1 : 0; });
+  }
+  function renderMes() {
+    var el = $('ag-mes'); if (!el) return;
+    var h0 = new Date(); h0.setHours(0, 0, 0, 0);
+    var y = h0.getFullYear(), m = h0.getMonth(), ini = new Date(y, m, 1), d0 = new Date(y, m, 1 - ini.getDay());
+    var g = '<h3 style="color:#C8A6FF;text-transform:capitalize">' + MESES[m] + ' ' + y + '</h3><div class="mes-tv">' + ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (x) { return '<b>' + x + '</b>'; }).join('');
+    for (var i = 0; i < 42; i++) {
+      var dd = new Date(y, m, 1 - ini.getDay() + i); if (i === 35 && dd.getMonth() !== m) break;
+      var tipos = []; itensDia(dd).forEach(function (x) { if (tipos.indexOf(x.k) < 0) tipos.push(x.k); });
+      g += '<span class="' + (dd.getMonth() !== m ? 'fora' : '') + (dd.getTime() === h0.getTime() ? ' hoje' : '') + '">' + dd.getDate() + '<i>' + tipos.slice(0, 4).map(function (k) { return '<u style="background:' + COR_CAL[k] + '"></u>'; }).join('') + '</i></span>';
+    }
+    el.innerHTML = g + '</div>';
+  }
   function renderAgenda() {
     var agora = new Date(), hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
-    function doDia(off) { var a = new Date(hoje0.getTime() + off * 86400000), b = new Date(a.getTime() + 86400000); return EVENTOS.filter(function (e) { return e.ini < b && e.fim > a; }); }
-    function linha(e, cls) {
-      var h = e.diaTodo ? 'Dia todo' : hhmm(e.ini) + (cls === 'grande' ? '–' + hhmm(e.fim) : '');
-      var st = !e.diaTodo && e.fim < agora ? ' passou' : (!e.diaTodo && e.ini <= agora && e.fim > agora ? ' agora' : '');
-      return '<div class="ev' + st + '"><span class="h">' + h + '</span><span class="t">' + esc(e.titulo) + '</span></div>';
+    function linha(e, grande) {
+      var h = e.h ? e.h + (grande && e.f ? '–' + e.f : '') : (e.k === 'reuniao' ? 'Dia todo' : '');
+      return '<div class="ev' + (e.passou ? ' passou' : e.agora ? ' agora' : '') + '"><span class="h" style="color:' + COR_CAL[e.k] + '">' + (h || '●') + '</span><span class="t">' + esc(e.t) + '</span></div>';
     }
-    var hj = doDia(0);
-    if (agErro === 'sem-link') {
-      $('ag-status').textContent = 'Falta o link do calendário';
-      $('ag-hoje').innerHTML = '<h3>Como ligar ao Outlook/Teams</h3><span class="vazio">No Outlook: Configurações › Calendário › Calendários compartilhados › Publicar um calendário (títulos). Copie o link ICS e cole no arquivo CentralTV\\agenda.txt do PC. Depois rode o instalador.</span>';
-      $('ag-prox').innerHTML = ''; $('prox-reuniao').textContent = 'Agenda: falta o link';
-      return;
-    }
-    $('ag-status').textContent = agErro === 'rede' ? 'Sem conexão: mostrando a última agenda salva' + (agAtualizado ? ' (' + hhmm(agAtualizado) + ')' : '') : 'Atualizado às ' + (agAtualizado ? hhmm(agAtualizado) : '--:--');
-    $('ag-hoje').innerHTML = '<h3 style="color:#C8A6FF">今日 · Hoje, ' + DIAS[hoje0.getDay()] + '</h3>' + (hj.length ? hj.map(function (e) { return linha(e, 'grande'); }).join('') : '<span class="vazio">Nenhuma reunião hoje.</span>');
+    renderMes();
+    if (agErro === 'sem-link' && !EVENTOS.length) $('ag-status').textContent = 'Reuniões: falta o link do Outlook';
+    else $('ag-status').textContent = agErro === 'rede' ? 'Sem conexão: reuniões da última atualização' + (agAtualizado ? ' (' + hhmm(agAtualizado) + ')' : '') : 'Atualizado às ' + (agAtualizado ? hhmm(agAtualizado) : '--:--');
+    var hj = itensDia(hoje0);
+    $('ag-hoje').innerHTML = '<h3 style="color:#C8A6FF">今日 · Hoje, ' + DIAS[hoje0.getDay()] + '</h3>' + (hj.length ? hj.slice(0, 5).map(function (e) { return linha(e, true); }).join('') + (hj.length > 5 ? '<span class="vazio">+' + (hj.length - 5) + '</span>' : '') : '<span class="vazio">Nada marcado para hoje.</span>');
     var prox = '';
-    for (var off = 1, mostrados = 0; off <= 7 && mostrados < 4; off++) {
-      var l = doDia(off); if (!l.length) continue; mostrados++;
-      var dd = new Date(hoje0.getTime() + off * 86400000);
-      prox += '<div class="card dia-ag col"><h3>' + (off === 1 ? 'Amanhã' : DIAS_C[dd.getDay()] + ' ' + dd.getDate() + '/' + (dd.getMonth() + 1)) + '</h3>' + l.slice(0, 3).map(function (e) { return linha(e); }).join('') + (l.length > 3 ? '<span class="vazio" style="font-size:20px;padding:4px 0">+' + (l.length - 3) + ' reuniões</span>' : '') + '</div>';
+    for (var off = 1, mostrados = 0; off <= 14 && mostrados < 2; off++) {
+      var dd = new Date(hoje0.getTime() + off * 86400000), l = itensDia(dd); if (!l.length) continue; mostrados++;
+      prox += '<div class="card dia-ag col"><h3>' + (off === 1 ? 'Amanhã' : DIAS_C[dd.getDay()] + ' ' + dd.getDate() + '/' + (dd.getMonth() + 1)) + '</h3>' + l.slice(0, 3).map(function (e) { return linha(e, false); }).join('') + '</div>';
     }
-    $('ag-prox').innerHTML = prox || '<div class="card dia-ag"><span class="vazio">Nada marcado nos próximos 7 dias.</span></div>';
+    $('ag-prox').innerHTML = prox || '<div class="card dia-ag"><span class="vazio">Nada marcado nas próximas 2 semanas.</span></div>';
+    if (agErro === 'sem-link') { $('prox-reuniao').textContent = 'Agenda: falta o link'; return; }
     var futura = EVENTOS.filter(function (e) { return !e.diaTodo && e.fim > agora; })[0];
     $('prox-reuniao').textContent = futura ? (futura.ini <= agora ? 'Agora: ' : (futura.ini.toDateString() === agora.toDateString() ? hhmm(futura.ini) + ' ' : DIAS_C[futura.ini.getDay()] + ' ' + hhmm(futura.ini) + ' ')) + futura.titulo : 'Sem reuniões à vista';
   }
