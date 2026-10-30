@@ -273,6 +273,7 @@
     },
     inventario: function (d, a) { d.musicas = a.musicas; d.fundosImg = a.fundosImg; },
     agenda: function (d, a) { d.reunioes = a.lista; },
+    diag: function (d, a) { d.linhas = a.linhas; d.em = new Date().toISOString(); },
     tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) { var nt = { id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '', resp: a.resp || [] }; if (a.data) nt.data = a.data; d.tarefas.push(nt); } },
     evNovo: function (d, a) { d.eventos = d.eventos || []; if (!d.eventos.some(function (e) { return e.id === a.id; })) d.eventos.push({ id: a.id, d: a.d, h: a.h || '', t: a.t, tipo: a.tipo, anual: !!a.anual }); },
     tarApaga: function (d, a) { d.tarefas = (d.tarefas || []).filter(function (t) { return t.id !== a.id; }); },
@@ -625,6 +626,37 @@
     }).join('');
     CAPAS.aplicar(el, d.jogos);
   }
+
+  /* ---------- botão Home → Central ----------
+     A Samsung não deixa trocar a tela inicial. Truque: com a Central rodando em segundo plano, quando a tela inicial
+     da Samsung fica ativa, a Central se abre de novo. O botão "Menu Samsung" da Central libera o menu de verdade.
+     Diagnóstico vai para diag.json no repositório (só nomes de apps e horários). */
+  var diagL = [], diagT = null, menuSamsung = false, voltas = [], homeDesligadoAte = 0, bgAvisos = 0;
+  function diagAdd(t) {
+    var d = new Date(); diagL.push(('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2) + ' ' + t);
+    if (diagL.length > 80) diagL.shift();
+    clearTimeout(diagT); diagT = setTimeout(function () { ghOp('diag.json', { op: 'diag', linhas: diagL.slice() }); }, 4000);
+  }
+  function ehHomeSamsung(id) { var lista = ler('home-ids', null); if (lista && lista.length) return lista.indexOf(id) >= 0; return /csfs|homescreen|launcher|smarthub|home/i.test(id) && id.indexOf('CtrlTv') < 0; }
+  function voltarParaCentral(motivo) {
+    if (menuSamsung || Date.now() < homeDesligadoAte || despAtivo) return;
+    voltas = voltas.filter(function (t) { return Date.now() - t < 20000; }); voltas.push(Date.now());
+    if (voltas.length > 3) { homeDesligadoAte = Date.now() + 10 * 60000; diagAdd('muitas voltas seguidas: pausa de 10 min'); return; }
+    diagAdd('voltando para a Central (' + motivo + ')');
+    try { tizen.application.launch(tizen.application.getCurrentApplication().appInfo.id, function () {}, function (e) { diagAdd('falhou ao reabrir: ' + (e && e.message)); }); } catch (e) { diagAdd('erro ao reabrir: ' + e.message); }
+  }
+  (function () {
+    if (!window.tizen || !tizen.application) return;
+    try {
+      tizen.application.addAppStatusChangeListener(function (appId, ativo) {
+        diagAdd('app ' + appId + (ativo ? ' ATIVO' : ' inativo'));
+        if (ativo && document.hidden && ehHomeSamsung(appId)) setTimeout(function () { voltarParaCentral(appId); }, 300);
+      });
+      diagAdd('escuta de apps ligada');
+    } catch (e) { diagAdd('escuta de apps indisponível: ' + e.message); }
+    setInterval(function () { if (document.hidden && bgAvisos < 3) { bgAvisos++; diagAdd('Central viva em segundo plano'); } }, 5000);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { bgAvisos = 0; diagAdd('Central saiu da tela' + (menuSamsung ? ' (Menu Samsung)' : '')); } else { menuSamsung = false; diagAdd('Central voltou para a tela'); } });
+  })();
 
   function dadosSync() {
     if (!window.DADOS_GH) return;
@@ -1183,7 +1215,7 @@
     if (cf) { mudarCfg(cf); return; }
     var act = foco.getAttribute('data-act'), k = 'gym:' + hojeISO(), est = ler(k, {});
     if (act === 'cfg') { abrirCfg(); return; }
-    if (act === 'samsung') { registrar('Abriu o menu da Samsung'); if (tizenOk) { try { tizen.application.launch('com.samsung.tv.csfs', function () {}, function () { toast('Não consegui abrir o menu da Samsung'); }); } catch (e) { toast('Não consegui abrir o menu da Samsung'); } } return; }
+    if (act === 'samsung') { menuSamsung = true; registrar('Abriu o menu da Samsung'); if (tizenOk) { try { tizen.application.launch('com.samsung.tv.csfs', function () {}, function () { toast('Não consegui abrir o menu da Samsung'); }); } catch (e) { toast('Não consegui abrir o menu da Samsung'); } } return; }
     if (act === 'modo') { var ord = ['normal', 'discreto', 'ferias']; mudarModo(ord[(ord.indexOf(cfg.modo || 'normal') + 1) % ord.length]); return; }
     if (act === 'fut') { est.fut = !est.fut; gravar(k, est); ghOp('marcacoes.json', { op: 'marca', d: hojeISO(), k: 'fut', v: est.fut }); refazerMantendoFoco(); }
     if (act === 'fim') { est.fim = !est.fim; gravar(k, est); ghOp('marcacoes.json', { op: 'marca', d: hojeISO(), k: 'fim', v: est.fim }); refazerMantendoFoco(); if (est.fim) toast('Boa, Daniel! Treino concluído. お疲れさま!'); }
