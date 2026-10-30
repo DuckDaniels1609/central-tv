@@ -331,12 +331,26 @@
     var h = $('h-tar'); if (h) h.innerHTML = todas.length ? todas.slice(0, 4).map(function (t) { var c = catInfo(t.cat || 'pessoal'); return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px"><span style="color:' + c[2] + ';font-weight:800">' + c[1] + '</span> · ' + (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t) + '</div></div>'; }).join('') + (todas.length > 4 ? '<div class="aviso">+' + (todas.length - 4) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
   }
   /* ---- calendário: reuniões (copiadas pela TV), eventos (aniversário repete todo ano) e tarefas com prazo ---- */
-  var CORES_CAL = { reuniao: '#C8A6FF', aniversario: '#FF7FA8', evento: '#8FE3FF', lembrete: '#FFD36E', tarefa: '#9CF2A8' };
-  var NOME_TIPO = { reuniao: 'Reunião', aniversario: 'Aniversário', evento: 'Evento', lembrete: 'Lembrete', tarefa: 'Tarefa' };
+  var CORES_CAL = { feriado: '#FF9F6E', reuniao: '#C8A6FF', aniversario: '#FF7FA8', evento: '#8FE3FF', lembrete: '#FFD36E', tarefa: '#9CF2A8' };
+  var NOME_TIPO = { feriado: 'Feriado', reuniao: 'Reunião', aniversario: 'Aniversário', evento: 'Evento', lembrete: 'Lembrete', tarefa: 'Tarefa' };
   var MESES_N = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   var calMes = null, calDia = null, tipoNovo = 'evento';
+  /* feriados nacionais e do Rio (mesma lista do despertador da TV) */
+  function pascoa(y) {
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+      g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+      l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, mes - 1, dia);
+  }
+  var FIXOS = { '01-01': 'Confraternização Universal', '01-20': 'São Sebastião (Rio)', '04-21': 'Tiradentes', '04-23': 'São Jorge (RJ)', '05-01': 'Dia do Trabalho', '09-07': 'Independência', '10-12': 'Nossa Senhora Aparecida', '11-02': 'Finados', '11-15': 'Proclamação da República', '11-20': 'Consciência Negra', '12-25': 'Natal' };
+  function feriado(dia) {
+    if (FIXOS[dia.slice(5)]) return FIXOS[dia.slice(5)];
+    var p = dia.split('-'), y = +p[0], t = new Date(y, +p[1] - 1, +p[2]).getTime(), off = Math.round((t - pascoa(y).getTime()) / 86400000);
+    return { '-48': 'Carnaval', '-47': 'Carnaval', '-2': 'Sexta-feira Santa', '60': 'Corpus Christi' }[off] || null;
+  }
   function itensDoDia(dia) {
-    var out = [], md = dia.slice(5);
+    var out = [], md = dia.slice(5), fer = feriado(dia);
+    if (fer) out.push({ k: 'feriado', h: '', t: fer });
     ((S.ag && S.ag.reunioes) || []).forEach(function (r) { if (r.d === dia) out.push({ k: 'reuniao', h: r.dt ? '' : r.h, t: r.t, fim: r.f }); });
     ((S.ev && S.ev.eventos) || []).forEach(function (e) { if (e.d === dia || (e.anual && e.d.slice(5) === md && e.d <= dia)) out.push({ k: e.tipo || 'evento', h: e.h, t: e.t, id: e.id, ev: e }); });
     ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (t.data === dia) out.push({ k: 'tarefa', h: '', t: (t.cli ? t.cli + ': ' : '') + t.t, id: t.id, ok: t.ok, cat: t.cat }); });

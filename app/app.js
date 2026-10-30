@@ -594,10 +594,11 @@
     });
   }
   /* calendário: reuniões + eventos (aniversário repete todo ano) + tarefas com prazo */
-  var COR_CAL = { reuniao: '#C8A6FF', aniversario: '#FF7FA8', evento: '#8FE3FF', lembrete: '#FFD36E', tarefa: '#9CF2A8' };
+  var COR_CAL = { feriado: '#FF9F6E', reuniao: '#C8A6FF', aniversario: '#FF7FA8', evento: '#8FE3FF', lembrete: '#FFD36E', tarefa: '#9CF2A8' };
   function isoD(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function itensDia(a) {
-    var b = new Date(a.getTime() + 86400000), id = isoD(a), md = id.slice(5), out = [], agora = new Date();
+    var b = new Date(a.getTime() + 86400000), id = isoD(a), md = id.slice(5), out = [], agora = new Date(), fer = feriado(a);
+    if (fer) out.push({ k: 'feriado', h: '', t: fer });
     EVENTOS.forEach(function (e) { if (e.ini < b && e.fim > a) out.push({ k: 'reuniao', h: e.diaTodo ? '' : hhmm(e.ini), f: e.diaTodo ? '' : hhmm(e.fim), t: e.titulo, passou: !e.diaTodo && e.fim < agora, agora: !e.diaTodo && e.ini <= agora && e.fim > agora }); });
     var ev = ler('dados-ev', null);
     ((ev && ev.eventos) || []).forEach(function (e) { if (e.d === id || (e.anual && e.d.slice(5) === md && e.d <= id)) out.push({ k: e.tipo || 'evento', h: e.h || '', t: e.t }); });

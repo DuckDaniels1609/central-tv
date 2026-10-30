@@ -58,7 +58,7 @@ h1 { font-size: 30px; line-height: 1.1; margin: 8px 0 4px; font-weight: 800; tex
 .chk .tx { font-size: 15px; line-height: 1.35; }
 .chk .tx small { display: block; color: var(--suave); font-size: 12px; text-decoration: none; }
 .grupo-t { font-size: 12px; font-weight: 800; color: var(--ouro); letter-spacing: .5px; margin: 14px 0 2px; text-transform: uppercase; }
-.semana { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .semana div { text-align: center; padding: 8px 2px; border-radius: 12px; background: rgba(255,255,255,.05); font-size: 12px; }
 .semana div b { display: block; font-size: 11px; color: var(--suave); }
 .semana div.hoje { background: var(--acc); color: #2A0E1C; }
@@ -76,7 +76,7 @@ button.b.sel { background: var(--acc); color: #2A0E1C; border-color: var(--acc);
 button.b:disabled { opacity: .4; }
 input.cod { width: 100%; font: inherit; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-align: center; text-transform: uppercase; padding: 12px; border-radius: 14px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--ouro); }
 .aviso { font-size: 12px; color: var(--suave); line-height: 1.45; }
-nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(7, 1fr);
+nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, minmax(0, 120px)); justify-content: center; gap: 4px;
   padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(11, 15, 51, .88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--linha); }
 nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 4px 0; cursor: pointer; }
@@ -265,7 +265,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=10"></script>
+<script src="dados.js?v=11"></script>
 
 <script>
 (function () {
