@@ -275,6 +275,9 @@
     agenda: function (d, a) { d.reunioes = a.lista; },
     tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) { var nt = { id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '', resp: a.resp || [] }; if (a.data) nt.data = a.data; d.tarefas.push(nt); } },
     evNovo: function (d, a) { d.eventos = d.eventos || []; if (!d.eventos.some(function (e) { return e.id === a.id; })) d.eventos.push({ id: a.id, d: a.d, h: a.h || '', t: a.t, tipo: a.tipo, anual: !!a.anual }); },
+    tarApaga: function (d, a) { d.tarefas = (d.tarefas || []).filter(function (t) { return t.id !== a.id; }); },
+    tarOk: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) { t.ok = a.ok; if (a.ok) t.feita = a.em; } }); },
+    evApaga: function (d, a) { d.eventos = (d.eventos || []).filter(function (e) { return e.id !== a.id; }); },
     cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) d.clientes.push(a.nome); }
   };
   var ghFila = ler('gh-fila', {}), ghGravando = {}, ghTimer = {};
@@ -418,6 +421,8 @@
   /* caixa de entrada (Siri): issues abertos no repositório viram tarefa, evento ou troca de modo */
   /* Caixa de entrada da Central (Siri): interpreta uma frase ditada e devolve as operações.
      Usado igual no celular (dados.js) e na TV (app.js). Sem dependências. */
+  /* Caixa de entrada da Central (Siri): interpreta uma frase ditada e devolve as operações.
+     Usado igual no celular (dados.js) e na TV (app.js). Sem dependências. */
   var ENTRADA = (function () {
     var DIAS = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     var MESES = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -436,6 +441,12 @@
       /* modo da TV */
       var mm = /\bmodo\s+(normal|discreto|ferias)\b/.exec(T.n);
       if (mm && T.n.replace(/\b(tv|televisao|coloca|coloque|bota|botar|deixa|deixar|a|o|em|no|na|modo|normal|discreto|ferias)\b/g, '').trim().length < 3) return { tipo: 'modo', v: mm[1] };
+
+      /* apagar / concluir: "apaga o aniversário de amanhã", "feito: pedir remédio" */
+      var acao = null;
+      if (acha(T, /^\s*(por favor )?(apaga|apagar|apague|exclui|excluir|exclua|remove|remover|remova|deleta|deletar|cancela|cancelar|desmarca|desmarcar)\b[:,]?/)) acao = 'apagar';
+      else if (acha(T, /^\s*(feito|feita|conclui|concluir|concluido|concluida|terminei|finalizei|ja fiz|marca(r)? como (feito|feita|concluido|concluida))\b[:,]?/)) acao = 'feito';
+      if (acao) acha(T, /^\s*(a |o |as |os )?(minha |meu )?/);
 
       /* tipo */
       var tipo = 'tarefa', cat = 'pessoal';
@@ -499,6 +510,10 @@
       if (cat === 'trabalho' && !cli && (m = acha(T, /\b(do |da |de |para o |para a |pro |pra )?cliente\s+([a-z0-9][^,;.]*?)(?=\s*(,|;|\.|$| para | pra | ate | dia | com ))/))) cli = T.o.slice(0, 0) + m[2].replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
       else acha(T, /\b(do |da |de |para o |para a )?cliente\b/);
 
+      if (acao) {
+        var alvo = sem(T.o).replace(/[^a-z0-9 ]/g, ' ').replace(/\b(a|o|as|os|de|do|da|que|tem|esta|marcado|marcada|no|na|para|pra|tarefa|evento|lembrete)\b/g, ' ').replace(/\s+/g, ' ').trim();
+        return { tipo: acao, alvo: alvo, data: data ? iso(data) : '', tipoAlvo: tipo === 'tarefa' && !/\btarefa\b/.test(sem(texto)) ? '' : tipo };
+      }
       var titulo = T.o.replace(/\s+([,;.])/g, '$1').replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g, '').replace(/\s{2,}/g, ' ').replace(/^(de|do|da|que|e)\s+/i, '').replace(/^[\s,;:.\-]+/, '');
       if (tipo === 'aniversario') titulo = 'Aniversário ' + prepAn + ' ' + (titulo || '');
       if (!titulo) titulo = 'Sem título';
@@ -506,7 +521,27 @@
       if (tipo === 'tarefa') return { tipo: 'tarefa', t: titulo, cat: cat, cli: cli, resp: resp, data: data ? iso(data) : '' };
       return { tipo: tipo, t: titulo, d: iso(data || hoje), h: tipo === 'aniversario' ? '' : hora, anual: tipo === 'aniversario', semData: !data };
     }
-    return { interpretar: interpretar };
+    /* acha a tarefa ou evento que a frase quer apagar/concluir */
+    function achar(r, tarefas, eventos) {
+      var palavras = r.alvo ? r.alvo.split(' ').filter(function (w) { return w.length > 2; }) : [];
+      var cands = [];
+      (tarefas || []).forEach(function (t) { if (r.tipo === 'feito' && t.ok) return; cands.push({ kind: 'tar', id: t.id, t: t.t + ' ' + (t.cli || ''), d: t.data || '', tp: 'tarefa', anual: false }); });
+      if (r.tipo === 'apagar') (eventos || []).forEach(function (e) { cands.push({ kind: 'ev', id: e.id, t: e.t, d: e.d, tp: e.tipo || 'evento', anual: !!e.anual }); });
+      cands.forEach(function (c) {
+        var tn = ' ' + sem(c.t).replace(/[^a-z0-9 ]/g, ' ') + ' ', hit = 0;
+        palavras.forEach(function (w) { if (tn.indexOf(' ' + w) >= 0) hit++; });
+        c.score = palavras.length ? hit / palavras.length : 0;
+        var mesmoDia = r.data && (c.d === r.data || (c.anual && c.d.slice(5) === r.data.slice(5)));
+        if (mesmoDia) c.score += palavras.length ? 0.5 : 1;
+        if (r.tipoAlvo && c.tp === r.tipoAlvo) c.score += 0.3;
+        if (r.data && !mesmoDia && c.d) c.score -= 0.4;
+      });
+      cands.sort(function (a, b) { return b.score - a.score; });
+      var top = cands[0]; if (!top || top.score < 0.6) return null;
+      if (cands[1] && Math.abs(cands[1].score - top.score) < 0.01) return null;
+      return top;
+    }
+    return { interpretar: interpretar, achar: achar };
   })();
 
   var lendoEntrada = false;
@@ -520,7 +555,12 @@
       var mudou = false;
       L.forEach(function (x) {
         var em = Date.parse(x.created_at), cli = (ler('dados-cli', null) || {}).clientes || [], r = ENTRADA.interpretar(x.title + (x.body ? ' ' + x.body : ''), new Date(em), cli), o;
-        if (r && r.tipo === 'modo') { if ((cfg.modo || 'normal') !== r.v) mudarModo(r.v, true); cfg.modoEm = em; gravar('cfg', cfg); ghOp('estado.json', { op: 'modo', v: r.v, em: em }); registrar('Siri: modo ' + r.v); }
+        if (r && (r.tipo === 'apagar' || r.tipo === 'feito')) {
+          var al = ENTRADA.achar(r, (ler('dados-tar', null) || {}).tarefas || [], (ler('dados-ev', null) || {}).eventos || []);
+          if (!al) registrar('Siri: não achei "' + (r.alvo || x.title) + '"');
+          else { o = r.tipo === 'feito' ? { op: 'tarOk', id: al.id, ok: true, em: em } : { op: al.kind === 'tar' ? 'tarApaga' : 'evApaga', id: al.id }; var arq = al.kind === 'tar' ? 'tarefas.json' : 'eventos.json'; ghOp(arq, o); aplicaLocal(al.kind === 'tar' ? 'dados-tar' : 'dados-ev', o); toast((r.tipo === 'feito' ? 'Feito: ' : 'Apaguei: ') + al.t.trim()); registrar('Siri: ' + r.tipo + ' ' + al.t.trim()); mudou = true; }
+        }
+        else if (r && r.tipo === 'modo') { if ((cfg.modo || 'normal') !== r.v) mudarModo(r.v, true); cfg.modoEm = em; gravar('cfg', cfg); ghOp('estado.json', { op: 'modo', v: r.v, em: em }); registrar('Siri: modo ' + r.v); }
         else if (r && r.tipo === 'tarefa') { o = { op: 'tarNova', id: 's' + x.number, t: r.t, em: em, cat: r.cat, cli: r.cli, resp: r.resp, data: r.data }; ghOp('tarefas.json', o); aplicaLocal('dados-tar', o); if (r.cli) ghOp('clientes.json', { op: 'cliNovo', nome: r.cli }); registrar('Siri: tarefa ' + r.t); toast('Nova tarefa: ' + r.t); mudou = true; }
         else if (r) { o = { op: 'evNovo', id: 's' + x.number, d: r.d, h: r.h, t: r.t, tipo: r.tipo, anual: r.anual }; ghOp('eventos.json', o); aplicaLocal('dados-ev', o); registrar('Siri: ' + r.t); toast('No calendário: ' + r.t); mudou = true; }
         var h2 = ghHdr(); h2['Content-Type'] = 'application/json';

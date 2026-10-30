@@ -590,7 +590,14 @@
       var feitos = [];
       L.forEach(function (x) {
         var em = Date.parse(x.created_at), r = ENTRADA.interpretar(x.title + (x.body ? ' ' + x.body : ''), new Date(em), (S.cli && S.cli.clientes) || []);
-        if (r && r.tipo === 'modo') { op('estado', 'modo', { v: r.v, em: em }); feitos.push('Modo ' + r.v); }
+        if (r && (r.tipo === 'apagar' || r.tipo === 'feito')) {
+          var al = ENTRADA.achar(r, (S.tar && S.tar.tarefas) || [], (S.ev && S.ev.eventos) || []);
+          if (!al) feitos.push('não achei "' + (r.alvo || x.title) + '"');
+          else if (r.tipo === 'feito') { op('tar', 'tarOk', { id: al.id, ok: true, em: em }); feitos.push('Feito: ' + al.t.trim()); }
+          else if (al.kind === 'tar') { op('tar', 'tarApaga', { id: al.id }); feitos.push('Apaguei: ' + al.t.trim()); }
+          else { op('ev', 'evApaga', { id: al.id }); feitos.push('Apaguei: ' + al.t.trim()); }
+        }
+        else if (r && r.tipo === 'modo') { op('estado', 'modo', { v: r.v, em: em }); feitos.push('Modo ' + r.v); }
         else if (r && r.tipo === 'tarefa') { op('tar', 'tarNova', { id: 's' + x.number, t: r.t, em: em, cat: r.cat, cli: r.cli, resp: r.resp, data: r.data }); if (r.cli && S.cli) op('cli', 'cliNovo', { nome: r.cli }); feitos.push('Tarefa: ' + r.t); }
         else if (r) { op('ev', 'evNovo', { id: 's' + x.number, d: r.d, h: r.h, t: r.t, tipo: r.tipo, anual: r.anual }); feitos.push(r.t); }
         var h2 = hdr(); h2['Content-Type'] = 'application/json';

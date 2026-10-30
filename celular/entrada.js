@@ -19,6 +19,12 @@ var ENTRADA = (function () {
     var mm = /\bmodo\s+(normal|discreto|ferias)\b/.exec(T.n);
     if (mm && T.n.replace(/\b(tv|televisao|coloca|coloque|bota|botar|deixa|deixar|a|o|em|no|na|modo|normal|discreto|ferias)\b/g, '').trim().length < 3) return { tipo: 'modo', v: mm[1] };
 
+    /* apagar / concluir: "apaga o aniversário de amanhã", "feito: pedir remédio" */
+    var acao = null;
+    if (acha(T, /^\s*(por favor )?(apaga|apagar|apague|exclui|excluir|exclua|remove|remover|remova|deleta|deletar|cancela|cancelar|desmarca|desmarcar)\b[:,]?/)) acao = 'apagar';
+    else if (acha(T, /^\s*(feito|feita|conclui|concluir|concluido|concluida|terminei|finalizei|ja fiz|marca(r)? como (feito|feita|concluido|concluida))\b[:,]?/)) acao = 'feito';
+    if (acao) acha(T, /^\s*(a |o |as |os )?(minha |meu )?/);
+
     /* tipo */
     var tipo = 'tarefa', cat = 'pessoal';
     var mAn = acha(T, /^\s*(novo |nova |um |uma )?aniversario( de| do| da)?\b[:,]?/), prepAn = '';
@@ -81,6 +87,10 @@ var ENTRADA = (function () {
     if (cat === 'trabalho' && !cli && (m = acha(T, /\b(do |da |de |para o |para a |pro |pra )?cliente\s+([a-z0-9][^,;.]*?)(?=\s*(,|;|\.|$| para | pra | ate | dia | com ))/))) cli = T.o.slice(0, 0) + m[2].replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
     else acha(T, /\b(do |da |de |para o |para a )?cliente\b/);
 
+    if (acao) {
+      var alvo = sem(T.o).replace(/[^a-z0-9 ]/g, ' ').replace(/\b(a|o|as|os|de|do|da|que|tem|esta|marcado|marcada|no|na|para|pra|tarefa|evento|lembrete)\b/g, ' ').replace(/\s+/g, ' ').trim();
+      return { tipo: acao, alvo: alvo, data: data ? iso(data) : '', tipoAlvo: tipo === 'tarefa' && !/\btarefa\b/.test(sem(texto)) ? '' : tipo };
+    }
     var titulo = T.o.replace(/\s+([,;.])/g, '$1').replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g, '').replace(/\s{2,}/g, ' ').replace(/^(de|do|da|que|e)\s+/i, '').replace(/^[\s,;:.\-]+/, '');
     if (tipo === 'aniversario') titulo = 'Aniversário ' + prepAn + ' ' + (titulo || '');
     if (!titulo) titulo = 'Sem título';
@@ -88,6 +98,26 @@ var ENTRADA = (function () {
     if (tipo === 'tarefa') return { tipo: 'tarefa', t: titulo, cat: cat, cli: cli, resp: resp, data: data ? iso(data) : '' };
     return { tipo: tipo, t: titulo, d: iso(data || hoje), h: tipo === 'aniversario' ? '' : hora, anual: tipo === 'aniversario', semData: !data };
   }
-  return { interpretar: interpretar };
+  /* acha a tarefa ou evento que a frase quer apagar/concluir */
+  function achar(r, tarefas, eventos) {
+    var palavras = r.alvo ? r.alvo.split(' ').filter(function (w) { return w.length > 2; }) : [];
+    var cands = [];
+    (tarefas || []).forEach(function (t) { if (r.tipo === 'feito' && t.ok) return; cands.push({ kind: 'tar', id: t.id, t: t.t + ' ' + (t.cli || ''), d: t.data || '', tp: 'tarefa', anual: false }); });
+    if (r.tipo === 'apagar') (eventos || []).forEach(function (e) { cands.push({ kind: 'ev', id: e.id, t: e.t, d: e.d, tp: e.tipo || 'evento', anual: !!e.anual }); });
+    cands.forEach(function (c) {
+      var tn = ' ' + sem(c.t).replace(/[^a-z0-9 ]/g, ' ') + ' ', hit = 0;
+      palavras.forEach(function (w) { if (tn.indexOf(' ' + w) >= 0) hit++; });
+      c.score = palavras.length ? hit / palavras.length : 0;
+      var mesmoDia = r.data && (c.d === r.data || (c.anual && c.d.slice(5) === r.data.slice(5)));
+      if (mesmoDia) c.score += palavras.length ? 0.5 : 1;
+      if (r.tipoAlvo && c.tp === r.tipoAlvo) c.score += 0.3;
+      if (r.data && !mesmoDia && c.d) c.score -= 0.4;
+    });
+    cands.sort(function (a, b) { return b.score - a.score; });
+    var top = cands[0]; if (!top || top.score < 0.6) return null;
+    if (cands[1] && Math.abs(cands[1].score - top.score) < 0.01) return null;
+    return top;
+  }
+  return { interpretar: interpretar, achar: achar };
 })();
 if (typeof module !== 'undefined') module.exports = ENTRADA;
