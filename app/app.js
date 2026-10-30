@@ -272,7 +272,10 @@
       Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
     },
     inventario: function (d, a) { d.musicas = a.musicas; d.fundosImg = a.fundosImg; },
-    agenda: function (d, a) { d.reunioes = a.lista; }
+    agenda: function (d, a) { d.reunioes = a.lista; },
+    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) { var nt = { id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '', resp: a.resp || [] }; if (a.data) nt.data = a.data; d.tarefas.push(nt); } },
+    evNovo: function (d, a) { d.eventos = d.eventos || []; if (!d.eventos.some(function (e) { return e.id === a.id; })) d.eventos.push({ id: a.id, d: a.d, h: a.h || '', t: a.t, tipo: a.tipo, anual: !!a.anual }); },
+    cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) d.clientes.push(a.nome); }
   };
   var ghFila = ler('gh-fila', {}), ghGravando = {}, ghTimer = {};
   function ghOp(arq, op) {
@@ -409,6 +412,122 @@
     gravar('inv-enviado', chave); ghOp('tv-inventario.json', { op: 'inventario', musicas: musicas, fundosImg: fundosImg });
   }
 
+  /* caixa de entrada (Siri): issues abertos no repositório viram tarefa, evento ou troca de modo */
+  /* Caixa de entrada da Central (Siri): interpreta uma frase ditada e devolve as operações.
+     Usado igual no celular (dados.js) e na TV (app.js). Sem dependências. */
+  var ENTRADA = (function () {
+    var DIAS = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    var MESES = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    var GENERICAS = ('servicos maritimos maritima maritimo consultoria energia energy petroleo oleo gas navegacao transporte transportes brasil brazil brasileira comercio industria engenharia participacoes investimentos logistica offshore group grupo holding sociedade empresa internacional international services service shipping marine oil the de do da dos das e and sa ltda importacao exportacao contrato contratos revisar parecer memorando consulta reuniao equipe tributario tributaria fiscal juridico legal').split(' ');
+    function sem(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+    function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    /* troca um trecho achado no texto normalizado pelo mesmo trecho no original (mesmo tamanho) */
+    function corta(o, n, ini, fim) { return { o: o.slice(0, ini) + ' ' + o.slice(fim), n: n.slice(0, ini) + ' ' + n.slice(fim) }; }
+    function acha(T, re) { var m = re.exec(T.n); if (!m) return null; var r = corta(T.o, T.n, m.index, m.index + m[0].length); T.o = r.o; T.n = r.n; return m; }
+
+    function interpretar(texto, hoje, clientes) {
+      hoje = hoje || new Date(); hoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+      var T = { o: ' ' + String(texto || '').replace(/\s+/g, ' ').trim() + ' ' }; T.n = sem(T.o);
+      if (T.n.trim().length < 2) return null;
+
+      /* modo da TV */
+      var mm = /\bmodo\s+(normal|discreto|ferias)\b/.exec(T.n);
+      if (mm && T.n.replace(/\b(tv|televisao|coloca|coloque|bota|botar|deixa|deixar|a|o|em|no|na|modo|normal|discreto|ferias)\b/g, '').trim().length < 3) return { tipo: 'modo', v: mm[1] };
+
+      /* tipo */
+      var tipo = 'tarefa', cat = 'pessoal';
+      var mAn = acha(T, /^\s*(novo |nova |um |uma )?aniversario( de| do| da)?\b[:,]?/), prepAn = '';
+      if (mAn) { tipo = 'aniversario'; prepAn = (mAn[2] || ' de').trim(); }
+      else if (acha(T, /^\s*(novo |nova |um |uma )?(evento|compromisso)\b[:,]?/)) tipo = 'evento';
+      else if (acha(T, /^\s*(novo |nova |um |uma )?(lembrete|me lembra(r)? de|lembrar de)\b[:,]?/)) tipo = 'lembrete';
+      else acha(T, /^\s*(nova |uma )?tarefa\b[:,]?/);
+      if (tipo === 'tarefa') {
+        if (acha(T, /^\s*(de |do |da )?(trabalho|escritorio)\b[:,]?/) || /\b(trabalho|escritorio)\b/.test(T.n)) { cat = 'trabalho'; acha(T, /\b(entrou (um |uma )?(novo |nova )?)?(trabalho|escritorio)( novo)?\b( (do|no|de) escritorio)?[:,]?/); }
+        else if (acha(T, /^\s*(de |do |da )?condominio\b[:,]?/)) cat = 'condominio';
+        else acha(T, /^\s*(de |do |da )?pessoal\b[:,]?/);
+      }
+
+      /* data */
+      var data = null, m;
+      if ((m = acha(T, /\b(para |pra |ate |no |na |em )?(depois de amanha)\b/))) data = new Date(hoje.getTime() + 2 * 864e5);
+      else if ((m = acha(T, /\b(para |pra |ate )?amanha\b/))) data = new Date(hoje.getTime() + 864e5);
+      else if ((m = acha(T, /\b(para |pra |ate )?hoje\b/))) data = new Date(hoje);
+      else if ((m = acha(T, /\b(para |pra |ate |no |na |em |dia )*(dia )?(\d{1,2})\s*(\/|de)\s*(\d{1,2}|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(\s*(\/|de)\s*(\d{2,4}))?\b/))) {
+        var mes = /^\d+$/.test(m[5]) ? +m[5] - 1 : MESES.indexOf(m[5]), ano = m[8] ? (m[8].length === 2 ? 2000 + +m[8] : +m[8]) : hoje.getFullYear();
+        data = new Date(ano, mes, +m[3]); if (!m[8] && data < hoje && tipo !== 'aniversario') data.setFullYear(ano + 1);
+      }
+      else if ((m = acha(T, /\b(para |pra |ate |no |na |nessa |nesta |essa |esta |proxima |proximo )*(segunda|terca|quarta|quinta|sexta|sabado|domingo)(-feira)?( que vem)?\b/))) {
+        var alvo = DIAS.indexOf(m[2]), dd = (alvo - hoje.getDay() + 7) % 7 || 7; data = new Date(hoje.getTime() + dd * 864e5);
+      }
+      else if ((m = acha(T, /\b(para |pra |ate |no |em )?dia (\d{1,2})\b/))) {
+        data = new Date(hoje.getFullYear(), hoje.getMonth(), +m[2]); if (data < hoje) data = new Date(hoje.getFullYear(), hoje.getMonth() + 1, +m[2]);
+      }
+      var hora = '';
+      if ((m = acha(T, /\b(as |a partir das |de )?(\d{1,2})(:|h| horas?\s?e?\s?)(\d{2})?( horas?)?\b/))) { var h = +m[2]; if (h < 24) hora = ('0' + h).slice(-2) + ':' + (m[4] || '00'); }
+
+      /* responsáveis (só trabalho) */
+      var resp = [];
+      if (cat === 'trabalho') {
+        ['mss', 'paa', 'dba'].forEach(function (r) { var re = new RegExp('\\b(com |e |para |pra )?(' + r + '|' + r.split('').join(' ') + ')\\b'); if (acha(T, re)) resp.push(r.toUpperCase()); });
+        if (resp.indexOf('DBA') < 0) resp.unshift('DBA');
+      }
+
+      /* cliente: o nome mais longo da lista que aparece na frase */
+      var cli = '';
+      if (cat === 'trabalho' && clientes && clientes.length) {
+        var melhor = null;
+        clientes.forEach(function (c) {
+          var cn = sem(c).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+            .replace(/\s+(ltda|s a|sa|s\/a|eireli|me|epp|limited|ltd|inc|llc|gmbh|bv|as|asa|plc|pte|co)$/g, '').replace(/\s+(e participacoes|participacoes|do brasil|brasil)$/g, '').trim();
+          if (cn.length < 3) return;
+          var pal = cn.split(' '), alvos = [cn];
+          if (pal.length > 2) alvos.push(pal.slice(0, 2).join(' '));
+          if (pal.length > 3) alvos.push(pal.slice(0, 3).join(' '));
+          if (pal.length > 1 && pal[0].length >= 6) alvos.push(pal[0]);
+          alvos.forEach(function (alvo, k) {
+            if (alvo.length < 4) return;
+            if (k > 0 && alvo.split(' ').every(function (w) { return GENERICAS.indexOf(w) >= 0 || w.length < 3; })) return;
+            var i = T.n.replace(/[^a-z0-9 ]/g, ' ').indexOf(' ' + alvo + ' ');
+            if (i >= 0 && (!melhor || alvo.length > melhor.len)) melhor = { nome: c, i: i + 1, len: alvo.length };
+          });
+        });
+        if (melhor) { cli = melhor.nome; var r2 = corta(T.o, T.n, melhor.i, melhor.i + melhor.len); T.o = r2.o; T.n = r2.n; }
+      }
+      if (cat === 'trabalho' && !cli && (m = acha(T, /\b(do |da |de |para o |para a |pro |pra )?cliente\s+([a-z0-9][^,;.]*?)(?=\s*(,|;|\.|$| para | pra | ate | dia | com ))/))) cli = T.o.slice(0, 0) + m[2].replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
+      else acha(T, /\b(do |da |de |para o |para a )?cliente\b/);
+
+      var titulo = T.o.replace(/\s+([,;.])/g, '$1').replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g, '').replace(/\s{2,}/g, ' ').replace(/^(de|do|da|que|e)\s+/i, '').replace(/^[\s,;:.\-]+/, '');
+      if (tipo === 'aniversario') titulo = 'Aniversário ' + prepAn + ' ' + (titulo || '');
+      if (!titulo) titulo = 'Sem título';
+      titulo = titulo.charAt(0).toUpperCase() + titulo.slice(1);
+      if (tipo === 'tarefa') return { tipo: 'tarefa', t: titulo, cat: cat, cli: cli, resp: resp, data: data ? iso(data) : '' };
+      return { tipo: tipo, t: titulo, d: iso(data || hoje), h: tipo === 'aniversario' ? '' : hora, anual: tipo === 'aniversario', semData: !data };
+    }
+    return { interpretar: interpretar };
+  })();
+
+  var lendoEntrada = false;
+  function aplicaLocal(chave, op) { var d = ler(chave, null); if (!d) return; try { GH_OPS[op.op](d, op); localStorage.setItem(chave, JSON.stringify(d)); } catch (e) {} }
+  function entradaTV() {
+    if (lendoEntrada || !window.DADOS_GH || document.hidden) return;
+    lendoEntrada = true;
+    var base = 'https://api.github.com/repos/DuckDaniels1609/central-dados/issues';
+    fetch(base + '?state=open&per_page=30&t=' + Date.now(), { headers: ghHdr(), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (L) {
+      L = L.filter(function (x) { return !x.pull_request; }).sort(function (a, b) { return a.number - b.number; });
+      var mudou = false;
+      L.forEach(function (x) {
+        var em = Date.parse(x.created_at), cli = (ler('dados-cli', null) || {}).clientes || [], r = ENTRADA.interpretar(x.title + (x.body ? ' ' + x.body : ''), new Date(em), cli), o;
+        if (r && r.tipo === 'modo') { if ((cfg.modo || 'normal') !== r.v) mudarModo(r.v, true); cfg.modoEm = em; gravar('cfg', cfg); ghOp('estado.json', { op: 'modo', v: r.v, em: em }); registrar('Siri: modo ' + r.v); }
+        else if (r && r.tipo === 'tarefa') { o = { op: 'tarNova', id: 's' + x.number, t: r.t, em: em, cat: r.cat, cli: r.cli, resp: r.resp, data: r.data }; ghOp('tarefas.json', o); aplicaLocal('dados-tar', o); if (r.cli) ghOp('clientes.json', { op: 'cliNovo', nome: r.cli }); registrar('Siri: tarefa ' + r.t); toast('Nova tarefa: ' + r.t); mudou = true; }
+        else if (r) { o = { op: 'evNovo', id: 's' + x.number, d: r.d, h: r.h, t: r.t, tipo: r.tipo, anual: r.anual }; ghOp('eventos.json', o); aplicaLocal('dados-ev', o); registrar('Siri: ' + r.t); toast('No calendário: ' + r.t); mudou = true; }
+        var h2 = ghHdr(); h2['Content-Type'] = 'application/json';
+        fetch(base + '/' + x.number, { method: 'PATCH', headers: h2, body: JSON.stringify({ state: 'closed', state_reason: 'completed' }) }).catch(function () {});
+      });
+      if (mudou) { renderTarefasTV(); renderTrabalhoTV(); renderAgenda(); }
+      lendoEntrada = false;
+    }).catch(function () { lendoEntrada = false; });
+  }
+
   function dadosSync() {
     if (!window.DADOS_GH) return;
     ghBuscar('projetos.json', 'dados-proj', function (d, mudou) { if (mudou) { renderProjetos(); renderEvoPassos(); registrar('Projetos atualizados do celular'); } });
@@ -418,6 +537,7 @@
     ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) renderEstanteTV(); });
     ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
     ghBuscar('eventos.json', 'dados-ev', function (d, mudou) { if (mudou) renderAgenda(); });
+    ghBuscar('clientes.json', 'dados-cli', function () {});
     Object.keys(ghFila).forEach(function (a) { ghEnviar(a, 0); });
   }
 
@@ -1069,7 +1189,7 @@
   document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); dadosSync(); } });
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
-  setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
+  setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(entradaTV, 7000); setInterval(entradaTV, 30000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
   renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV();
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);

@@ -106,6 +106,7 @@
       baixar(ARQ[q]).then(function (r) {
         var d = r.dados; FILA[q].forEach(function (a) { try { OPS[a.op](d, a); } catch (e) {} });
         S[q] = d; gravar('cd-' + q, d); render(); mostraStatus(FILA[q].length ? 'salvando' : 'ok');
+        if (q === 'tar' || q === 'ev') setTimeout(entrada, 500);
         if (FILA[q].length) enviar(q);
       }).catch(function (e) { mostraStatus(e.message === 'chave' ? 'chave' : 'off'); render(); });
     });
@@ -530,6 +531,29 @@
     op('estado', 'modo', { v: b.dataset.v, em: Date.now() });
   });
   function marcar(k, v) { if (S.marc) op('marc', 'marca', { d: hoje(), k: k, v: !!v }); }
+  /* ---- caixa de entrada (Siri): o atalho do iPhone cria um "issue" no repositório; aqui vira tarefa/evento/modo ---- */
+  var ISSUES = 'https://api.github.com/repos/DuckDaniels1609/central-dados/issues', lendoEntrada = false;
+  function entrada() {
+    if (lendoEntrada || !token() || !S.tar || !S.ev || !S.estado || !window.ENTRADA) return;
+    lendoEntrada = true;
+    fetch(ISSUES + '?state=open&per_page=30&t=' + Date.now(), { headers: hdr(), cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); }).then(function (L) {
+      L = L.filter(function (x) { return !x.pull_request; }).sort(function (a, b) { return a.number - b.number; });
+      var feitos = [];
+      L.forEach(function (x) {
+        var em = Date.parse(x.created_at), r = ENTRADA.interpretar(x.title + (x.body ? ' ' + x.body : ''), new Date(em), (S.cli && S.cli.clientes) || []);
+        if (r && r.tipo === 'modo') { op('estado', 'modo', { v: r.v, em: em }); feitos.push('Modo ' + r.v); }
+        else if (r && r.tipo === 'tarefa') { op('tar', 'tarNova', { id: 's' + x.number, t: r.t, em: em, cat: r.cat, cli: r.cli, resp: r.resp, data: r.data }); if (r.cli && S.cli) op('cli', 'cliNovo', { nome: r.cli }); feitos.push('Tarefa: ' + r.t); }
+        else if (r) { op('ev', 'evNovo', { id: 's' + x.number, d: r.d, h: r.h, t: r.t, tipo: r.tipo, anual: r.anual }); feitos.push(r.t); }
+        var h2 = hdr(); h2['Content-Type'] = 'application/json';
+        fetch(ISSUES + '/' + x.number, { method: 'PATCH', headers: h2, body: JSON.stringify({ state: 'closed', state_reason: 'completed' }) }).catch(function () {});
+      });
+      if (feitos.length) toast('Da Siri: ' + feitos.join(' · '));
+      lendoEntrada = false;
+    }).catch(function () { lendoEntrada = false; });
+  }
+  setInterval(function () { if (!document.hidden) entrada(); }, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(entrada, 2500); });
+
   window.CD = { render: render, inicio: renderInicio, atualizar: atualizar, marcar: marcar, temChave: function () { return !!token(); } };
   document.addEventListener('DOMContentLoaded', function () { render(); atualizar(); });
 })();
