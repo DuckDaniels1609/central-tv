@@ -104,8 +104,10 @@ form.nova .b { padding: 0 16px; font-size: 20px; }
 button.b.novo { width: 100%; margin-top: 12px; }
 .cd-sync { display: inline-block; font-size: 12px; color: var(--suave); }
 .cd-sync.ok { color: var(--verde); } .cd-sync.erro, .cd-sync.chave { color: var(--acc); }
-.filtros { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 10px; padding-bottom: 2px; }
-.filtros .b, .cats .b { padding: 8px 12px; font-size: 13px; white-space: nowrap; flex: none; }
+.filtros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; }
+.filtros .b { padding: 8px 2px; font-size: 12px; display: grid; justify-items: center; gap: 1px; line-height: 1.15; min-width: 0; }
+.filtros .b span { font-size: 15px; }
+.cats .b { padding: 8px 12px; font-size: 13px; white-space: nowrap; flex: none; }
 .cats { display: flex; gap: 6px; margin: 8px 0 4px; flex-wrap: wrap; }
 .chip.catchip { border: 0; font: inherit; font-size: 11px; font-weight: 800; padding: 2px 8px; cursor: pointer; vertical-align: 1px; }
 .subt { display: flex; justify-content: space-between; align-items: center; margin: -6px 0 12px; }
@@ -207,7 +209,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
   <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
 </nav>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=5"></script>
+<script src="dados.js?v=6"></script>
 
 <script>
 (function () {
