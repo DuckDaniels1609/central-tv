@@ -269,7 +269,8 @@
   function renderConfig() {
     var el = $('cd-config'); if (!el) return;
     el.innerHTML = token()
-      ? '<p class="aviso">Projetos e estante conectados ao seu repositório privado. <span class="cd-sync"></span></p><div class="btns dois"><button class="b" data-cd="sync">Atualizar agora</button><button class="b" data-cd="esqTok">Esquecer chave</button></div>'
+      ? '<p class="aviso">Projetos e estante conectados ao seu repositório privado. <span class="cd-sync"></span></p><div class="btns dois"><button class="b" data-cd="sync">Atualizar agora</button><button class="b" data-cd="esqTok">Esquecer chave</button></div>' +
+        '<button class="b novo" data-cd="copiaTok">Copiar chave para o atalho da Siri</button><p class="aviso" style="margin:6px 0 0">Copia "Bearer github_pat_…" pronto para colar no cabeçalho Authorization.</p>'
       : semChave();
     mostraStatus(status);
   }
@@ -464,6 +465,12 @@
       gravar('gh-token', v); toast('Conectando…'); atualizar(); render();
     } else if (a === 'esqTok') { if (confirm('Esquecer a chave neste iPhone?')) { gravar('gh-token', ''); render(); } }
     else if (a === 'sync') atualizar();
+    else if (a === 'copiaTok') {
+      var txt = 'Bearer ' + token();
+      (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { toast('Copiado! Cole no Authorization do atalho'); })
+        .catch(function () { var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copiado! Cole no Authorization do atalho'); } catch (e) { toast('Não consegui copiar'); } document.body.removeChild(ta); });
+      fetch('https://api.github.com/user', { headers: hdr() }).then(function (r) { if (r.status === 401) toast('Atenção: o GitHub recusou esta chave também'); }).catch(function () {});
+    }
     else if (a === 'abre') { aberto[pid] = !aberto[pid]; gravar('cd-aberto', aberto); render(); }
     else if (a === 'etOk') { var et = P[pid].etapas[i]; op('proj', 'etapaOk', { p: pid, i: i, t: et.t, ok: !et.ok }); }
     else if (a === 'etMenu') {

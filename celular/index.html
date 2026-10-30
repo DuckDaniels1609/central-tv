@@ -294,7 +294,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-30.16';
+  var V = '2026-10-30.17';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;
@@ -324,7 +324,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 })();
 </script>
 <script src="capas.js?v=2"></script>
-<script src="dados.js?v=15"></script>
+<script src="dados.js?v=16"></script>
 
 <script>
 (function () {
