@@ -48,8 +48,8 @@
     Object.keys(mapa).forEach(function (id) { var s = document.querySelector('#' + id + ' svg.bg'); if (s) cenaSVG[mapa[id]] = s.outerHTML; });
   }
   function testarImagens(cb) {
-    var faltam = PAGS.length;
-    PAGS.forEach(function (p) {
+    var lista = PAGS.concat([['discreto', '']]), faltam = lista.length;
+    lista.forEach(function (p) {
       var tenta = ['fundos/' + p[0] + '.jpg', 'fundos/' + p[0] + '.png'];
       (function prox(i) {
         if (i >= tenta.length) { imgOk[p[0]] = null; if (--faltam === 0 && cb) cb(); return; }
@@ -87,7 +87,7 @@
   var LISTA_N = (window.PLAYLIST || []).filter(function (s) { return /\.mp3$/i.test(s); });
   var LISTA_D = (window.PLAYLIST_DISCRETO || []).filter(function (s) { return /\.mp3$/i.test(s); });
   var LISTA_A = (window.PLAYLIST_DESPERTAR || []).filter(function (s) { return /\.mp3$/i.test(s); });
-  function escolherLista() { return (cfg.modo === 'discreto' && LISTA_D.length) ? LISTA_D : LISTA_N; }
+  function escolherLista() { if (cfg.modo !== 'discreto') return LISTA_N; return LISTA_DC || (LISTA_D.length ? LISTA_D : LISTA_N); }
   var LISTA = escolherLista();
   var faixa = ler('faixa', 0) || 0, pl = players[0];
   if (LISTA_N.length || LISTA_D.length) {
@@ -154,9 +154,10 @@
     PAGS.forEach(function (p) {
       var sec = document.getElementById('p-' + p[0]); if (!sec) return;
       var velho = sec.querySelector('svg.bg, .bgimg'); var dim = sec.querySelector('.bgdim');
-      var esc = cfg.fundo[p[0]], novo;
-      if (esc === 'img' && imgOk[p[0]]) {
-        novo = document.createElement('div'); novo.className = 'bgimg'; novo.style.backgroundImage = 'linear-gradient(rgba(10,8,30,.62), rgba(10,8,30,0) 34%, rgba(10,8,30,0) 58%, rgba(10,8,30,.6)), url(' + imgOk[p[0]] + ')';
+      var usaDisc = p[0] === 'inicio' && cfg.modo === 'discreto' && cfg.discreto && cfg.discreto.fundo;
+      var esc = usaDisc ? cfg.discreto.fundo : cfg.fundo[p[0]], novo, chImg = usaDisc ? 'discreto' : p[0];
+      if (esc === 'img' && imgOk[chImg]) {
+        novo = document.createElement('div'); novo.className = 'bgimg'; novo.style.backgroundImage = 'linear-gradient(rgba(10,8,30,.62), rgba(10,8,30,0) 34%, rgba(10,8,30,0) 58%, rgba(10,8,30,.6)), url(' + imgOk[chImg] + ')';
       } else {
         var t = document.createElement('div'); t.innerHTML = cenaSVG[esc === 'img' ? PADRAO.fundo[p[0]] : esc] || cenaSVG[PADRAO.fundo[p[0]]]; novo = t.firstChild;
       }
@@ -244,17 +245,157 @@
       return '<div class="proj f"><span class="tag" style="background:' + p.cor + '">' + esc(p.tag) + '</span><span class="nome">' + esc(p.nome) + '</span><span class="lbl">Próximo passo' + (p.conta ? ' · ' + p.conta : '') + '</span><span class="passo">' + esc(p.passo) + '</span></div>';
     }).join('');
   }
+  /* ---------- dados compartilhados com o celular (repositório privado central-dados) ----------
+     Cada arquivo é lido a cada 5 min e quando a Central volta para a tela. Mudanças feitas na TV
+     viram operações numa fila: lê a versão mais nova, aplica, grava (igual ao celular). */
+  var GH_BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
+  function ghHdr() { return { Authorization: 'Bearer ' + window.DADOS_GH, Accept: 'application/vnd.github+json' }; }
+  function b64dec(t) { return decodeURIComponent(escape(atob(t.replace(/\s/g, '')))); }
+  function b64enc(t) { return btoa(unescape(encodeURIComponent(t))); }
+  function ghLer(arq) {
+    return fetch(GH_BASE + arq + '?t=' + Date.now(), { headers: ghHdr(), cache: 'no-store' })
+      .then(function (r) { if (r.status === 404) return null; if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (j) { if (!j) return { txt: '{}', dados: {}, sha: null }; var txt = b64dec(j.content); return { txt: txt, dados: JSON.parse(txt), sha: j.sha }; });
+  }
+  function ghGravar(arq, dados, sha) {
+    dados.atualizado = new Date().toISOString();
+    var h = ghHdr(); h['Content-Type'] = 'application/json';
+    return fetch(GH_BASE + arq, { method: 'PUT', headers: h, body: JSON.stringify(sha ? { message: 'tv: ' + arq, content: b64enc(JSON.stringify(dados, null, 1)), sha: sha } : { message: 'tv: ' + arq, content: b64enc(JSON.stringify(dados, null, 1)) }) })
+      .then(function (r) { if (r.status === 409 || r.status === 422) throw new Error('conflito'); if (!r.ok) throw new Error('HTTP ' + r.status); });
+  }
+  var GH_OPS = {
+    modo: function (d, a) { if (a.em >= (d.modoEm || 0)) { d.modo = a.v; d.modoEm = a.em; } },
+    marca: function (d, a) {
+      d.dias = d.dias || {}; var dia = d.dias[a.d] || (d.dias[a.d] = {});
+      if (a.v) dia[a.k] = true; else delete dia[a.k];
+      var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
+      Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
+    },
+    inventario: function (d, a) { d.musicas = a.musicas; d.fundosImg = a.fundosImg; }
+  };
+  var ghFila = ler('gh-fila', {}), ghGravando = {}, ghTimer = {};
+  function ghOp(arq, op) {
+    if (!window.DADOS_GH) return;
+    (ghFila[arq] = ghFila[arq] || []).push(op); gravar('gh-fila', ghFila);
+    clearTimeout(ghTimer[arq]); ghTimer[arq] = setTimeout(function () { ghEnviar(arq, 0); }, 1500);
+  }
+  function ghEnviar(arq, tent) {
+    var fila = ghFila[arq] || []; if (ghGravando[arq] || !fila.length) return;
+    ghGravando[arq] = true; var lote = fila.slice();
+    ghLer(arq).then(function (r) {
+      lote.forEach(function (a) { try { GH_OPS[a.op](r.dados, a); } catch (e) {} });
+      return ghGravar(arq, r.dados, r.sha);
+    }).then(function () {
+      ghFila[arq] = (ghFila[arq] || []).slice(lote.length); gravar('gh-fila', ghFila); ghGravando[arq] = false;
+      if (ghFila[arq].length) ghEnviar(arq, 0);
+    }).catch(function (e) {
+      ghGravando[arq] = false;
+      if (e.message === 'conflito' && tent < 3) setTimeout(function () { ghEnviar(arq, tent + 1); }, 800);
+      else registrar('Dados: não consegui gravar ' + arq + ' (' + e.message + ')');
+    });
+  }
+  /* lê um arquivo e entrega os dados já com as mudanças da TV que ainda estão na fila */
+  function ghBuscar(arq, chaveLocal, cb) {
+    ghLer(arq).then(function (r) {
+      (ghFila[arq] || []).forEach(function (a) { try { GH_OPS[a.op](r.dados, a); } catch (e) {} });
+      var txt = JSON.stringify(r.dados), mudou = txt !== localStorage.getItem(chaveLocal);
+      if (mudou) localStorage.setItem(chaveLocal, txt);
+      cb(r.dados, mudou);
+    }).catch(function (e) { registrar('Dados: não consegui ler ' + arq + ' (' + e.message + ')'); });
+  }
+
+  /* modo: quem mudou por último (TV, celular ou Siri) vale, mesmo se a TV estava desligada */
+  function estadoAplicar(d) {
+    if (!d || !d.modoEm || d.modoEm <= (cfg.modoEm || 0)) return;
+    cfg.modoEm = d.modoEm;
+    if ((d.modo || 'normal') !== (cfg.modo || 'normal')) { mudarModo(d.modo || 'normal', true); registrar('Modo ' + d.modo + ' (escolhido no celular)'); }
+    else gravar('cfg', cfg);
+  }
+
+  /* marcações do dia: mesmas chaves no celular — sf6-N, gym-N, fut, fim */
+  function marcLocais(dia) {
+    var h = hojeISO(), out = {}, sf = ler('sf6:' + h, {}), g = ler('gym:' + h, {});
+    Object.keys(sf).forEach(function (i) { if (sf[i]) out['sf6-' + i] = true; });
+    for (var n = 0; n < 40; n++) { var x = localStorage.getItem('gymx:' + h + ':' + n); if (x && JSON.parse(x)[0]) out['gym-' + n] = true; }
+    if (g.fut) out.fut = true; if (g.fim) out.fim = true;
+    return out;
+  }
+  function marcAplicar(d) {
+    var h = hojeISO(), dia = (d && d.dias && d.dias[h]) || {};
+    var antes = JSON.stringify(marcLocais());
+    var sf = {}, g = ler('gym:' + h, {});
+    Object.keys(dia).forEach(function (k) {
+      if (k.indexOf('sf6-') === 0) sf[k.slice(4)] = true;
+    });
+    gravar('sf6:' + h, sf);
+    for (var n = 0; n < 40; n++) { var k2 = 'gymx:' + h + ':' + n; if (dia['gym-' + n]) gravar(k2, { 0: true }); else if (localStorage.getItem(k2)) localStorage.removeItem(k2); }
+    g.fut = !!dia.fut; g.fim = !!dia.fim; gravar('gym:' + h, g);
+    if (JSON.stringify(marcLocais()) !== antes) {
+      var fk = foco && (foco.getAttribute('data-chk') || foco.getAttribute('data-act'));
+      renderTreino(); renderAcademia();
+      if (fk && !cfgAberto) { var el = paginaEl(pagina).querySelector('[data-chk="' + fk + '"],[data-act="' + fk + '"]'); foco = null; focar(el || focoPadrao()); }
+      registrar('Marcações atualizadas do celular');
+    }
+  }
+  function marcChave(ck) {
+    var p = ck.split('|'), base = p[0], i = p[1];
+    if (base.indexOf('sf6:') === 0) return 'sf6-' + i;
+    if (base.indexOf('gymx:') === 0) return 'gym-' + base.split(':')[2];
+    return null;
+  }
+
+  /* tarefas e estante: cartões no Início */
+  function renderTarefasTV() {
+    var el = $('tv-tarefas'); if (!el) return;
+    var d = ler('dados-tar', null), lista = d && d.tarefas ? d.tarefas.filter(function (t) { return !t.ok; }) : [];
+    if (!d) { el.parentNode.style.display = 'none'; return; }
+    el.parentNode.style.display = '';
+    el.innerHTML = lista.length ? '<b>' + lista.length + (lista.length === 1 ? ' tarefa' : ' tarefas') + '</b> · ' + lista.slice(0, 2).map(function (t) { return esc(t.t); }).join(' · ') : 'Nenhuma tarefa pendente ✓';
+  }
+  function renderEstanteTV() {
+    var el = $('tv-estante'); if (!el) return;
+    var d = ler('dados-est', null); if (!d || !d.jogos) { el.parentNode.style.display = 'none'; return; }
+    var P = d.progresso || {}, J = d.jogos;
+    var ids = Object.keys(J).filter(function (k) { return (P[k] || {}).status === 'jogando' && (J[k].trophies || []).length; })
+      .sort(function (a, b) { return (J[a].order || 99) - (J[b].order || 99); });
+    el.parentNode.style.display = '';
+    if (!ids.length) { el.textContent = 'Nenhum jogo em andamento'; return; }
+    var g = J[ids[0]], tr = g.trophies, done = (P[ids[0]] || {}).done || {}, f = tr.filter(function (t) { return done[t.id]; }).length;
+    el.innerHTML = '<b>' + esc(g.short || g.name) + '</b> · ' + f + '/' + tr.length + ' · faltam ' + (tr.length - f) + (ids.length > 1 ? ' <span style="opacity:.7">+' + (ids.length - 1) + '</span>' : '');
+  }
+
+  /* configuração vinda do Editor (artefato): modo discreto com fundo e músicas próprios */
+  var LISTA_DC = null;
+  function configAplicar(d) {
+    if (!d) return;
+    var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
+    cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
+    var nomes = cfg.discreto.musicas;
+    LISTA_DC = nomes.length ? LISTA_N.filter(function (s) { var n = s.split('/').pop().replace(/\.mp3$/i, ''); return nomes.indexOf(n) >= 0; }) : null;
+    if (LISTA_DC && !LISTA_DC.length) LISTA_DC = null;
+    if (JSON.stringify(cfg.discreto) !== antes) {
+      gravar('cfg', cfg); aplicarCfg();
+      if (cfg.modo === 'discreto') { trocarLista(); srcAtual = null; tocarMusica(); }
+      if (d.versao) registrar('Modo discreto atualizado pelo Editor');
+    }
+  }
+  function inventarioEnviar() {
+    var musicas = LISTA_N.map(function (s) { return s.split('/').pop().replace(/\.mp3$/i, ''); });
+    var fundosImg = Object.keys(imgOk).filter(function (k) { return imgOk[k]; });
+    var chave = JSON.stringify([musicas, fundosImg]);
+    if (ler('inv-enviado', '') === chave) return;
+    gravar('inv-enviado', chave); ghOp('tv-inventario.json', { op: 'inventario', musicas: musicas, fundosImg: fundosImg });
+  }
+
   function dadosSync() {
-    var tok = window.DADOS_GH; if (!tok) return;
-    fetch('https://api.github.com/repos/DuckDaniels1609/central-dados/contents/projetos.json?t=' + Date.now(), { headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function (j) {
-        var txt = decodeURIComponent(escape(atob(j.content.replace(/\s/g, ''))));
-        if (txt === localStorage.getItem('dados-proj')) return;
-        localStorage.setItem('dados-proj', txt); renderProjetos();
-        registrar('Projetos atualizados do celular');
-      })
-      .catch(function (e) { registrar('Projetos: não consegui ler (' + e.message + ')'); });
+    if (!window.DADOS_GH) return;
+    ghBuscar('projetos.json', 'dados-proj', function (d, mudou) { if (mudou) { renderProjetos(); registrar('Projetos atualizados do celular'); } });
+    ghBuscar('estado.json', 'dados-estado', function (d) { estadoAplicar(d); });
+    ghBuscar('marcacoes.json', 'dados-marc', function (d) { marcAplicar(d); });
+    ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) renderTarefasTV(); });
+    ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) renderEstanteTV(); });
+    ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
+    Object.keys(ghFila).forEach(function (a) { ghEnviar(a, 0); });
   }
 
   /* ---------- treino SF6 ---------- */
@@ -765,6 +906,7 @@
     if (ck) {
       var partes = ck.split('|'), m = ler(partes[0], {});
       m[partes[1]] = !m[partes[1]]; gravar(partes[0], m);
+      var mk = marcChave(ck); if (mk) ghOp('marcacoes.json', { op: 'marca', d: hojeISO(), k: mk, v: !!m[partes[1]] });
       foco.classList.toggle('ok');
       var box = foco.querySelector('.box'); box.textContent = m[partes[1]] ? '✓' : '';
       return;
@@ -775,8 +917,8 @@
     if (act === 'cfg') { abrirCfg(); return; }
     if (act === 'samsung') { registrar('Abriu o menu da Samsung'); if (tizenOk) { try { tizen.application.launch('com.samsung.tv.csfs', function () {}, function () { toast('Não consegui abrir o menu da Samsung'); }); } catch (e) { toast('Não consegui abrir o menu da Samsung'); } } return; }
     if (act === 'modo') { var ord = ['normal', 'discreto', 'ferias']; mudarModo(ord[(ord.indexOf(cfg.modo || 'normal') + 1) % ord.length]); return; }
-    if (act === 'fut') { est.fut = !est.fut; gravar(k, est); refazerMantendoFoco(); }
-    if (act === 'fim') { est.fim = !est.fim; gravar(k, est); refazerMantendoFoco(); if (est.fim) toast('Boa, Daniel! Treino concluído. お疲れさま!'); }
+    if (act === 'fut') { est.fut = !est.fut; gravar(k, est); ghOp('marcacoes.json', { op: 'marca', d: hojeISO(), k: 'fut', v: est.fut }); refazerMantendoFoco(); }
+    if (act === 'fim') { est.fim = !est.fim; gravar(k, est); ghOp('marcacoes.json', { op: 'marca', d: hojeISO(), k: 'fim', v: est.fim }); refazerMantendoFoco(); if (est.fim) toast('Boa, Daniel! Treino concluído. お疲れさま!'); }
   }
   function refazerMantendoFoco() {
     var act = foco && foco.getAttribute('data-act');
@@ -784,10 +926,13 @@
     var el = act ? paginaEl(pagina).querySelector('[data-act="' + act + '"]') : null;
     foco = null; focar(el || focoPadrao());
   }
-  function mudarModo(m) {
-    cfg.modo = m; gravar('cfg', cfg); aplicarCfg(); agendarAlarmeSistema();
+  function mudarModo(m, remoto) {
+    cfg.modo = m;
+    if (!remoto) { cfg.modoEm = Date.now(); ghOp('estado.json', { op: 'modo', v: m, em: cfg.modoEm }); }
+    gravar('cfg', cfg); aplicarCfg(); agendarAlarmeSistema();
     trocarLista(); srcAtual = null; tocarMusica();
-    var mb = document.querySelector('.modobtn'); if (mb) { foco = null; focar(mb); }
+    if (remoto && pagina !== HOME && m === 'discreto') irPara(HOME);
+    var mb = document.querySelector('.modobtn'); if (mb && !remoto) { foco = null; focar(mb); }
     toast({ normal: 'Modo Normal', discreto: 'Modo Discreto: só o Início, sem despertador', ferias: 'Modo Férias: sem despertador' }[m]);
   }
   /* ---------- tela Personalizar ---------- */
@@ -830,7 +975,7 @@
     if (p[0] === 'vol') cfg.musica.vol = +p[1];
     if (p[0] === 'ordem') cfg.musica.ordem = p[1];
     if (p[0] === 'zoom') cfg.zoom = +p[1];
-    if (p[0] === 'modo') { cfg.modo = p[1]; setTimeout(function () { agendarAlarmeSistema(); trocarLista(); srcAtual = null; tocarMusica(); }, 300); }
+    if (p[0] === 'modo') { cfg.modo = p[1]; cfg.modoEm = Date.now(); ghOp('estado.json', { op: 'modo', v: p[1], em: cfg.modoEm }); setTimeout(function () { agendarAlarmeSistema(); trocarLista(); srcAtual = null; tocarMusica(); }, 300); }
     if (p[0] === 'desp') cfg.despertar.on = p[1] === '1';
     if (p[0] === 'dhora') cfg.despertar.hora = p[1];
     if (p[0] === 'desp' || p[0] === 'dhora') setTimeout(agendarAlarmeSistema, 500);
@@ -880,7 +1025,8 @@
   document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); dadosSync(); } });
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
-  setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000);
+  setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
+  renderTarefasTV(); renderEstanteTV();
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();

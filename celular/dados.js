@@ -29,9 +29,9 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json' };
-  var S = { proj: ler('cd-proj', null), est: ler('cd-est', null) };
-  var FILA = { proj: ler('cd-fila-proj', []), est: ler('cd-fila-est', []) };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json' };
+  var S = {}, FILA = {};
+  Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
   var status = 'parado';
 
@@ -50,6 +50,17 @@
       if (a.ids.length && (!g.status || g.status === 'fila')) g.status = 'jogando';
       if (a.npwr && d.jogos[a.g] && !d.jogos[a.g].npwr) d.jogos[a.g].npwr = a.npwr;
     },
+    modo: function (d, a) { if (a.em >= (d.modoEm || 0)) { d.modo = a.v; d.modoEm = a.em; } },
+    marca: function (d, a) {
+      d.dias = d.dias || {}; var dia = d.dias[a.d] || (d.dias[a.d] = {});
+      if (a.v) dia[a.k] = true; else delete dia[a.k];
+      var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
+      Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
+    },
+    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em }); },
+    tarOk: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) { t.ok = a.ok; if (a.ok) t.feita = a.em; else delete t.feita; } }); },
+    tarTexto: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.t = a.t; }); },
+    tarApaga: function (d, a) { d.tarefas = (d.tarefas || []).filter(function (t) { return t.id !== a.id; }); },
     jogoStatus: function (d, a) { var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.status = a.v; }
   };
 
@@ -83,7 +94,7 @@
   function atualizar() {
     if (!token()) { render(); return; }
     mostraStatus('baixando');
-    ['proj', 'est'].forEach(function (q) {
+    Object.keys(ARQ).forEach(function (q) {
       baixar(ARQ[q]).then(function (r) {
         var d = r.dados; FILA[q].forEach(function (a) { try { OPS[a.op](d, a); } catch (e) {} });
         S[q] = d; gravar('cd-' + q, d); render(); mostraStatus(FILA[q].length ? 'salvando' : 'ok');
@@ -252,7 +263,36 @@
       : semChave();
     mostraStatus(status);
   }
-  function render() { renderProj(); renderEst(); renderInicio(); renderConfig(); mostraStatus(status); }
+  /* ---- tarefas ---- */
+  function renderTar() {
+    var el = $('tar-dados'); if (!el) return;
+    if (!token()) { el.innerHTML = semChave(); return; }
+    if (!S.tar) { el.innerHTML = '<div class="card aviso">Carregando tarefas…</div>'; return; }
+    var L = S.tar.tarefas || [], pend = L.filter(function (t) { return !t.ok; }), sem = Date.now() - 7 * 86400000;
+    var feitas = L.filter(function (t) { return t.ok && (t.feita || 0) > sem; }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
+    function linha(t) {
+      return '<div class="et' + (t.ok ? ' ok' : '') + '"><button class="box" data-cd="tarOk" data-id="' + t.id + '" aria-label="Marcar">' + (t.ok ? '✓' : '') + '</button>' +
+        '<span class="tx">' + esc(t.t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
+    }
+    el.innerHTML = '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
+      (pend.length ? pend.map(linha).join('') : '<div class="aviso" style="padding:12px 0 2px">Nada pendente ✓</div>') + '</div>' +
+      (feitas.length ? '<div class="card" style="margin-top:10px"><h2>Feitas nos últimos 7 dias</h2>' + feitas.map(linha).join('') + '</div>' : '');
+    var h = $('h-tar'); if (h) h.innerHTML = pend.length ? pend.slice(0, 3).map(function (t) { return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px">• ' + esc(t.t) + '</div></div>'; }).join('') + (pend.length > 3 ? '<div class="aviso">+' + (pend.length - 3) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
+  }
+  /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
+  function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function espelhaMarc() {
+    if (!S.marc) return;
+    var h = hoje(), dia = (S.marc.dias || {})[h] || {}, k = 'marc-' + h;
+    if (JSON.stringify(ler(k, {})) !== JSON.stringify(dia)) { gravar(k, dia); if (window.CEL && CEL.refazer) CEL.refazer(); }
+  }
+  /* ---- modo escolhido (vale mesmo com a TV desligada) ---- */
+  function renderModo() {
+    var m = S.estado && S.estado.modo; if (!m) return;
+    document.querySelectorAll('#modos button').forEach(function (b) { b.classList.toggle('sel', b.dataset.v === m); if (token()) b.disabled = false; });
+    var av = $('modo-repo'); if (av) av.textContent = 'Modo escolhido: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[m] || m) + '. Se a TV estiver desligada, ela entra nesse modo quando ligar.';
+  }
+  function render() { renderProj(); renderEst(); renderTar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
 
   function novoId(nome) { var b = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'projeto', id = b, n = 2; while (S.proj.projetos[id]) id = b + '-' + n++; return id; }
 
@@ -288,6 +328,12 @@
       var g = b.dataset.g, t = b.dataset.t, dn = ((S.est.progresso[g] || {}).done || {});
       op('est', 'trofeu', { g: g, t: t, ok: !dn[t] });
     }
+    else if (a === 'tarOk') { var t0 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (t0) op('tar', 'tarOk', { id: t0.id, ok: !t0.ok, em: Date.now() }); }
+    else if (a === 'tarMenu') {
+      var t1 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t1) return;
+      var r1 = prompt('Editar a tarefa (apague o texto para excluir):', t1.t); if (r1 === null) return; r1 = r1.trim();
+      if (!r1) { if (confirm('Excluir esta tarefa?')) op('tar', 'tarApaga', { id: t1.id }); } else if (r1 !== t1.t) op('tar', 'tarTexto', { id: t1.id, t: r1 });
+    }
     else if (a === 'impAbre') { imp.aberto = true; imp.itens = []; imp.msg = ''; render(); }
     else if (a === 'impFecha') { imp.aberto = false; imp.itens = []; render(); }
     else if (a === 'impEscolhe') { var f = $('impArq'); if (f) { f.value = ''; f.click(); } }
@@ -306,15 +352,24 @@
     var tro = S.est.jogos[bx.dataset.g].trophies.filter(function (x) { return x.id === bx.dataset.t; })[0]; if (tro) sm.textContent = tro.desc;
   });
   document.addEventListener('submit', function (e) {
+    if (e.target.id === 'tarNova') {
+      e.preventDefault(); var ti = e.target.querySelector('input'), tv = ti.value.trim(); if (!tv || !S.tar) return;
+      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now() }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
+    }
     var f = e.target.closest('form.nova'); if (!f) return; e.preventDefault();
     var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
     op('proj', 'etapaNova', { p: f.dataset.p, t: v }); setTimeout(function () { var i2 = document.querySelector('form.nova[data-p="' + f.dataset.p + '"] input'); if (i2) i2.focus(); }, 30);
   });
 
   document.addEventListener('visibilitychange', function () { if (!document.hidden) atualizar(); });
-  addEventListener('online', function () { ['proj', 'est'].forEach(function (q) { enviar(q); }); });
-  setInterval(function () { if (!document.hidden && !FILA.proj.length && !FILA.est.length) atualizar(); }, 120000);
+  addEventListener('online', function () { Object.keys(ARQ).forEach(function (q) { enviar(q); }); });
+  setInterval(function () { if (!document.hidden && !Object.keys(FILA).some(function (q) { return FILA[q].length; })) atualizar(); }, 120000);
 
-  window.CD = { render: render, inicio: renderInicio, atualizar: atualizar };
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('#modos button'); if (!b || !token() || !S.estado) return;
+    op('estado', 'modo', { v: b.dataset.v, em: Date.now() });
+  });
+  function marcar(k, v) { if (S.marc) op('marc', 'marca', { d: hoje(), k: k, v: !!v }); }
+  window.CD = { render: render, inicio: renderInicio, atualizar: atualizar, marcar: marcar, temChave: function () { return !!token(); } };
   document.addEventListener('DOMContentLoaded', function () { render(); atualizar(); });
 })();

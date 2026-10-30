@@ -76,10 +76,10 @@ button.b.sel { background: var(--acc); color: #2A0E1C; border-color: var(--acc);
 button.b:disabled { opacity: .4; }
 input.cod { width: 100%; font: inherit; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-align: center; text-transform: uppercase; padding: 12px; border-radius: 14px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--ouro); }
 .aviso { font-size: 12px; color: var(--suave); line-height: 1.45; }
-nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(6, 1fr);
+nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(7, 1fr);
   padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(11, 15, 51, .88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--linha); }
-nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 4px 0; cursor: pointer; }
+nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 10px; letter-spacing: -.2px; font-weight: 700; padding: 4px 0; cursor: pointer; }
 nav.abas button svg { width: 24px; height: 24px; }
 nav.abas button.on { color: var(--acc); }
 section.pag[hidden] { display: none !important; }
@@ -128,6 +128,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
         <div class="mini"><div class="k">今日 · SF6</div><div class="t" id="h-sf6">–</div><div class="s" id="h-fase"></div></div>
         <div class="mini"><div class="k">ジム · ACADEMIA</div><div class="t" id="h-gym">–</div><div class="s" id="h-gym2"></div></div>
       </div>
+      <div class="card"><h2>Tarefas <small>やること</small></h2><div id="h-tar"><div class="aviso">Conecte seus dados na aba TV.</div></div></div>
       <div class="card"><h2>Projetos em andamento <small>プロジェクト</small></h2><div id="h-proj"></div></div>
     </div>
   </section>
@@ -156,6 +157,12 @@ button.b.novo { width: 100%; margin-top: 12px; }
     <div id="pj-dados"></div><div id="pj-lista" hidden></div>
   </section>
 
+  <section class="pag" id="p-tar" hidden>
+    <header class="top"><div><span class="tag">やること · Tarefas</span><h1>Tarefas</h1><div class="data">Aparecem também na TV</div></div></header>
+    <div class="subt"><span class="cd-sync"></span></div>
+    <div id="tar-dados"></div>
+  </section>
+
   <section class="pag" id="p-est" hidden>
     <header class="top"><div><span class="tag">トロフィー · Estante</span><h1>Estante de Platinas</h1><div class="data">Toque num jogo para marcar troféus</div></div></header>
     <div class="subt"><span class="cd-sync"></span></div>
@@ -173,7 +180,8 @@ button.b.novo { width: 100%; margin-top: 12px; }
       </div>
       <div class="card"><h2>Modo</h2><div class="btns" id="modos">
         <button class="b" data-c="modo" data-v="normal">Normal</button><button class="b" data-c="modo" data-v="discreto">Discreto</button><button class="b" data-c="modo" data-v="ferias">Férias</button></div>
-        <p class="aviso" style="margin:10px 0 0">Discreto: só o Início, sem despertador. Férias: sem despertador.</p></div>
+        <p class="aviso" style="margin:10px 0 0">Discreto: só o Início, sem despertador. Férias: sem despertador.</p>
+        <p class="aviso" style="margin:6px 0 0;color:var(--azul)" id="modo-repo"></p></div>
       <div class="card"><h2>Música</h2><div class="btns">
         <button class="b" data-c="musica" data-v="tocar">Ligar</button><button class="b" data-c="musica" data-v="pausar">Pausar</button><button class="b" data-c="musica" data-v="proxima">Próxima</button></div></div>
       <div class="card"><h2>Despertador</h2><div class="btns dois">
@@ -190,11 +198,12 @@ button.b.novo { width: 100%; margin-top: 12px; }
   <button data-p="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg>SF6</button>
   <button data-p="gym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg>Academia</button>
   <button data-p="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Projetos</button>
+  <button data-p="tar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Tarefas</button>
   <button data-p="est"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 6h3a3 3 0 0 1-3 3M7 6H4a3 3 0 0 0 3 3"/></svg>Estante</button>
   <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
 </nav>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=3"></script>
+<script src="dados.js?v=4"></script>
 
 <script>
 (function () {
@@ -248,7 +257,9 @@ button.b.novo { width: 100%; margin-top: 12px; }
     var el = e.target.closest('.chk'); if (!el) return;
     var k = 'marc-' + hojeISO(), m = ler(k, {}); m[el.dataset.k] = !m[el.dataset.k]; gravar(k, m);
     el.classList.toggle('ok', m[el.dataset.k]); el.querySelector('.box').textContent = m[el.dataset.k] ? '✓' : '';
+    if (window.CD) CD.marcar(el.dataset.k, m[el.dataset.k]);
   });
+  window.CEL = { refazer: function () { if (D) { renderTreino(); renderGym(); } } };
 
   function renderTreino() {
     var dow = new Date().getDay(), sf = D.sf6[dow], f = faseAtual(), pf = proxFase();
@@ -262,7 +273,8 @@ button.b.novo { width: 100%; margin-top: 12px; }
     if (s && s.t) {
       var pl = A.planos[s.t];
       $('g-tit').textContent = 'Treino ' + s.t; $('g-sub').textContent = pl.nome;
-      $('g-lista').innerHTML = pl.g.map(function (gr) { return '<div class="grupo-t">' + esc(gr[0]) + '</div>' + gr[1].map(function (ex) { return chk('gym-' + ex[0], ex[0], ex[1]); }).join(''); }).join('');
+      var nEx = 0;
+      $('g-lista').innerHTML = pl.g.map(function (gr) { return '<div class="grupo-t">' + esc(gr[0]) + '</div>' + gr[1].map(function (ex) { return chk('gym-' + (nEx++), ex[0], ex[1]); }).join(''); }).join('');
     } else { $('g-tit').textContent = 'Descanso'; $('g-sub').textContent = 'Hoje não tem treino de academia'; $('g-lista').innerHTML = '<div class="aviso">Aproveite para descansar e alongar.</div>'; }
     $('g-fut').innerHTML = chk('fut', 'Joguei futevôlei hoje', s && s.j ? 'Dia de jogo: leve água e água de coco' : '');
     $('g-semana').innerHTML = A.semana.map(function (x, i) { return '<div' + (i === dow ? ' class="hoje"' : '') + '><b>' + DC[i] + '</b>' + (x.t || '–') + (x.j ? '<br>⚽' : '') + '</div>'; }).join('');
@@ -277,7 +289,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
   function renderTV() {
     var c = codigo();
     $('cod').value = c ? c.slice(0, 4) + '-' + c.slice(4, 8) + '-' + c.slice(8) : '';
-    document.querySelectorAll('#p-tv button[data-c]').forEach(function (b) { b.disabled = !c; });
+    document.querySelectorAll('#p-tv button[data-c]').forEach(function (b) { b.disabled = !c && !(b.dataset.c === 'modo' && window.CD && CD.temChave()); });
     $('tv-sub').textContent = c ? 'Conectado · funciona com a TV ligada' : 'Digite o código da TV para começar';
   }
   $('salvar').onclick = function () {
