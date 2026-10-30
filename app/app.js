@@ -588,7 +588,7 @@
   function stSync(motivo) {
     if (!ST || stOcupado) return;
     var alvo = proximoDespertar();
-    var chave = alvo ? DIAS_ST[alvo.dow] + ' ' + ('0' + alvo.h).slice(-2) + ':' + ('0' + alvo.m).slice(-2) : 'nenhum';
+    var chave = alvo ? DIAS_ST[alvo.dow] + ' ' + ('0' + alvo.h).slice(-2) + ':' + ('0' + alvo.m).slice(-2) + ' utc' : 'nenhum';
     var atual = ler('st-regra', null);
     if (atual && atual.chave === chave && Date.now() - (atual.em || 0) < 6 * 3600000) return;
     stOcupado = true;
@@ -598,12 +598,16 @@
       var base = 'https://api.smartthings.com/v1/rules';
       function criar() {
         if (!alvo) { gravar('st-regra', { chave: chave, id: null, em: Date.now() }); registrar('SmartThings: sem despertar programado'); stOcupado = false; return; }
-        var regra = { name: 'Central TV - despertar', actions: [{ every: { specific: { reference: 'Midnight', offset: { value: { integer: alvo.h * 60 + alvo.m }, unit: 'Minute' }, daysOfWeek: [DIAS_ST[alvo.dow]] },
+        /* A regra do SmartThings conta a hora em UTC (30/10: pedimos 06:00 e ela ligou às 03:00 do Rio).
+           Por isso convertemos o horário do Rio para UTC, inclusive o dia da semana quando vira o dia. */
+        var quando = new Date(alvo.data.getFullYear(), alvo.data.getMonth(), alvo.data.getDate(), alvo.h, alvo.m);
+        var minUTC = quando.getUTCHours() * 60 + quando.getUTCMinutes(), diaUTC = quando.getUTCDay();
+        var regra = { name: 'Central TV - despertar', actions: [{ every: { specific: { reference: 'Midnight', offset: { value: { integer: minUTC }, unit: 'Minute' }, daysOfWeek: [DIAS_ST[diaUTC]] },
           actions: [{ command: { devices: [ST.deviceId], commands: [{ component: 'main', capability: 'switch', command: 'on' }] } }] } }] };
         stHttp('POST', base + '?locationId=' + ST.locationId, JSON.stringify(regra), H, function (st, j) {
           if ((st === 200 || st === 201) && j && j.id) {
             gravar('st-regra', { chave: chave, id: j.id, em: Date.now() });
-            registrar('SmartThings: TV liga ' + DIAS[alvo.dow].slice(0, 3) + ' ' + chave.split(' ')[1]);
+            registrar('SmartThings: TV liga ' + DIAS[alvo.dow].slice(0, 3) + ' ' + chave.split(' ')[1] + ' (Rio)');
           } else registrar('SmartThings: erro ao programar (' + st + ')');
           stOcupado = false;
         });
