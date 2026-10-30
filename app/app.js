@@ -468,7 +468,7 @@
   function iniciarDespertador(teste) {
     if (despAtivo) return;
     var el = $('desp'), D2 = cfg.despertar;
-    despAtivo = true; despInicio = Date.now(); if (!teste) gravar('desp-feito', hojeISO()); registrar(teste ? 'Despertador: teste' : 'Despertador tocou');
+    despAtivo = true; despInicio = Date.now(); stAgendar('despertou'); if (!teste) gravar('desp-feito', hojeISO()); registrar(teste ? 'Despertador: teste' : 'Despertador tocou');
     var cfgBox = $('cfg'); if (cfgBox && cfgBox.className.indexOf('hidden') < 0) cfgBox.className += ' hidden';
     el.className = ''; el.style.display = 'flex'; el.style.zIndex = '9999';
     function passo(nome, f) { try { f(); } catch (err) { registrar('Erro no despertador (' + nome + '): ' + (err && err.message)); } }
@@ -510,7 +510,87 @@
     srcAtual = null; tocarMusica();
   }
   /* alarme do sistema da TV: pede para o Tizen abrir a Central no horário (pode ligar a TV, depende do modelo) */
+
+  /* ---------- SmartThings: a Central decide quando a TV liga sozinha ----------
+     Mantém UMA rotina "Central TV - despertar" na nuvem da Samsung, sempre apontando
+     para o próximo despertar (dia útil, sem feriado, modo Normal). Sem despertar, apaga a rotina.
+     As chaves ficam só na TV (smartthings.js + localStorage). */
+  var ST = window.ST_CFG || null, stTimer = null, stOcupado = false;
+  var DIAS_ST = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function stHttp(metodo, url, corpo, cab, cb) {
+    try {
+      var x = new XMLHttpRequest(); x.open(metodo, url, true); x.timeout = 15000;
+      Object.keys(cab || {}).forEach(function (k) { x.setRequestHeader(k, cab[k]); });
+      x.onload = function () { var j = null; try { j = JSON.parse(x.responseText); } catch (e) {} cb(x.status, j); };
+      x.onerror = x.ontimeout = function () { cb(0, null); };
+      x.send(corpo || null);
+    } catch (e) { cb(0, null); }
+  }
+  function stToken(cb) {
+    var t = ler('st-acc', null);
+    if (t && t.exp > Date.now() + 60000) return cb(t.tok);
+    var ref = ler('st-ref', null) || ST.refresh;
+    var corpo = 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(ref) + '&client_id=' + encodeURIComponent(ST.clientId);
+    stHttp('POST', ST.tokenUrl, corpo, { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic ' + btoa(ST.clientId + ':' + ST.clientSecret) }, function (st, j) {
+      if (st === 200 && j && j.access_token) {
+        if (j.refresh_token) gravar('st-ref', j.refresh_token);
+        gravar('st-acc', { tok: j.access_token, exp: Date.now() + ((j.expires_in || 86400) - 300) * 1000 });
+        cb(j.access_token);
+      } else { registrar('SmartThings: chave recusada (' + st + '); pode ser preciso autorizar de novo'); cb(null); }
+    });
+  }
+  function despertarNoDia(d) {
+    var D2 = cfg.despertar; if (!D2 || !D2.on || (cfg.modo && cfg.modo !== 'normal')) return null;
+    if (D2.dias.indexOf(d.getDay()) < 0) return null;
+    if (D2.feriados && feriado(d)) return null;
+    var p = horaTxt(d.getDay()).split(':'); return { dow: d.getDay(), h: +p[0], m: +p[1] || 0 };
+  }
+  function proximoDespertar() {
+    var agora = new Date();
+    for (var i = 0; i < 8; i++) {
+      var d = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + i, 12);
+      var a = despertarNoDia(d); if (!a) continue;
+      if (i === 0 && (agora.getHours() * 60 + agora.getMinutes() >= a.h * 60 + a.m - 2 || ler('desp-feito', '') === hojeISO())) continue;
+      a.data = d; return a;
+    }
+    return null;
+  }
+  function stSync(motivo) {
+    if (!ST || stOcupado) return;
+    var alvo = proximoDespertar();
+    var chave = alvo ? DIAS_ST[alvo.dow] + ' ' + ('0' + alvo.h).slice(-2) + ':' + ('0' + alvo.m).slice(-2) : 'nenhum';
+    var atual = ler('st-regra', null);
+    if (atual && atual.chave === chave && Date.now() - (atual.em || 0) < 6 * 3600000) return;
+    stOcupado = true;
+    stToken(function (tok) {
+      if (!tok) { stOcupado = false; return; }
+      var H = { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json', 'Accept': 'application/json' };
+      var base = 'https://api.smartthings.com/v1/rules';
+      function criar() {
+        if (!alvo) { gravar('st-regra', { chave: chave, id: null, em: Date.now() }); registrar('SmartThings: sem despertar programado'); stOcupado = false; return; }
+        var regra = { name: 'Central TV - despertar', actions: [{ every: { specific: { reference: 'Midnight', offset: { value: { integer: alvo.h * 60 + alvo.m }, unit: 'Minute' }, daysOfWeek: [DIAS_ST[alvo.dow]] },
+          actions: [{ command: { devices: [ST.deviceId], commands: [{ component: 'main', capability: 'switch', command: 'on' }] } }] } }] };
+        stHttp('POST', base + '?locationId=' + ST.locationId, JSON.stringify(regra), H, function (st, j) {
+          if ((st === 200 || st === 201) && j && j.id) {
+            gravar('st-regra', { chave: chave, id: j.id, em: Date.now() });
+            registrar('SmartThings: TV liga ' + DIAS[alvo.dow].slice(0, 3) + ' ' + chave.split(' ')[1]);
+          } else registrar('SmartThings: erro ao programar (' + st + ')');
+          stOcupado = false;
+        });
+      }
+      function apagarAntigas(cb) {
+        stHttp('GET', base + '?locationId=' + ST.locationId, null, H, function (st, j) {
+          var minhas = (j && j.items || []).filter(function (r) { return r.name === 'Central TV - despertar'; });
+          var faltam = minhas.length; if (!faltam) return cb();
+          minhas.forEach(function (r) { stHttp('DELETE', base + '/' + r.id + '?locationId=' + ST.locationId, null, H, function () { if (--faltam === 0) cb(); }); });
+        });
+      }
+      apagarAntigas(criar);
+    });
+  }
+  function stAgendar(motivo) { clearTimeout(stTimer); stTimer = setTimeout(function () { stSync(motivo); }, 4000); }
   function agendarAlarmeSistema() {
+    try { gravar('st-regra', null); stAgendar('config'); } catch (e) {}
     try {
       if (!window.tizen || !tizen.alarm || !tizen.AlarmAbsolute) return;
       var D2 = cfg.despertar, meuId = tizen.application.getCurrentApplication().appInfo.id;
@@ -702,7 +782,7 @@
     if (hojeISO() !== diaAtual) { diaAtual = hojeISO(); renderTreino(); renderAcademia(); }
   }, 10000);
   setInterval(clima, 30 * 60000);
-  document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); } });
+  document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); } });
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
@@ -713,6 +793,8 @@
   setInterval(checarDespertador, 30000);
   setTimeout(checarDespertador, 3000);
   setTimeout(agendarAlarmeSistema, 4000);
+  setTimeout(function () { stSync('abriu'); }, 6000);
+  setInterval(function () { stSync('periodico'); }, 2 * 3600000);
   setInterval(renderAgenda, 60000);
   irPara(HOME);
 })();
