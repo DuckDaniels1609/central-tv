@@ -272,6 +272,7 @@
   function catInfo(c) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === c) return CATS[i]; return CATS[1]; }
   var catNova = ler('cd-cat-nova', 'trabalho'), catFiltro = ler('cd-cat-filtro', '');
   function chipCat(t) { var c = catInfo(t.cat || 'pessoal'); return '<button class="chip catchip" data-cd="tarCat" data-id="' + t.id + '" style="background:' + c[2] + '22;color:' + c[2] + '">' + c[1] + '</button>'; }
+  var verArq = false;
   var cliFiltro = '', respFiltro = '', RESP = ['DBA', 'MSS', 'PAA'], respNova = ler('cd-resp-nova', ['DBA']);
   function chipsResp(t) { var r = t.resp || []; return '<button class="resp" data-cd="tarResp" data-id="' + t.id + '">' + (r.length ? r.map(function (x) { return '<i' + (x === 'DBA' ? ' class="eu"' : '') + '>' + esc(x) + '</i>'; }).join('') : '<i class="vazio">+ resp.</i>') + '</button>'; }
   function listaClientes() {
@@ -290,7 +291,8 @@
     var L = S.tar.tarefas || [], sem = Date.now() - 7 * 86400000;
     var filt = function (t) { return (!catFiltro || (t.cat || 'pessoal') === catFiltro) && (catFiltro !== 'trabalho' || ((!cliFiltro || t.cli === cliFiltro) && (!respFiltro || (t.resp || []).indexOf(respFiltro) >= 0))); };
     var pend = L.filter(function (t) { return !t.ok && filt(t); });
-    var feitas = L.filter(function (t) { return t.ok && (t.feita || 0) > sem && filt(t); }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
+    var feitas = L.filter(function (t) { return t.ok && filt(t); }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
+    function quando(t) { if (!t.feita) return ''; var d = new Date(t.feita); return '<small style="display:block;color:var(--suave);font-size:12px">feita em ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '</small>'; }
     function linha(t) {
       return '<div class="et' + (t.ok ? ' ok' : '') + '"><button class="box" data-cd="tarOk" data-id="' + t.id + '" aria-label="Marcar">' + (t.ok ? '✓' : '') + '</button>' +
         '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<span class="linha-cli"><button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' + chipsResp(t) + '</span>' : '') + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
@@ -305,7 +307,8 @@
       (catFiltro === 'trabalho' ? '<div class="cats"><span class="aviso" style="align-self:center">Ver de:</span>' + [''].concat(RESP).map(function (r) { return '<button class="b' + (respFiltro === r ? ' sel' : '') + '" data-cd="respFiltro" data-v="' + r + '">' + (r || 'Todos') + '</button>'; }).join('') + '</div>' : '') +
       (catFiltro === 'trabalho' && usados().length ? '<select class="cli-in" id="cliFiltro"><option value="">Todos os clientes</option>' + usados().map(function (c) { return '<option' + (c === cliFiltro ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' : '') +
       (pend.length ? pend.map(linha).join('') : '<div class="aviso" style="padding:12px 0 2px">Nada pendente ✓</div>') + '</div>' +
-      (feitas.length ? '<div class="card" style="margin-top:10px"><h2>Feitas nos últimos 7 dias</h2>' + feitas.map(linha).join('') + '</div>' : '');
+      (feitas.length ? '<button class="b novo" data-cd="verArq">' + (verArq ? 'Esconder arquivadas' : 'Arquivadas (' + feitas.length + ')') + '</button>' +
+        (verArq ? '<div class="card" style="margin-top:10px"><h2>Arquivadas <small>toque no ✓ para reabrir</small></h2>' + feitas.map(function (t) { return linha(t).replace('</span><button class="mais"', quando(t) + '</span><button class="mais"'); }).join('') + '</div>' : '') : '');
     var nT = document.querySelector('#tarNova input'), nC = $('tarCliIn');
     if (nT && vT && !nT.value) nT.value = vT; if (nC && vC) nC.value = vC; if (foc === 'tarCliIn' && nC) nC.focus();
     var todas = L.filter(function (t) { return !t.ok; });
@@ -365,6 +368,7 @@
     else if (a === 'tarCatNova') { catNova = b.dataset.v; gravar('cd-cat-novo', catNova); gravar('cd-cat-nova', catNova); render(); }
     else if (a === 'tarCat') { var t2 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t2) return; var ord = CATS.map(function (c) { return c[0]; }); op('tar', 'tarCat', { id: t2.id, cat: ord[(ord.indexOf(t2.cat || 'pessoal') + 1) % ord.length] }); }
     else if (a === 'respNova') { var rv = b.dataset.v, ix = respNova.indexOf(rv); if (ix >= 0) respNova.splice(ix, 1); else respNova.push(rv); respNova.sort(function (x, y) { return RESP.indexOf(x) - RESP.indexOf(y); }); gravar('cd-resp-nova', respNova); render(); }
+    else if (a === 'verArq') { verArq = !verArq; render(); }
     else if (a === 'respFiltro') { respFiltro = b.dataset.v; render(); }
     else if (a === 'tarResp') {
       var t4 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t4) return;
