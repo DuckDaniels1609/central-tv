@@ -545,10 +545,10 @@
       proximo();
     }
     function buscar(j, cb) {
-      var k = 'capa-' + j.id, c = ler(k);
+      var k = 'capa2-' + j.id, c = ler(k);
       if (c && Date.now() - c.em < (c.u ? 7 : 1) * 864e5) { cb(c.u); return; }
       fila.push(function (fim) {
-        var base = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages|description&piprop=thumbnail&pithumbsize=480&';
+        var base = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages|description&piprop=thumbnail&pithumbsize=480&pilicense=any&';
         var url = base + (j.wiki ? 'titles=' + encodeURIComponent(j.wiki) : 'generator=search&gsrlimit=3&gsrsearch=' + encodeURIComponent('"' + j.nome + '" video game'));
         fetch(url).then(function (r) { return r.json(); }).then(function (r) {
           var pages = r && r.query && r.query.pages ? Object.keys(r.query.pages).map(function (x) { return r.query.pages[x]; }) : [];
