@@ -29,7 +29,7 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json' };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json', res: 'resumo.json' };
   var S = {}, FILA = {};
   Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
@@ -63,6 +63,7 @@
     evNovo: function (d, a) { d.eventos = d.eventos || []; if (!d.eventos.some(function (e) { return e.id === a.id; })) d.eventos.push({ id: a.id, d: a.d, h: a.h || '', t: a.t, tipo: a.tipo, anual: !!a.anual }); },
     evMuda: function (d, a) { (d.eventos || []).forEach(function (e) { if (e.id === a.id) { e.t = a.t; e.d = a.d; e.h = a.h || ''; } }); },
     evApaga: function (d, a) { d.eventos = (d.eventos || []).filter(function (e) { return e.id !== a.id; }); },
+    resumo: function (d, a) { d.dias = a.dias; },
     lancMeu: function (d, a) { (d.jogos || []).forEach(function (j) { if (j.id === a.id) j.meu = a.v; }); },
     tarCli: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cli = a.cli; }); },
     cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) { d.clientes.push(a.nome); d.clientes.sort(function (x, y) { return x.localeCompare(y, 'pt'); }); } },
@@ -316,7 +317,7 @@
         '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<span class="linha-cli"><button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' + chipsResp(t) + '</span>' : '') + esc(t.t) + ' ' + chipCat(t) + chipData(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
     }
     var conta = function (c) { return L.filter(function (t) { return !t.ok && (!c || (t.cat || 'pessoal') === c); }).length; };
-    el.innerHTML = '<div class="filtros">' + [['', 'Todas']].concat(CATS).map(function (c) { return '<button class="b' + (catFiltro === c[0] ? ' sel' : '') + '" data-cd="tarFiltro" data-v="' + c[0] + '"><span>' + conta(c[0]) + '</span>' + c[1] + '</button>'; }).join('') + '</div>' +
+    el.innerHTML = '<button class="b novo" style="margin:0 0 10px" data-cd="abreColinha">🎙️ Como falar com a Siri</button><div class="filtros">' + [['', 'Todas']].concat(CATS).map(function (c) { return '<button class="b' + (catFiltro === c[0] ? ' sel' : '') + '" data-cd="tarFiltro" data-v="' + c[0] + '"><span>' + conta(c[0]) + '</span>' + c[1] + '</button>'; }).join('') + '</div>' +
       '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
       '<div class="cats">' + CATS.map(function (c) { return '<button class="b' + (catNova === c[0] ? ' sel' : '') + '" data-cd="tarCatNova" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>' +
       '<div class="linha2" style="margin:6px 0"><input type="date" id="tarDataIn" form="tarNova" aria-label="Prazo (opcional)"></div>' +
@@ -439,6 +440,44 @@
     if (window.CAPAS) CAPAS.aplicar(el, S.lanc.jogos);
   }
 
+  /* ---- resumo falado para a Siri ("o que tenho hoje?"): texto de cada um dos próximos 8 dias ---- */
+  var DIAS_N = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  function resumoDia(dia) {
+    var p = dia.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]), its = itensDoDia(dia), partes = [];
+    var reun = its.filter(function (x) { return x.k === 'reuniao'; }), tar = its.filter(function (x) { return x.k === 'tarefa' && !x.ok; });
+    var fer = its.filter(function (x) { return x.k === 'feriado'; }), ani = its.filter(function (x) { return x.k === 'aniversario'; });
+    var evs = its.filter(function (x) { return x.k === 'evento' || x.k === 'lembrete'; });
+    if (fer.length) partes.push('É feriado: ' + fer[0].t + '.');
+    if (ani.length) partes.push(ani.map(function (x) { return x.t; }).join('. ') + '.');
+    if (reun.length) partes.push((reun.length === 1 ? 'Uma reunião: ' : reun.length + ' reuniões: ') + reun.map(function (x) { return (x.h ? 'às ' + x.h + ', ' : '') + x.t; }).join('; ') + '.');
+    if (evs.length) partes.push(evs.map(function (x) { return (x.h ? 'Às ' + x.h + ', ' : '') + x.t; }).join('. ') + '.');
+    if (tar.length) partes.push((tar.length === 1 ? 'Tarefa para o dia: ' : tar.length + ' tarefas para o dia: ') + tar.map(function (x) { return x.t; }).join('; ') + '.');
+    var atras = ((S.tar && S.tar.tarefas) || []).filter(function (t) { return !t.ok && t.data && t.data < dia; }).length;
+    if (dia === hoje() && atras) partes.push('Você tem ' + atras + (atras === 1 ? ' tarefa atrasada.' : ' tarefas atrasadas.'));
+    return DIAS_N[dt.getDay()] + ', ' + dt.getDate() + ' de ' + MESES_N[dt.getMonth()] + '. ' + (partes.length ? partes.join(' ') : 'Nada marcado.');
+  }
+  var gerandoResumo = false;
+  function resumoAtualizar() {
+    if (gerandoResumo || !S.res || !S.tar || !S.ev) return;
+    var dias = {}, h = new Date();
+    for (var i = 0; i < 8; i++) { var d = iso(new Date(h.getFullYear(), h.getMonth(), h.getDate() + i)); dias[d] = resumoDia(d); }
+    if (JSON.stringify(dias) === JSON.stringify(S.res.dias || {})) return;
+    gerandoResumo = true; op('res', 'resumo', { dias: dias }); gerandoResumo = false;
+  }
+  function colinha() {
+    return '<div class="gaveta" id="colinha"><div class="gav-box" role="dialog" aria-label="Como falar com a Siri" style="max-height:80vh;overflow:auto"><div class="gav-alca"></div>' +
+      '<h2 style="margin:0 0 6px">🎙️ Como falar com a Siri</h2><p class="aviso" style="margin:0 0 10px">Diga <b>"Hey Siri, anote na Central"</b>, espere ela perguntar <i>"O que eu anoto na Central?"</i> e fale:</p>' +
+      [['Tarefas', ['tarefa pessoal comprar pão amanhã', 'trabalho revisar parecer cliente 3R para sexta com MSS', 'condomínio pagar taxa extra dia 10']],
+       ['Calendário', ['aniversário da Ana dia 12 de março', 'evento jantar com amigos sábado às 20h', 'lembrete ligar para o dentista segunda às 9:30']],
+       ['Apagar e concluir', ['apaga o aniversário de amanhã', 'apagar o jantar com amigos', 'feito pedir remédio']],
+       ['TV', ['modo discreto', 'modo normal', 'modo férias']]].map(function (g) {
+        return '<div class="grupo-t">' + g[0] + '</div>' + g[1].map(function (f) { return '<div class="linha" style="font-size:14px"><span>"' + f + '"</span></div>'; }).join('');
+      }).join('') +
+      '<div class="grupo-t">Datas e horas</div><p class="aviso" style="margin:4px 0">hoje, amanhã, depois de amanhã, sexta, dia 5, 5/11, 5 de novembro · às 20h, às 9:30</p>' +
+      '<div class="grupo-t">O que tenho hoje?</div><p class="aviso" style="margin:4px 0">Diga <b>"Hey Siri, o que tenho hoje"</b> (atalho próprio) e ela lê reuniões, aniversários, eventos e tarefas do dia.</p>' +
+      '<button class="b novo" data-cd="fechaColinha">Fechar</button></div></div>';
+  }
+
   /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function espelhaMarc() {
@@ -452,7 +491,7 @@
     document.querySelectorAll('#modos button').forEach(function (b) { b.classList.toggle('sel', b.dataset.v === m); if (token()) b.disabled = false; });
     var av = $('modo-repo'); if (av) av.textContent = 'Modo escolhido: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[m] || m) + '. Se a TV estiver desligada, ela entra nesse modo quando ligar.';
   }
-  function render() { renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
+  function render() { renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); resumoAtualizar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
 
   function novoId(nome) { var b = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'projeto', id = b, n = 2; while (S.proj.projetos[id]) id = b + '-' + n++; return id; }
 
@@ -505,6 +544,8 @@
       var d5 = lerData(r5); if (d5 === null) { toast('Data inválida. Use dia/mês, ex.: 05/11'); return; }
       op('tar', 'tarData', { id: t5.id, data: d5 });
     }
+    else if (a === 'abreColinha') { var c0 = $('colinha'); if (c0) c0.remove(); document.body.insertAdjacentHTML('beforeend', colinha()); $('colinha').onclick = function (e) { if (e.target.id === 'colinha') this.remove(); }; }
+    else if (a === 'fechaColinha') { var c1 = $('colinha'); if (c1) c1.remove(); }
     else if (a === 'lMeu') { var jm = ((S.lanc && S.lanc.jogos) || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (jm) op('lanc', 'lancMeu', { id: jm.id, v: !jm.meu }); }
     else if (a === 'lDia') { lDia = b.dataset.v || null; render(); }
     else if (a === 'lMes') { var pl = lMes.split('-'), nl = new Date(+pl[0], +pl[1] - 1 + +b.dataset.v, 1); lMes = iso(nl).slice(0, 7); lDia = null; render(); }
