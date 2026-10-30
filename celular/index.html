@@ -107,6 +107,8 @@ button.b.novo { width: 100%; margin-top: 12px; }
 .filtros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; }
 .filtros .b { padding: 8px 2px; font-size: 12px; display: grid; justify-items: center; gap: 1px; line-height: 1.15; min-width: 0; }
 .filtros .b span { font-size: 15px; }
+.cli-in { display: block; width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--tinta); margin: 6px 0; }
+button.cli { all: unset; display: block; font-size: 12px; font-weight: 800; color: var(--ouro); margin-bottom: 2px; cursor: pointer; }
 .cats .b { padding: 8px 12px; font-size: 13px; white-space: nowrap; flex: none; }
 .cats { display: flex; gap: 6px; margin: 8px 0 4px; flex-wrap: wrap; }
 .chip.catchip { border: 0; font: inherit; font-size: 11px; font-weight: 800; padding: 2px 8px; cursor: pointer; vertical-align: 1px; }
@@ -209,7 +211,7 @@ button.b.novo { width: 100%; margin-top: 12px; }
   <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
 </nav>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=6"></script>
+<script src="dados.js?v=7"></script>
 
 <script>
 (function () {

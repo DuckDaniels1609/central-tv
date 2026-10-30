@@ -29,7 +29,7 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json' };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json' };
   var S = {}, FILA = {};
   Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
@@ -57,7 +57,9 @@
       var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
       Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
     },
-    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal' }); },
+    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '' }); },
+    tarCli: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cli = a.cli; }); },
+    cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) { d.clientes.push(a.nome); d.clientes.sort(function (x, y) { return x.localeCompare(y, 'pt'); }); } },
     tarCat: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cat = a.cat; }); },
     tarOk: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) { t.ok = a.ok; if (a.ok) t.feita = a.em; else delete t.feita; } }); },
     tarTexto: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.t = a.t; }); },
@@ -269,26 +271,41 @@
   function catInfo(c) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === c) return CATS[i]; return CATS[1]; }
   var catNova = ler('cd-cat-nova', 'trabalho'), catFiltro = ler('cd-cat-filtro', '');
   function chipCat(t) { var c = catInfo(t.cat || 'pessoal'); return '<button class="chip catchip" data-cd="tarCat" data-id="' + t.id + '" style="background:' + c[2] + '22;color:' + c[2] + '">' + c[1] + '</button>'; }
+  var cliFiltro = '';
+  function listaClientes() {
+    var base = (S.cli && S.cli.clientes) || [], extra = usados();
+    extra.forEach(function (c) { if (base.indexOf(c) < 0) base = base.concat([c]); });
+    return base;
+  }
+  function usados() { var o = []; ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (t.cli && o.indexOf(t.cli) < 0) o.push(t.cli); }); return o.sort(function (a, b) { return a.localeCompare(b, 'pt'); }); }
+  function nomeCliente(v) { v = (v || '').trim(); if (!v) return ''; var L = listaClientes(); for (var i = 0; i < L.length; i++) if (L[i].toLowerCase() === v.toLowerCase()) return L[i]; return v; }
+  document.addEventListener('change', function (e) { if (e.target.id === 'cliFiltro') { cliFiltro = e.target.value; render(); } });
   function renderTar() {
     var el = $('tar-dados'); if (!el) return;
     if (!token()) { el.innerHTML = semChave(); return; }
     if (!S.tar) { el.innerHTML = '<div class="card aviso">Carregando tarefas…</div>'; return; }
+    var guardaT = document.querySelector('#tarNova input'), guardaC = $('tarCliIn'), vT = guardaT ? guardaT.value : '', vC = guardaC ? guardaC.value : '', foc = document.activeElement && document.activeElement.id;
     var L = S.tar.tarefas || [], sem = Date.now() - 7 * 86400000;
-    var filt = function (t) { return !catFiltro || (t.cat || 'pessoal') === catFiltro; };
+    var filt = function (t) { return (!catFiltro || (t.cat || 'pessoal') === catFiltro) && (catFiltro !== 'trabalho' || !cliFiltro || t.cli === cliFiltro); };
     var pend = L.filter(function (t) { return !t.ok && filt(t); });
     var feitas = L.filter(function (t) { return t.ok && (t.feita || 0) > sem && filt(t); }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
     function linha(t) {
       return '<div class="et' + (t.ok ? ' ok' : '') + '"><button class="box" data-cd="tarOk" data-id="' + t.id + '" aria-label="Marcar">' + (t.ok ? '✓' : '') + '</button>' +
-        '<span class="tx">' + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
+        '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' : '') + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
     }
     var conta = function (c) { return L.filter(function (t) { return !t.ok && (!c || (t.cat || 'pessoal') === c); }).length; };
     el.innerHTML = '<div class="filtros">' + [['', 'Todas']].concat(CATS).map(function (c) { return '<button class="b' + (catFiltro === c[0] ? ' sel' : '') + '" data-cd="tarFiltro" data-v="' + c[0] + '"><span>' + conta(c[0]) + '</span>' + c[1] + '</button>'; }).join('') + '</div>' +
       '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
       '<div class="cats">' + CATS.map(function (c) { return '<button class="b' + (catNova === c[0] ? ' sel' : '') + '" data-cd="tarCatNova" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>' +
+      (catNova === 'trabalho' ? '<input class="cli-in" id="tarCliIn" list="cliLista" placeholder="Cliente (opcional)" autocomplete="off" form="tarNova">' : '') +
+      '<datalist id="cliLista">' + listaClientes().map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>' +
+      (catFiltro === 'trabalho' && usados().length ? '<select class="cli-in" id="cliFiltro"><option value="">Todos os clientes</option>' + usados().map(function (c) { return '<option' + (c === cliFiltro ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' : '') +
       (pend.length ? pend.map(linha).join('') : '<div class="aviso" style="padding:12px 0 2px">Nada pendente ✓</div>') + '</div>' +
       (feitas.length ? '<div class="card" style="margin-top:10px"><h2>Feitas nos últimos 7 dias</h2>' + feitas.map(linha).join('') + '</div>' : '');
+    var nT = document.querySelector('#tarNova input'), nC = $('tarCliIn');
+    if (nT && vT && !nT.value) nT.value = vT; if (nC && vC) nC.value = vC; if (foc === 'tarCliIn' && nC) nC.focus();
     var todas = L.filter(function (t) { return !t.ok; });
-    var h = $('h-tar'); if (h) h.innerHTML = todas.length ? todas.slice(0, 4).map(function (t) { var c = catInfo(t.cat || 'pessoal'); return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px"><span style="color:' + c[2] + ';font-weight:800">' + c[1] + '</span> · ' + esc(t.t) + '</div></div>'; }).join('') + (todas.length > 4 ? '<div class="aviso">+' + (todas.length - 4) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
+    var h = $('h-tar'); if (h) h.innerHTML = todas.length ? todas.slice(0, 4).map(function (t) { var c = catInfo(t.cat || 'pessoal'); return '<div class="proj"><div class="p" style="color:var(--tinta);font-size:14px"><span style="color:' + c[2] + ';font-weight:800">' + c[1] + '</span> · ' + (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t) + '</div></div>'; }).join('') + (todas.length > 4 ? '<div class="aviso">+' + (todas.length - 4) + ' outras</div>' : '') : '<div class="aviso">Nada pendente ✓</div>';
   }
   /* ---- marcações do dia: espelha no armazenamento do app (marc-AAAA-MM-DD) ---- */
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -343,6 +360,11 @@
     else if (a === 'tarFiltro') { catFiltro = b.dataset.v; gravar('cd-cat-filtro', catFiltro); render(); }
     else if (a === 'tarCatNova') { catNova = b.dataset.v; gravar('cd-cat-novo', catNova); gravar('cd-cat-nova', catNova); render(); }
     else if (a === 'tarCat') { var t2 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t2) return; var ord = CATS.map(function (c) { return c[0]; }); op('tar', 'tarCat', { id: t2.id, cat: ord[(ord.indexOf(t2.cat || 'pessoal') + 1) % ord.length] }); }
+    else if (a === 'tarCli') {
+      var t3 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t3) return;
+      var r3 = prompt('Cliente desta tarefa (apague para tirar):', t3.cli || ''); if (r3 === null) return;
+      var nm3 = nomeCliente(r3); op('tar', 'tarCli', { id: t3.id, cli: nm3 }); if (nm3 && S.cli) op('cli', 'cliNovo', { nome: nm3 });
+    }
     else if (a === 'tarMenu') {
       var t1 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t1) return;
       var r1 = prompt('Editar a tarefa (apague o texto para excluir):', t1.t); if (r1 === null) return; r1 = r1.trim();
@@ -368,7 +390,10 @@
   document.addEventListener('submit', function (e) {
     if (e.target.id === 'tarNova') {
       e.preventDefault(); var ti = e.target.querySelector('input'), tv = ti.value.trim(); if (!tv || !S.tar) return;
-      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
+      var ci = $('tarCliIn'), nmC = catNova === 'trabalho' && ci ? nomeCliente(ci.value) : '';
+      ti.value = ''; if (ci) ci.value = '';
+      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova, cli: nmC });
+      if (nmC && S.cli) op('cli', 'cliNovo', { nome: nmC }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
     }
     var f = e.target.closest('form.nova'); if (!f) return; e.preventDefault();
     var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
