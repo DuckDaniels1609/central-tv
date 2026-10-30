@@ -387,6 +387,9 @@
   var LISTA_DC = null;
   function configAplicar(d) {
     if (!d) return;
+    var exAntes = JSON.stringify(cfg.despertar.extras || {}), exNovo = d.despertarExtra || {};
+    var hj = isoD(new Date()); Object.keys(exNovo).forEach(function (k) { if (k < hj) delete exNovo[k]; });
+    if (JSON.stringify(exNovo) !== exAntes) { cfg.despertar.extras = exNovo; gravar('cfg', cfg); agendarAlarmeSistema(); registrar('Despertar extra: ' + (Object.keys(exNovo).map(function (k) { return k.split('-').reverse().slice(0, 2).join('/') + ' ' + exNovo[k]; }).join(', ') || 'nenhum')); }
     var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
     cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
     var nomes = cfg.discreto.musicas;
@@ -781,10 +784,14 @@
   }
   var despAtivo = false, despInicio = 0, despTimer = null, despAudio = null, volAntes = null;
   function tvVolume(v) { try { if (window.tizen && tizen.tvaudiocontrol) { tizen.tvaudiocontrol.setMute(false); tizen.tvaudiocontrol.setVolume(Math.round(v)); return true; } } catch (e) {} return false; }
+  /* despertar extra num dia específico (ex.: sábado 31/10 às 05:30): vale mesmo fora dos dias normais, em feriado ou modo discreto */
+  function extraDe(d) { var x = (cfg.despertar && cfg.despertar.extras) || {}; return x[isoD(d)] || null; }
   function horaTxt(dow) { var hs = cfg.despertar.horas || {}; return hs[dow] || cfg.despertar.hora || '06:00'; }
   function horaDesp(agora) { var p = horaTxt((agora || new Date()).getDay()).split(':'); return (+p[0]) * 60 + (+p[1] || 0); }
   function deveDespertar(agora) {
-    var D2 = cfg.despertar; if (!D2 || !D2.on || (cfg.modo && cfg.modo !== 'normal')) return false;
+    var D2 = cfg.despertar, ex = extraDe(agora);
+    if (ex) { var pe = ex.split(':'), me = agora.getHours() * 60 + agora.getMinutes(), he = +pe[0] * 60 + (+pe[1] || 0); return me >= he && me <= he + ((D2 && D2.janela) || 45) && ler('desp-feito', '') !== hojeISO(); }
+    if (!D2 || !D2.on || (cfg.modo && cfg.modo !== 'normal')) return false;
     if (D2.dias.indexOf(agora.getDay()) < 0) return false;
     if (D2.feriados && feriado(agora)) return false;
     var min = agora.getHours() * 60 + agora.getMinutes(), h0 = horaDesp(agora);
@@ -875,6 +882,7 @@
     });
   }
   function despertarNoDia(d) {
+    var ex = extraDe(d); if (ex) { var pe = ex.split(':'); return { dow: d.getDay(), h: +pe[0], m: +pe[1] || 0, extra: true }; }
     var D2 = cfg.despertar; if (!D2 || !D2.on || (cfg.modo && cfg.modo !== 'normal')) return null;
     if (D2.dias.indexOf(d.getDay()) < 0) return null;
     if (D2.feriados && feriado(d)) return null;
