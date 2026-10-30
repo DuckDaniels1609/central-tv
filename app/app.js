@@ -204,6 +204,7 @@
     try { tizen.application.getAppsInfo(function (l) { appsTV = l.map(function (x) { return { id: x.id, name: (x.name || '').toLowerCase() }; }); }, function () {}); } catch (e) {}
   }
   function abrirApp(a) {
+    window.ultimoLancamento = Date.now();
     if (a.tipo === 'ps5') { toast('Ligue o PS5 pelo botão PS do controle: com o Anynet+ ligado, a TV troca de entrada sozinha.'); return; }
     if (!tizenOk) { toast('Abriria o ' + a.nome + ' (na TV).'); return; }
     var achado = null;
@@ -655,7 +656,21 @@
       diagAdd('escuta de apps ligada');
     } catch (e) { diagAdd('escuta de apps indisponível: ' + e.message); }
     setInterval(function () { if (document.hidden && bgAvisos < 3) { bgAvisos++; diagAdd('Central viva em segundo plano'); } }, 5000);
-    document.addEventListener('visibilitychange', function () { if (document.hidden) { bgAvisos = 0; diagAdd('Central saiu da tela' + (menuSamsung ? ' (Menu Samsung)' : '')); } else { menuSamsung = false; diagAdd('Central voltou para a tela'); } });
+    var ultimaLista = '';
+    function listaApps(rotulo) {
+      try {
+        tizen.application.getAppsContext(function (ctxs) {
+          var ids = ctxs.map(function (c) { return c.appId; }).sort().join(', ');
+          if (ids !== ultimaLista || rotulo) { diagAdd((rotulo || 'mudou') + ': ' + ids); ultimaLista = ids; }
+        }, function (e) { diagAdd('lista de apps falhou: ' + (e && e.message)); });
+      } catch (e) { diagAdd('lista de apps indisponível: ' + e.message); }
+      try { if (tizen.tvwindow && tizen.tvwindow.getSource) diagAdd('entrada: ' + JSON.stringify(tizen.tvwindow.getSource())); } catch (e2) {}
+    }
+    setInterval(function () { if (document.hidden) listaApps(''); }, 3000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { bgAvisos = 0; diagAdd('Central saiu da tela' + (menuSamsung ? ' (Menu Samsung)' : '') + (Date.now() - (window.ultimoLancamento || 0) < 5000 ? ' (abriu app pela Central)' : '')); setTimeout(function () { listaApps('apps rodando'); }, 1200); }
+      else { menuSamsung = false; diagAdd('Central voltou para a tela'); }
+    });
   })();
 
   function dadosSync() {
