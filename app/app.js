@@ -221,10 +221,40 @@
   }
 
   /* ---------- projetos ---------- */
+  /* Projetos vêm do repositório privado central-dados (os mesmos do celular), quando a TV tem a chave
+     (arquivo local dados_chave.js, criado pelo "Guardar chave dos dados.bat"). Sem chave, usa data.js. */
+  var CORES_PJ = ['#FF7FA8', '#8FE3FF', '#FFD36E', '#9CF2A8', '#C8A6FF', '#FFB38A', '#7FD1C1', '#F59ACB'];
+  function projetosSync() {
+    var d = ler('dados-proj', null); if (!d || !d.projetos) return null;
+    var antigos = {}; D.projetos.forEach(function (p) { antigos[p.nome.toLowerCase().slice(0, 12)] = p; });
+    var TAGS = { automacao: 'Casa', simulador: 'Trabalho', 'skills-trabalho': 'Trabalho', tv: 'TV', ps5: 'Jogos', evo: 'SF6', analisador: 'SF6', canal: 'Twitch' };
+    return Object.keys(d.projetos).map(function (k) { d.projetos[k]._id = k; return d.projetos[k]; })
+      .filter(function (p) { return p.status === 'ativo'; })
+      .sort(function (a, b) { return (a.ordem || 99) - (b.ordem || 99) || a.nome.localeCompare(b.nome); })
+      .map(function (p, i) {
+        var velho = antigos[p.nome.toLowerCase().slice(0, 12)] || {}, et = p.etapas || [];
+        var feitas = et.filter(function (e) { return e.ok; }).length, prox = et.filter(function (e) { return !e.ok; })[0];
+        return { nome: p.nome, tag: velho.tag || TAGS[p._id] || 'Projeto', cor: velho.cor || CORES_PJ[i % CORES_PJ.length], passo: prox ? prox.t : 'Tudo feito ✓', conta: feitas + '/' + et.length };
+      });
+  }
   function renderProjetos() {
-    $('projetos').innerHTML = D.projetos.map(function (p) {
-      return '<div class="proj f"><span class="tag" style="background:' + p.cor + '">' + esc(p.tag) + '</span><span class="nome">' + esc(p.nome) + '</span><span class="lbl">Próximo passo</span><span class="passo">' + esc(p.passo) + '</span></div>';
+    var lista = projetosSync() || D.projetos;
+    $('projetos').className = 'grid4' + (lista.length > 4 ? ' muitos' : '');
+    $('projetos').innerHTML = lista.slice(0, 8).map(function (p) {
+      return '<div class="proj f"><span class="tag" style="background:' + p.cor + '">' + esc(p.tag) + '</span><span class="nome">' + esc(p.nome) + '</span><span class="lbl">Próximo passo' + (p.conta ? ' · ' + p.conta : '') + '</span><span class="passo">' + esc(p.passo) + '</span></div>';
     }).join('');
+  }
+  function dadosSync() {
+    var tok = window.DADOS_GH; if (!tok) return;
+    fetch('https://api.github.com/repos/DuckDaniels1609/central-dados/contents/projetos.json?t=' + Date.now(), { headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (j) {
+        var txt = decodeURIComponent(escape(atob(j.content.replace(/\s/g, ''))));
+        if (txt === localStorage.getItem('dados-proj')) return;
+        localStorage.setItem('dados-proj', txt); renderProjetos();
+        registrar('Projetos atualizados do celular');
+      })
+      .catch(function (e) { registrar('Projetos: não consegui ler (' + e.message + ')'); });
   }
 
   /* ---------- treino SF6 ---------- */
@@ -842,9 +872,10 @@
     if (hojeISO() !== diaAtual) { diaAtual = hojeISO(); renderTreino(); renderAcademia(); }
   }, 10000);
   setInterval(clima, 30 * 60000);
-  document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); } });
+  document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); dadosSync(); } });
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
+  setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000);
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();

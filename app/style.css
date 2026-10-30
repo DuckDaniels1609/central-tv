@@ -43,6 +43,9 @@ h3 { margin: 0; font-size: 26px; font-weight: 700; color: #8FE3FF; }
 .proj .lbl { margin-top: auto; font-size: 21px; color: #C9CFF0; }
 .proj .passo { font-size: 24px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .proj .tag { align-self: flex-start; }
+.grid4.muitos .proj { height: 250px; padding: 22px; gap: 8px; }
+.grid4.muitos .proj .nome { font-size: 26px; }
+.grid4.muitos .proj .passo { font-size: 22px; }
 .f { cursor: pointer; transition: transform .15s, outline-color .15s; outline: 0 solid transparent; }
 .f.focus { outline: 6px solid var(--acc); outline-offset: 5px; transform: scale(1.045); z-index: 2; position: relative; }
 .pnav { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
