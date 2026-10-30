@@ -265,7 +265,21 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="dados.js?v=11"></script>
+<script>
+/* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
+(function () {
+  var V = '2026-10-30.11';
+  function checa() {
+    fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.v || j.v === V) return;
+      var k = 'recarregou-' + j.v; try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1'); } catch (e) {}
+      location.replace('index.html?v=' + encodeURIComponent(j.v));
+    }).catch(function () {});
+  }
+  checa(); document.addEventListener('visibilitychange', function () { if (!document.hidden) checa(); });
+})();
+</script>
+<script src="dados.js?v=12"></script>
 
 <script>
 (function () {
