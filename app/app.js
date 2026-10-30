@@ -599,6 +599,7 @@
     if (cf) { mudarCfg(cf); return; }
     var act = foco.getAttribute('data-act'), k = 'gym:' + hojeISO(), est = ler(k, {});
     if (act === 'cfg') { abrirCfg(); return; }
+    if (act === 'samsung') { registrar('Abriu o menu da Samsung'); if (tizenOk) { try { tizen.application.launch('com.samsung.tv.csfs', function () {}, function () { toast('Não consegui abrir o menu da Samsung'); }); } catch (e) { toast('Não consegui abrir o menu da Samsung'); } } return; }
     if (act === 'modo') { var ord = ['normal', 'discreto', 'ferias']; mudarModo(ord[(ord.indexOf(cfg.modo || 'normal') + 1) % ord.length]); return; }
     if (act === 'fut') { est.fut = !est.fut; gravar(k, est); refazerMantendoFoco(); }
     if (act === 'fim') { est.fim = !est.fim; gravar(k, est); refazerMantendoFoco(); if (est.fim) toast('Boa, Daniel! Treino concluído. お疲れさま!'); }
@@ -667,7 +668,8 @@
   function voltar() {
     if (cfgAberto) { fecharCfg(); return; }
     if (pagina !== HOME) { irPara(HOME); return; }
-    if (tizenOk) { try { tizen.application.getCurrentApplication().hide(); } catch (e) {} }
+    /* no Início o Voltar não esconde mais a Central (ela vai ser a tela inicial da TV) */
+    toast('Para o menu da Samsung, use o botão Menu Samsung');
   }
 
   document.addEventListener('keydown', function (e) {

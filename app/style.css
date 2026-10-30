@@ -148,7 +148,7 @@ body.semanim * { animation: none !important; }
 .desp-info .card { font-size: 32px; font-weight: 700; padding: 22px 34px; max-width: 760px; }
 
 /* ---------- modo discreto: só o Início ---------- */
-.modobtn { font-size: 24px; padding: 10px 24px; }
+.modobtn, .smbtn { font-size: 24px; padding: 10px 24px; }
 body.discreto #p-inicio .grid3, body.discreto #p-inicio .dots, body.discreto #p-inicio [data-go] { display: none !important; }
 body.discreto #p-inicio .pnav { justify-content: center; }
 
