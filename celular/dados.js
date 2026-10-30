@@ -63,6 +63,7 @@
     evNovo: function (d, a) { d.eventos = d.eventos || []; if (!d.eventos.some(function (e) { return e.id === a.id; })) d.eventos.push({ id: a.id, d: a.d, h: a.h || '', t: a.t, tipo: a.tipo, anual: !!a.anual }); },
     evMuda: function (d, a) { (d.eventos || []).forEach(function (e) { if (e.id === a.id) { e.t = a.t; e.d = a.d; e.h = a.h || ''; } }); },
     evApaga: function (d, a) { d.eventos = (d.eventos || []).filter(function (e) { return e.id !== a.id; }); },
+    lancMeu: function (d, a) { (d.jogos || []).forEach(function (j) { if (j.id === a.id) j.meu = a.v; }); },
     tarCli: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cli = a.cli; }); },
     cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) { d.clientes.push(a.nome); d.clientes.sort(function (x, y) { return x.localeCompare(y, 'pt'); }); } },
     tarCat: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cat = a.cat; }); },
@@ -426,7 +427,7 @@
     var DSC = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
     var itens = lista.map(function (j) {
       var p = j.d.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]), falta = Math.round((dt - new Date(hj.replace(/-/g, '/'))) / 864e5);
-      return '<div class="jogo"><div class="capa" data-capa="' + j.id + '"><span>' + esc(j.nome) + '</span></div><div class="info"><b>' + (j.meu ? '★ ' : '') + esc(j.nome) + '</b>' +
+      return '<div class="jogo"><div class="capa" data-capa="' + j.id + '"><span>' + esc(j.nome) + '</span></div><div class="info"><b><button class="estrela' + (j.meu ? ' on' : '') + '" data-cd="lMeu" data-id="' + j.id + '" aria-label="Quero jogar">' + (j.meu ? '★' : '☆') + '</button> ' + esc(j.nome) + '</b>' +
         '<small>' + DSC[dt.getDay()] + ', ' + p[2] + '/' + p[1] + '/' + p[0] + (falta === 0 ? ' · hoje!' : falta === 1 ? ' · amanhã' : falta > 1 ? ' · em ' + falta + ' dias' : ' · já saiu') + '</small>' +
         '<div class="plats">' + j.plat.map(function (x) { return '<i style="border-color:' + (PLAT_COR[x] || '#888') + ';color:' + (PLAT_COR[x] || '#ccc') + '">' + esc(x) + '</i>'; }).join('') + '</div></div></div>';
     }).join('');
@@ -497,6 +498,7 @@
       var d5 = lerData(r5); if (d5 === null) { toast('Data inválida. Use dia/mês, ex.: 05/11'); return; }
       op('tar', 'tarData', { id: t5.id, data: d5 });
     }
+    else if (a === 'lMeu') { var jm = ((S.lanc && S.lanc.jogos) || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (jm) op('lanc', 'lancMeu', { id: jm.id, v: !jm.meu }); }
     else if (a === 'lDia') { lDia = b.dataset.v || null; render(); }
     else if (a === 'lMes') { var pl = lMes.split('-'), nl = new Date(+pl[0], +pl[1] - 1 + +b.dataset.v, 1); lMes = iso(nl).slice(0, 7); lDia = null; render(); }
     else if (a === 'lFiltro') { lFiltro = b.dataset.v; gravar('cd-lanc-filtro', lFiltro); lMes = null; lDia = null; render(); }
