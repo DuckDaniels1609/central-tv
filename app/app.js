@@ -668,8 +668,9 @@
           if (!l.trim()) return; var ev; try { ev = JSON.parse(l); } catch (e) { return; }
           if (ev.event !== 'message') return;
           gravar('cel-ultimo', ev.id);
-          if (Date.now() / 1000 - ev.time > 180) return;
           var m; try { m = JSON.parse(ev.message); } catch (e) { return; }
+          /* troca de modo vale mesmo se chegou com a TV desligada (ntfy guarda até 12 h); o resto só se for recente */
+          if (Date.now() / 1000 - ev.time > (m && m.c === 'modo' ? 12 * 3600 : 180)) return;
           if (m && m.c) celComando(m);
         });
       };
