@@ -588,6 +588,65 @@
       apagarAntigas(criar);
     });
   }
+
+  /* ---------- Celular: recebe comandos do app da Central no iPhone ----------
+     Canal ntfy.sh com nome secreto (código mostrado em Personalizar). A TV também publica
+     um resumo do estado (modo, próximo despertar, música) para o celular mostrar. */
+  function codigoCelular() {
+    var c = ler('cel-codigo', null);
+    if (!c) {
+      var base = (window.ST_CFG && ST_CFG.clientSecret) || (Math.random().toString(36) + Date.now().toString(36) + Math.random().toString(36));
+      var out = '';
+      for (var k = 0; k < 4; k++) { var h = 2166136261 + k; for (var i = 0; i < base.length; i++) { h ^= base.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } out += ('000' + (h % 46656).toString(36)).slice(-3); }
+      c = out.toUpperCase(); gravar('cel-codigo', c);
+    }
+    return c;
+  }
+  function codigoFmt() { var c = codigoCelular(); return c.slice(0, 4) + '-' + c.slice(4, 8) + '-' + c.slice(8, 12); }
+  var CEL_URL = 'https://ntfy.sh/centraltv-' + codigoCelular().toLowerCase();
+  var celOcupado = false, estadoUltimo = '';
+  function celEstado(forcar) {
+    var a = proximoDespertar ? proximoDespertar() : null;
+    var est = { modo: cfg.modo || 'normal', musica: !!cfg.musica.on, desp: a ? DIAS[a.dow] + ' ' + ('0' + a.h).slice(-2) + ':' + ('0' + a.m).slice(-2) : null, versao: window.CENTRAL_ORIGEM || '' };
+    var txt = JSON.stringify(est);
+    if (!forcar && txt === estadoUltimo) return;
+    estadoUltimo = txt;
+    try { var x = new XMLHttpRequest(); x.open('POST', CEL_URL + '-estado', true); x.setRequestHeader('Cache', 'yes'); x.send(JSON.stringify({ tipo: 'estado', em: Date.now(), estado: est })); } catch (e) {}
+  }
+  function celComando(m) {
+    var c = m.c, v = m.v;
+    registrar('Celular: ' + c + (v ? ' ' + v : ''));
+    if (c === 'modo' && /^(normal|discreto|ferias)$/.test(v)) mudarModo(v);
+    else if (c === 'musica') {
+      if (v === 'pausar') { cfg.musica.on = false; gravar('cfg', cfg); tocarMusica(); toast('Música pausada pelo celular'); }
+      else if (v === 'tocar') { cfg.musica.on = true; semMusica = {}; gravar('cfg', cfg); srcAtual = null; tocarMusica(); toast('Música ligada pelo celular'); }
+      else if (v === 'proxima' && LISTA.length) { if (!cfg.musica.on) { cfg.musica.on = true; gravar('cfg', cfg); } proximaFaixa(); toast('Próxima música'); }
+    }
+    else if (c === 'despertador' && v === 'testar') iniciarDespertador(true);
+    else if (c === 'ping') toast('Celular conectado à Central');
+    setTimeout(function () { celEstado(true); }, 1500);
+  }
+  function celOuvir() {
+    if (document.hidden || celOcupado) return;
+    celOcupado = true;
+    var desde = ler('cel-ultimo', null) || String(Math.floor(Date.now() / 1000) - 120);
+    try {
+      var x = new XMLHttpRequest(); x.open('GET', CEL_URL + '/json?poll=1&since=' + encodeURIComponent(desde), true); x.timeout = 10000;
+      x.onload = function () {
+        celOcupado = false;
+        (x.responseText || '').split('\n').forEach(function (l) {
+          if (!l.trim()) return; var ev; try { ev = JSON.parse(l); } catch (e) { return; }
+          if (ev.event !== 'message') return;
+          gravar('cel-ultimo', ev.id);
+          if (Date.now() / 1000 - ev.time > 180) return;
+          var m; try { m = JSON.parse(ev.message); } catch (e) { return; }
+          if (m && m.c) celComando(m);
+        });
+      };
+      x.onerror = x.ontimeout = function () { celOcupado = false; };
+      x.send();
+    } catch (e) { celOcupado = false; }
+  }
   function stAgendar(motivo) { clearTimeout(stTimer); stTimer = setTimeout(function () { stSync(motivo); }, 4000); }
   function agendarAlarmeSistema() {
     try { gravar('st-regra', null); stAgendar('config'); } catch (e) {}
@@ -714,6 +773,7 @@
     h += linhaCfg('Despertador (seg a sex' + (hsTxt ? '; ' + hsTxt : '') + ')', '<span class="op f' + (dd.on ? ' sel' : '') + '" data-cfg="desp|1">Ligado</span><span class="op f' + (!dd.on ? ' sel' : '') + '" data-cfg="desp|0">Desligado</span>' + ['05:30', '06:00', '06:30', '07:00'].map(function (v) { return '<span class="op f' + (dd.hora === v ? ' sel' : '') + '" data-cfg="dhora|' + v + '">' + v + '</span>'; }).join('') + '<span class="op f" data-cfg="dteste|1">Testar agora</span>');
     h += linhaCfg('Tamanho na tela', [100, 97, 94, 90, 85].map(function (v) { return '<span class="op f' + ((cfg.zoom || 100) === v ? ' sel' : '') + '" data-cfg="zoom|' + v + '">' + v + '%</span>'; }).join(''));
     h += linhaCfg('Animações', '<span class="op f' + (cfg.anim ? ' sel' : '') + '" data-cfg="anim|1">Ligadas</span><span class="op f' + (!cfg.anim ? ' sel' : '') + '" data-cfg="anim|0">Desligadas</span>');
+    h += linhaCfg('Código do celular', '<span style="font-size:30px;letter-spacing:4px;color:#FFD36E;font-weight:800">' + codigoFmt() + '</span><span style="font-size:20px;color:#C9CFF0;margin-left:18px">Digite no app da Central no iPhone</span>');
     h += linhaCfg('Registro', '<span style="font-size:20px;line-height:1.5;color:#C9CFF0">' + (ler('registro', []).slice(0, 6).map(esc).join('<br>') || 'Nada ainda') + '</span>');
     h += linhaCfg('', '<span class="op f" data-cfg="padrao|1">Voltar ao padrão</span><span class="op f sel" data-cfg="fechar|1">Pronto</span>');
     $('cfg-linhas').innerHTML = h;
@@ -795,6 +855,8 @@
   setTimeout(agendarAlarmeSistema, 4000);
   setTimeout(function () { stSync('abriu'); }, 6000);
   setInterval(function () { stSync('periodico'); }, 2 * 3600000);
+  setInterval(celOuvir, 4000); setTimeout(celOuvir, 2500);
+  setTimeout(function () { celEstado(true); }, 9000); setInterval(function () { celEstado(false); }, 60000); setInterval(function () { celEstado(true); }, 30 * 60000);
   setInterval(renderAgenda, 60000);
   irPara(HOME);
 })();
