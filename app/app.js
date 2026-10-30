@@ -365,7 +365,7 @@
     var el = $('tv-trab'); if (!el) return;
     var d = ler('dados-tar', null);
     var L = d && d.tarefas ? d.tarefas.filter(function (t) { return !t.ok && (t.cat || 'pessoal') === 'trabalho'; }) : [];
-    el.innerHTML = !d ? '–' : L.length ? '<b>' + L.length + '</b> · ' + L.slice(0, 2).map(function (t) { return (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t); }).join(' · ') : 'nada pendente ✓';
+    el.innerHTML = !d ? '–' : L.length ? '<b>' + L.length + '</b> · ' + L.slice(0, 2).map(function (t) { var r = (t.resp || []).filter(function (x) { return x !== 'DBA'; }); return (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t) + (r.length ? ' <span style="opacity:.7">(' + esc(r.join(', ')) + ')</span>' : ''); }).join(' · ') : 'nada pendente ✓';
   }
   function renderEstanteTV() {
     var el = $('tv-estante'); if (!el) return;

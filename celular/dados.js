@@ -57,7 +57,8 @@
       var lim = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
       Object.keys(d.dias).forEach(function (k) { if (k < lim) delete d.dias[k]; });
     },
-    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '' }); },
+    tarNova: function (d, a) { d.tarefas = d.tarefas || []; if (!d.tarefas.some(function (t) { return t.id === a.id; })) d.tarefas.push({ id: a.id, t: a.t, ok: false, criada: a.em, cat: a.cat || 'pessoal', cli: a.cli || '', resp: a.resp || [] }); },
+    tarResp: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.resp = a.resp; }); },
     tarCli: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cli = a.cli; }); },
     cliNovo: function (d, a) { d.clientes = d.clientes || []; if (a.nome && !d.clientes.some(function (c) { return c.toLowerCase() === a.nome.toLowerCase(); })) { d.clientes.push(a.nome); d.clientes.sort(function (x, y) { return x.localeCompare(y, 'pt'); }); } },
     tarCat: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.cat = a.cat; }); },
@@ -271,7 +272,8 @@
   function catInfo(c) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === c) return CATS[i]; return CATS[1]; }
   var catNova = ler('cd-cat-nova', 'trabalho'), catFiltro = ler('cd-cat-filtro', '');
   function chipCat(t) { var c = catInfo(t.cat || 'pessoal'); return '<button class="chip catchip" data-cd="tarCat" data-id="' + t.id + '" style="background:' + c[2] + '22;color:' + c[2] + '">' + c[1] + '</button>'; }
-  var cliFiltro = '';
+  var cliFiltro = '', respFiltro = '', RESP = ['DBA', 'MSS', 'PAA'], respNova = ler('cd-resp-nova', ['DBA']);
+  function chipsResp(t) { var r = t.resp || []; return '<button class="resp" data-cd="tarResp" data-id="' + t.id + '">' + (r.length ? r.map(function (x) { return '<i' + (x === 'DBA' ? ' class="eu"' : '') + '>' + esc(x) + '</i>'; }).join('') : '<i class="vazio">+ resp.</i>') + '</button>'; }
   function listaClientes() {
     var base = (S.cli && S.cli.clientes) || [], extra = usados();
     extra.forEach(function (c) { if (base.indexOf(c) < 0) base = base.concat([c]); });
@@ -286,19 +288,21 @@
     if (!S.tar) { el.innerHTML = '<div class="card aviso">Carregando tarefas…</div>'; return; }
     var guardaT = document.querySelector('#tarNova input'), guardaC = $('tarCliIn'), vT = guardaT ? guardaT.value : '', vC = guardaC ? guardaC.value : '', foc = document.activeElement && document.activeElement.id;
     var L = S.tar.tarefas || [], sem = Date.now() - 7 * 86400000;
-    var filt = function (t) { return (!catFiltro || (t.cat || 'pessoal') === catFiltro) && (catFiltro !== 'trabalho' || !cliFiltro || t.cli === cliFiltro); };
+    var filt = function (t) { return (!catFiltro || (t.cat || 'pessoal') === catFiltro) && (catFiltro !== 'trabalho' || ((!cliFiltro || t.cli === cliFiltro) && (!respFiltro || (t.resp || []).indexOf(respFiltro) >= 0))); };
     var pend = L.filter(function (t) { return !t.ok && filt(t); });
     var feitas = L.filter(function (t) { return t.ok && (t.feita || 0) > sem && filt(t); }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
     function linha(t) {
       return '<div class="et' + (t.ok ? ' ok' : '') + '"><button class="box" data-cd="tarOk" data-id="' + t.id + '" aria-label="Marcar">' + (t.ok ? '✓' : '') + '</button>' +
-        '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' : '') + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
+        '<span class="tx">' + ((t.cat || 'pessoal') === 'trabalho' ? '<span class="linha-cli"><button class="cli" data-cd="tarCli" data-id="' + t.id + '">' + (t.cli ? esc(t.cli) : '+ cliente') + '</button>' + chipsResp(t) + '</span>' : '') + esc(t.t) + ' ' + chipCat(t) + '</span><button class="mais" data-cd="tarMenu" data-id="' + t.id + '" aria-label="Editar">⋯</button></div>';
     }
     var conta = function (c) { return L.filter(function (t) { return !t.ok && (!c || (t.cat || 'pessoal') === c); }).length; };
     el.innerHTML = '<div class="filtros">' + [['', 'Todas']].concat(CATS).map(function (c) { return '<button class="b' + (catFiltro === c[0] ? ' sel' : '') + '" data-cd="tarFiltro" data-v="' + c[0] + '"><span>' + conta(c[0]) + '</span>' + c[1] + '</button>'; }).join('') + '</div>' +
       '<div class="card"><form class="nova" id="tarNova" style="margin-top:0"><input placeholder="Nova tarefa…" enterkeyhint="done"><button class="b sel">+</button></form>' +
       '<div class="cats">' + CATS.map(function (c) { return '<button class="b' + (catNova === c[0] ? ' sel' : '') + '" data-cd="tarCatNova" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div>' +
-      (catNova === 'trabalho' ? '<input class="cli-in" id="tarCliIn" list="cliLista" placeholder="Cliente (opcional)" autocomplete="off" form="tarNova">' : '') +
+      (catNova === 'trabalho' ? '<input class="cli-in" id="tarCliIn" list="cliLista" placeholder="Cliente (opcional)" autocomplete="off" form="tarNova">' +
+        '<div class="cats"><span class="aviso" style="align-self:center">Responsáveis:</span>' + RESP.map(function (r) { return '<button class="b' + (respNova.indexOf(r) >= 0 ? ' sel' : '') + '" data-cd="respNova" data-v="' + r + '">' + r + '</button>'; }).join('') + '</div>' : '') +
       '<datalist id="cliLista">' + listaClientes().map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>' +
+      (catFiltro === 'trabalho' ? '<div class="cats"><span class="aviso" style="align-self:center">Ver de:</span>' + [''].concat(RESP).map(function (r) { return '<button class="b' + (respFiltro === r ? ' sel' : '') + '" data-cd="respFiltro" data-v="' + r + '">' + (r || 'Todos') + '</button>'; }).join('') + '</div>' : '') +
       (catFiltro === 'trabalho' && usados().length ? '<select class="cli-in" id="cliFiltro"><option value="">Todos os clientes</option>' + usados().map(function (c) { return '<option' + (c === cliFiltro ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' : '') +
       (pend.length ? pend.map(linha).join('') : '<div class="aviso" style="padding:12px 0 2px">Nada pendente ✓</div>') + '</div>' +
       (feitas.length ? '<div class="card" style="margin-top:10px"><h2>Feitas nos últimos 7 dias</h2>' + feitas.map(linha).join('') + '</div>' : '');
@@ -360,6 +364,14 @@
     else if (a === 'tarFiltro') { catFiltro = b.dataset.v; gravar('cd-cat-filtro', catFiltro); render(); }
     else if (a === 'tarCatNova') { catNova = b.dataset.v; gravar('cd-cat-novo', catNova); gravar('cd-cat-nova', catNova); render(); }
     else if (a === 'tarCat') { var t2 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t2) return; var ord = CATS.map(function (c) { return c[0]; }); op('tar', 'tarCat', { id: t2.id, cat: ord[(ord.indexOf(t2.cat || 'pessoal') + 1) % ord.length] }); }
+    else if (a === 'respNova') { var rv = b.dataset.v, ix = respNova.indexOf(rv); if (ix >= 0) respNova.splice(ix, 1); else respNova.push(rv); respNova.sort(function (x, y) { return RESP.indexOf(x) - RESP.indexOf(y); }); gravar('cd-resp-nova', respNova); render(); }
+    else if (a === 'respFiltro') { respFiltro = b.dataset.v; render(); }
+    else if (a === 'tarResp') {
+      var t4 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t4) return;
+      var r4 = prompt('Responsáveis (DBA, MSS, PAA), separados por espaço:', (t4.resp || []).join(' ')); if (r4 === null) return;
+      var lista4 = []; r4.toUpperCase().split(/[^A-Z]+/).forEach(function (x) { if (RESP.indexOf(x) >= 0 && lista4.indexOf(x) < 0) lista4.push(x); });
+      lista4.sort(function (x, y) { return RESP.indexOf(x) - RESP.indexOf(y); }); op('tar', 'tarResp', { id: t4.id, resp: lista4 });
+    }
     else if (a === 'tarCli') {
       var t3 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (!t3) return;
       var r3 = prompt('Cliente desta tarefa (apague para tirar):', t3.cli || ''); if (r3 === null) return;
@@ -392,7 +404,7 @@
       e.preventDefault(); var ti = e.target.querySelector('input'), tv = ti.value.trim(); if (!tv || !S.tar) return;
       var ci = $('tarCliIn'), nmC = catNova === 'trabalho' && ci ? nomeCliente(ci.value) : '';
       ti.value = ''; if (ci) ci.value = '';
-      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova, cli: nmC });
+      op('tar', 'tarNova', { id: 't' + Date.now().toString(36), t: tv, em: Date.now(), cat: catNova, cli: nmC, resp: catNova === 'trabalho' ? respNova.slice() : [] });
       if (nmC && S.cli) op('cli', 'cliNovo', { nome: nmC }); setTimeout(function () { var i3 = document.querySelector('#tarNova input'); if (i3) i3.focus(); }, 30); return;
     }
     var f = e.target.closest('form.nova'); if (!f) return; e.preventDefault();
