@@ -76,13 +76,35 @@ button.b.sel { background: var(--acc); color: #2A0E1C; border-color: var(--acc);
 button.b:disabled { opacity: .4; }
 input.cod { width: 100%; font: inherit; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-align: center; text-transform: uppercase; padding: 12px; border-radius: 14px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--ouro); }
 .aviso { font-size: 12px; color: var(--suave); line-height: 1.45; }
-nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
+nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(6, 1fr);
   padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(11, 15, 51, .88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--linha); }
 nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 4px 0; cursor: pointer; }
 nav.abas button svg { width: 24px; height: 24px; }
 nav.abas button.on { color: var(--acc); }
 section.pag[hidden] { display: none !important; }
+.pj { padding: 14px 16px; }
+.pj + .pj { margin-top: 10px; }
+.pj-cab { all: unset; display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer; }
+.pj-n { flex: 1; font-weight: 800; font-size: 16px; line-height: 1.3; }
+.pj-c { font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; font-weight: 700; }
+.barra { height: 6px; border-radius: 99px; background: rgba(255,255,255,.08); margin-top: 10px; overflow: hidden; }
+.barra i { display: block; height: 100%; border-radius: 99px; }
+.et { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid var(--linha); }
+.et:first-of-type { margin-top: 6px; }
+.et .box { all: unset; flex: none; width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--suave); display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #1B2A1D; cursor: pointer; box-sizing: border-box; }
+.et.ok .box { background: var(--verde); border-color: var(--verde); }
+.et .tx { flex: 1; font-size: 15px; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.et.ok .tx { color: var(--suave); }
+.et .tx small { display: block; color: var(--suave); font-size: 12px; margin-top: 2px; }
+.et .mais { all: unset; flex: none; padding: 0 6px; color: var(--suave); font-size: 20px; line-height: 1; cursor: pointer; }
+form.nova { display: flex; gap: 8px; margin-top: 10px; }
+form.nova input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--tinta); }
+form.nova .b { padding: 0 16px; font-size: 20px; }
+button.b.novo { width: 100%; margin-top: 12px; }
+.cd-sync { display: inline-block; font-size: 12px; color: var(--suave); }
+.cd-sync.ok { color: var(--verde); } .cd-sync.erro, .cd-sync.chave { color: var(--acc); }
+.subt { display: flex; justify-content: space-between; align-items: center; margin: -6px 0 12px; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--ouro); color: #2A1E00; font-weight: 800; font-size: 14px; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .25s; z-index: 9; pointer-events: none; max-width: 90vw; text-align: center; }
 .toast.on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
@@ -129,8 +151,15 @@ section.pag[hidden] { display: none !important; }
   </section>
 
   <section class="pag" id="p-proj" hidden>
-    <header class="top"><div><span class="tag">プロジェクト · Projetos</span><h1>Projetos</h1><div class="data">O próximo passo de cada um</div></div></header>
-    <div class="card"><div id="pj-lista"></div></div>
+    <header class="top"><div><span class="tag">プロジェクト · Projetos</span><h1>Projetos</h1><div class="data">Toque num projeto para ver todas as etapas</div></div></header>
+    <div class="subt"><span class="cd-sync"></span></div>
+    <div id="pj-dados"></div><div id="pj-lista" hidden></div>
+  </section>
+
+  <section class="pag" id="p-est" hidden>
+    <header class="top"><div><span class="tag">トロフィー · Estante</span><h1>Estante de Platinas</h1><div class="data">Toque num jogo para marcar troféus</div></div></header>
+    <div class="subt"><span class="cd-sync"></span></div>
+    <div id="est-dados"></div>
   </section>
 
   <section class="pag" id="p-tv" hidden>
@@ -150,6 +179,7 @@ section.pag[hidden] { display: none !important; }
       <div class="card"><h2>Despertador</h2><div class="btns dois">
         <button class="b" data-c="despertador" data-v="testar">Testar agora</button><button class="b" data-c="ping">Testar conexão</button></div>
         <p class="aviso" style="margin:10px 0 0" id="tv-desp"></p></div>
+      <div class="card"><h2>Dados (projetos e estante)</h2><div id="cd-config"></div></div>
     </div>
   </section>
 
@@ -160,9 +190,11 @@ section.pag[hidden] { display: none !important; }
   <button data-p="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg>SF6</button>
   <button data-p="gym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg>Academia</button>
   <button data-p="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Projetos</button>
+  <button data-p="est"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 6h3a3 3 0 0 1-3 3M7 6H4a3 3 0 0 0 3 3"/></svg>Estante</button>
   <button data-p="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg>TV</button>
 </nav>
 <div class="toast" id="toast"></div>
+<script src="dados.js?v=2"></script>
 
 <script>
 (function () {
@@ -205,6 +237,7 @@ section.pag[hidden] { display: none !important; }
     $('h-gym').textContent = g && g.t ? 'Treino ' + g.t : 'Descanso';
     $('h-gym2').textContent = g && g.t ? D.academia.planos[g.t].nome + (g.j ? ' + futevôlei' : '') : (g && g.j ? 'Futevôlei' : '');
     $('h-proj').innerHTML = (D.projetos || []).slice(0, 4).map(function (p) { return '<div class="proj"><div class="n"><span class="dot" style="background:' + p.cor + '"></span>' + esc(p.nome) + '</div><div class="p">' + esc(p.passo) + '</div></div>'; }).join('');
+    if (window.CD) CD.inicio();
   }
 
   function chk(chave, texto, sub) {
