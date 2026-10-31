@@ -138,6 +138,18 @@ html, body { height: 100%; margin: 0; }
 .meio { overflow: hidden; }
 [id^="meio-"][hidden] { display: none !important; }
 .hj-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; flex: 1; min-height: 0; }
+.hj-trava { margin-left: auto; align-self: flex-start; width: 40px; height: 40px; border-radius: 12px; border: 0; background: rgba(10,8,30,.45); font-size: 18px; cursor: pointer; }
+.hj-trava.aberta { background: var(--acc); }
+.hj-grid.editando .bloco { outline: 2px dashed rgba(255,255,255,.35); outline-offset: -2px; cursor: grab; }
+.hj-grid.editando .bloco.arrastando { opacity: .4; }
+.hj-grid.editando .bloco.alvo { outline-color: var(--acc); }
+.bl-ctl { display: none; gap: 6px; margin-left: auto; }
+.hj-grid.editando .bl-ctl { display: flex; }
+.bl-ctl button { border: 0; background: rgba(255,255,255,.1); color: var(--fg); border-radius: 8px; font-size: 12px; padding: 3px 8px; cursor: pointer; }
+.bloco h3 { display: flex; align-items: center; gap: 8px; }
+.bloco.oculto { display: none; }
+.hj-grid.editando .bloco.oculto { display: flex; opacity: .45; }
+.hj-ocultos { grid-column: 1 / -1; }
 .bloco { background: var(--panel2); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; }
 .bloco h3, .grupo h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .grupo h3 small { color: var(--muted); font-weight: 500; }
@@ -400,7 +412,22 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
 
 /* ---------- barra lateral (nova) ---------- */
 .grid { grid-template-columns: 232px minmax(0, 1fr) 460px; }
-.menu { gap: 2px; padding: 14px 10px; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; }
+.menu { gap: 2px; padding: 14px 10px; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; position: relative; }
+.menu-recolher { align-self: flex-end; width: 30px; height: 30px; border-radius: 9px; border: 0; background: rgba(255,255,255,.06); color: var(--muted); cursor: pointer; display: grid; place-items: center; flex: none; margin-bottom: 4px; }
+.menu-recolher:hover { color: var(--fg); background: rgba(255,255,255,.12); }
+.menu-recolher svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; transition: transform .2s; }
+body.menu-mini .grid { grid-template-columns: 68px minmax(0, 1fr) 460px; }
+body.menu-mini .menu { padding: 12px 8px; }
+body.menu-mini .menu-recolher { align-self: center; }
+body.menu-mini .menu-recolher svg { transform: rotate(180deg); }
+body.menu-mini .mi { justify-content: center; padding: 10px 0; position: relative; }
+body.menu-mini .mi span { display: none; }
+body.menu-mini .mi .bdg { position: absolute; top: 4px; right: 6px; min-width: 0; padding: 0 4px; font-size: 9px; }
+body.menu-mini .mi .bdg:empty { display: none; }
+body.menu-mini .mg-bt { font-size: 0 !important; padding: 6px 0 !important; justify-content: center; }
+body.menu-mini .mg-bt::before { content: ""; display: block; width: 22px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.15); }
+body.menu-mini .mg-bt svg { display: none; }
+body.menu-mini .sub[hidden] { display: flex !important; }
 .menu .mi { position: relative; display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 8px 12px; border-radius: 12px; font-size: 14.5px; font-weight: 700; color: #DCD8F2; white-space: nowrap; }
 .menu .mi span { flex: 1; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .menu .mi svg { width: 19px; height: 19px; opacity: .8; }
@@ -458,6 +485,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
 
   <div class="grid">
     <nav class="card menu" aria-label="Seções">
+      <button class="menu-recolher" id="menu-recolher" aria-label="Recolher o menu" title="Recolher / abrir o menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
       <div class="menu-top">
         <button class="mi" aria-pressed="true" data-sec="hoje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg><span>Hoje</span><i class="bdg" id="bdg-hoje"></i></button>
         <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg><span>Tarefas</span><i class="bdg" id="bdg-tar"></i></button>
@@ -495,7 +523,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       </div>
     </nav>
     <div class="col card meio" id="meio-hoje" hidden>
-      <div class="banner" id="hj-banner"><div class="banner-tx"><h2 id="hj-tit">Olá, Daniel</h2><span id="hj-sub"></span></div></div>
+      <div class="banner" id="hj-banner"><div class="banner-tx"><h2 id="hj-tit">Olá, Daniel</h2><span id="hj-sub"></span></div><button class="hj-trava" id="hj-trava" title="Destravar para arrastar os blocos">🔒</button></div>
       <div class="hj-grid" id="hj-corpo"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-tar" hidden>
@@ -1550,6 +1578,33 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   }
 
   /* ---------- HOJE ---------- */
+  /* blocos do Hoje: ordem e visibilidade escolhidas por você (cadeado para não mexer sem querer) */
+  var BLCTL = '<span class="bl-ctl"><button data-blv="esq" title="Mover para a esquerda">◀</button><button data-blv="dir" title="Mover para a direita">▶</button><button data-blv="ver" title="Mostrar / ocultar">👁</button></span>';
+  function hjPref() { try { return JSON.parse(localStorage.getItem('hj-blocos') || 'null') || { ordem: [], ocultos: [] }; } catch (e) { return { ordem: [], ocultos: [] }; } }
+  function hjAplicar() {
+    var el = $('hj-corpo'); if (!el) return; var P = hjPref();
+    var bl = Array.prototype.slice.call(el.querySelectorAll('.bloco[data-bl]'));
+    bl.sort(function (a, b) { var ia = P.ordem.indexOf(a.dataset.bl), ib = P.ordem.indexOf(b.dataset.bl); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); }).forEach(function (b) { el.appendChild(b); b.classList.toggle('oculto', P.ocultos.indexOf(b.dataset.bl) >= 0); b.draggable = el.classList.contains('editando'); });
+    var vis = bl.filter(function (b) { return P.ocultos.indexOf(b.dataset.bl) < 0; }).length;
+    el.style.gridTemplateColumns = el.classList.contains('editando') ? '' : 'repeat(' + Math.max(1, vis) + ', minmax(0, 1fr))';
+  }
+  function hjSalvar() { var el = $('hj-corpo'), P = hjPref(); P.ordem = Array.prototype.map.call(el.querySelectorAll('.bloco[data-bl]'), function (b) { return b.dataset.bl; }); try { localStorage.setItem('hj-blocos', JSON.stringify(P)); } catch (e) {} }
+  document.addEventListener('click', function (e) {
+    if (e.target.id === 'hj-trava') { var g = $('hj-corpo'), ab = !g.classList.contains('editando'); g.classList.toggle('editando', ab); e.target.classList.toggle('aberta', ab); e.target.textContent = ab ? '🔓' : '🔒'; e.target.title = ab ? 'Travar os blocos' : 'Destravar para arrastar os blocos'; hjAplicar(); return; }
+    var b = e.target.closest('[data-blv]'); if (!b) return; var bl = b.closest('.bloco'), el = $('hj-corpo'), P = hjPref(), id = bl.dataset.bl;
+    if (b.dataset.blv === 'ver') { var i = P.ocultos.indexOf(id); if (i >= 0) P.ocultos.splice(i, 1); else P.ocultos.push(id); try { localStorage.setItem('hj-blocos', JSON.stringify(P)); } catch (x) {} }
+    else if (b.dataset.blv === 'esq' && bl.previousElementSibling) { el.insertBefore(bl, bl.previousElementSibling); hjSalvar(); }
+    else if (b.dataset.blv === 'dir' && bl.nextElementSibling) { el.insertBefore(bl.nextElementSibling, bl); hjSalvar(); }
+    hjAplicar();
+  });
+  document.addEventListener('click', function (e) { if (e.target.closest('#menu-recolher')) { var m = !document.body.classList.contains('menu-mini'); document.body.classList.toggle('menu-mini', m); try { localStorage.setItem('menu-mini', m ? '1' : ''); } catch (x) {} } });
+  try { if (localStorage.getItem('menu-mini') === '1') document.body.classList.add('menu-mini'); } catch (e) {}
+  document.querySelectorAll('.mi').forEach(function (b) { var sp = b.querySelector('span'); if (sp && !b.title) b.title = sp.textContent; });
+  var hjArr = null;
+  document.addEventListener('dragstart', function (e) { var b = e.target.closest && e.target.closest('#hj-corpo.editando .bloco'); if (!b) return; hjArr = b; b.classList.add('arrastando'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', b.dataset.bl); } catch (x) {} });
+  document.addEventListener('dragover', function (e) { var b = e.target.closest && e.target.closest('#hj-corpo.editando .bloco'); if (!b || !hjArr || b === hjArr) return; e.preventDefault(); document.querySelectorAll('#hj-corpo .alvo').forEach(function (x) { x.classList.remove('alvo'); }); b.classList.add('alvo'); });
+  document.addEventListener('drop', function (e) { var b = e.target.closest && e.target.closest('#hj-corpo.editando .bloco'); if (!b || !hjArr || b === hjArr) return; e.preventDefault(); var el = $('hj-corpo'), lista = Array.prototype.slice.call(el.children); if (lista.indexOf(hjArr) < lista.indexOf(b)) el.insertBefore(hjArr, b.nextSibling); else el.insertBefore(hjArr, b); hjSalvar(); hjAplicar(); });
+  document.addEventListener('dragend', function () { if (hjArr) hjArr.classList.remove('arrastando'); hjArr = null; document.querySelectorAll('#hj-corpo .alvo').forEach(function (x) { x.classList.remove('alvo'); }); });
   function desenharHoje() {
     var el = $('hj-corpo'); if (!el) return;
     var d = new Date(), hj = hoje(), hora = d.getHours();
@@ -1563,11 +1618,12 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     var prox = [];
     for (var i = 1; i <= 14; i++) { var dd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i), di = iso(dd); itens(di).forEach(function (x) { if (x.k !== 'tarefa' || !x.ok) prox.push({ dia: di, x: x }); }); }
     el.innerHTML =
-      '<section class="bloco"><h3>Hoje na agenda</h3>' + (reun.length ? reun.map(function (x) { return linhaItem(x); }).join('') : '<p class="note">Nada marcado para hoje.</p>') + '</section>' +
-      '<section class="bloco"><h3>Tarefas para agora</h3>' + (tar.length ? tar.map(function (t) {
+      '<section class="bloco" data-bl="agenda"><h3>Hoje na agenda' + BLCTL + '</h3>' + (reun.length ? reun.map(function (x) { return linhaItem(x); }).join('') : '<p class="note">Nada marcado para hoje.</p>') + '</section>' +
+      '<section class="bloco" data-bl="tarefas"><h3>Tarefas para agora' + BLCTL + '</h3>' + (tar.length ? tar.map(function (t) {
         var at = t.data && t.data < hj; return '<div class="it"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button><span class="h" style="color:' + cat(t.cat)[2] + '">' + cat(t.cat)[1] + '</span><span class="t">' + esc((t.cli ? t.cli + ': ' : '') + t.t) + '</span>' + (t.data ? '<span class="dt' + (at ? ' atraso' : '') + '">' + (at ? 'atrasada · ' : '') + dmy(t.data) + '</span>' : '') + '</div>';
       }).join('') : '<p class="note">Nada pendente. ✓</p>') + '</section>' +
-      '<section class="bloco"><h3>Próximos 14 dias</h3>' + (prox.length ? prox.slice(0, 14).map(function (p) { return '<div class="it"><span class="dia">' + dmy(p.dia) + '</span><i class="bolinha" style="background:' + CORES[p.x.k] + '"></i><span class="t">' + esc(p.x.t) + '</span></div>'; }).join('') : '<p class="note">Nada nos próximos dias.</p>') + '</section>';
+      '<section class="bloco" data-bl="proximos"><h3>Próximos 14 dias' + BLCTL + '</h3>' + (prox.length ? prox.slice(0, 14).map(function (p) { return '<div class="it"><span class="dia">' + dmy(p.dia) + '</span><i class="bolinha" style="background:' + CORES[p.x.k] + '"></i><span class="t">' + esc(p.x.t) + '</span></div>'; }).join('') : '<p class="note">Nada nos próximos dias.</p>') + '</section>';
+    hjAplicar();
   }
 
   /* ---------- TAREFAS ---------- */
