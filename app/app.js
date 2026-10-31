@@ -173,7 +173,7 @@
   /* ---------- clipes do YouTube no Início (layout Janela) ----------
      A playlist vem do config.json (privado). O player fica numa página do site
      (app/clipe.html) porque o YouTube exige um endereço de site para tocar. */
-  var clipeFr = null, clipeFalhou = false, clipeTocando = false;
+  var clipeFr = null, clipeFalhou = false, clipeTocando = false, clipeBuscando = false;
   function clipeLista() { return (cfg.clipes && cfg.clipes.lista) || ''; }
   function clipeDeve() { var h = new Date().getHours(); return !!clipeLista() && !clipeFalhou && cfg.modo !== 'discreto' && h >= 6 && h < 23; }
   function clipeCmd(c) { try { if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: c }), '*'); } catch (e) {} }
@@ -181,14 +181,39 @@
     var sec = document.getElementById('p-inicio'), box = document.getElementById('clipe'); if (!sec || !box) return;
     var on = clipeDeve(); sec.classList.toggle('com-clipe', on);
     if (!on) { if (clipeFr) { box.querySelector('.clipe-v').innerHTML = ''; clipeFr = null; tocarMusica(); } return; }
-    if (!clipeFr) {
-      clipeFr = document.createElement('iframe');
-      clipeFr.setAttribute('allow', 'autoplay; encrypted-media'); clipeFr.setAttribute('frameborder', '0'); clipeFr.setAttribute('tabindex', '-1');
-      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista()) + '&vol=' + ((cfg.musica && cfg.musica.vol) || 40);
-      box.querySelector('.clipe-v').appendChild(clipeFr); clipeTocando = true; tocarMusica(); diagAdd('clipe: abrindo player');
+    if (!clipeFr && !clipeBuscando) {
+      clipeBuscando = true;
+      clipeIds(function (ids) { clipeBuscando = false; if (clipeFr || !clipeDeve()) return; clipeAbrir(ids); clipeAtualizar(); });
+      return;
     }
+    if (!clipeFr) return;
     var ver = !document.hidden && !despAtivo;  /* toca em qualquer página da Central; pausa fora dela e no despertador */
     if (ver !== clipeTocando) { clipeCmd(ver ? 'toca' : 'pausa'); clipeTocando = ver; }
+  }
+  /* lê os vídeos da playlist direto do YouTube (a TV pode); se não der, usa a última lista boa ou a do config */
+  function clipeIds(cb) {
+    var lista = clipeLista(), feito = false, guard = ler('clipe-ids', null);
+    function fim(ids) { if (feito) return; feito = true; if (ids && ids.length) { gravar('clipe-ids', { lista: lista, ids: ids }); cb(ids); return; } cb((guard && guard.lista === lista && guard.ids) || (cfg.clipes && cfg.clipes.videos) || []); }
+    try {
+      var x = new XMLHttpRequest(); x.open('GET', 'https://www.youtube.com/playlist?list=' + encodeURIComponent(lista) + '&hl=pt-BR'); x.timeout = 12000;
+      x.onload = function () {
+        var vistos = {}, ids = [], re = /"videoId":"([\w-]{11})"/g, m, t = x.responseText || '';
+        while ((m = re.exec(t))) if (!vistos[m[1]]) { vistos[m[1]] = 1; ids.push(m[1]); }
+        diagAdd('clipe: playlist lida do YouTube, ' + ids.length + ' videos'); fim(ids);
+      };
+      x.onerror = x.ontimeout = function () { diagAdd('clipe: nao consegui ler a playlist, usando lista guardada'); fim(null); };
+      x.send();
+    } catch (e) { fim(null); }
+    setTimeout(function () { fim(null); }, 15000);
+  }
+  function clipeAbrir(ids) {
+    var box = document.getElementById('clipe');
+    {
+      clipeFr = document.createElement('iframe');
+      clipeFr.setAttribute('allow', 'autoplay; encrypted-media'); clipeFr.setAttribute('frameborder', '0'); clipeFr.setAttribute('tabindex', '-1');
+      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista()) + '&vol=' + ((cfg.musica && cfg.musica.vol) || 40) + '&v=' + (ids || []).join(',');
+      box.querySelector('.clipe-v').appendChild(clipeFr); clipeTocando = true; tocarMusica(); diagAdd('clipe: abrindo player com ' + (ids || []).length + ' videos');
+    }
   }
   window.addEventListener('message', function (ev) {
     var m; try { m = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
