@@ -177,8 +177,70 @@ function BackupSeVencido() {
 }
 try { BackupSeVencido } catch {}
 
+# ===== Stream: jogo aberto, linha do tempo da gravação e leitor ao vivo do SF6 =====
+$GRAV = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'
+$PASTA_LIVES = Join-Path $GRAV 'Lives'
+$PASTA_SF6 = Join-Path $GRAV ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6')
+$sessF = Join-Path $aqui 'sessao_gravacao.json'
+$leitorPid = Join-Path $aqui 'leitor_sf6.pid'
+function JogoAtual {
+  $nomes = @(Get-Process -ErrorAction SilentlyContinue | ForEach-Object { $_.ProcessName })
+  if ($nomes -contains 'StreetFighter6') { return 'sf6' }
+  if ($nomes -contains 'VALORANT-Win64-Shipping') { return 'valorant' }
+  return ''
+}
+function LeitorRodando { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
+function LeitorParar { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $leitorPid -Force -ErrorAction SilentlyContinue } }
+function LeitorIniciar {
+  $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; if (-not $py) { return }
+  $sc = Join-Path $PASTA_SF6 '_analisador\leitor_ao_vivo.py'; if (-not (Test-Path $sc)) { return }
+  $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru
+  Set-Content -Path $leitorPid -Value $pr.Id
+}
+$script:tiqueEm = [DateTime]::MinValue
+function Tique {
+  if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
+  $script:tiqueEm = Get-Date
+  $jogo = JogoAtual; $obs = [bool](Get-Process obs64 -ErrorAction SilentlyContinue)
+  $vivo = $false; $grav = $false; $durMs = 0
+  if ($obs) { try { $r = ObsWs @(@{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }); $vivo = [bool]$r[0].responseData.outputActive; $grav = [bool]$r[1].responseData.outputActive; $durMs = [double]$r[1].responseData.outputDuration } catch {} }
+  # leitor ao vivo do SF6 (placar): só com o SF6 aberto e com live ou gravação; desliga sozinho fora disso
+  if ($jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
+  # linha do tempo da gravação (qual jogo em cada trecho). As gravações "por jogo" já têm o próprio fluxo.
+  if (Test-Path (Join-Path $aqui 'gravando_jogo.txt')) { return }
+  $sess = $null; if (Test-Path $sessF) { try { $sess = [IO.File]::ReadAllText($sessF) | ConvertFrom-Json } catch {} }
+  $agora = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+  if ($grav -and -not $sess) {
+    $dir = ''; try { $dir = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory } catch {}
+    $sess = [pscustomobject]@{ inicio = [math]::Round($agora - $durMs / 1000); pasta = $dir; linha = @([pscustomobject]@{ t = [math]::Round($durMs / 1000); jogo = $jogo }) }
+    [IO.File]::WriteAllText($sessF, ($sess | ConvertTo-Json -Depth 5), [Text.Encoding]::UTF8); return
+  }
+  if ($grav -and $sess) {
+    $ult = @($sess.linha)[-1]
+    if ($ult.jogo -ne $jogo) { $sess.linha = @($sess.linha) + [pscustomobject]@{ t = $agora - $sess.inicio; jogo = $jogo }; [IO.File]::WriteAllText($sessF, ($sess | ConvertTo-Json -Depth 5), [Text.Encoding]::UTF8) }
+    return
+  }
+  if (-not $grav -and $sess) {
+    # gravação terminou: guarda a linha do tempo e manda dividir por jogo (cada trecho vai para o seu analisador)
+    $sess | Add-Member -NotePropertyName fim -NotePropertyValue ($agora - $sess.inicio) -Force
+    $usouJogo = @($sess.linha | Where-Object { $_.jogo }).Count -gt 0
+    if ($usouJogo -and $sess.pasta) {
+      $tl = Join-Path $sess.pasta ('linha-do-tempo ' + (Get-Date -f 'yyyy-MM-dd HH-mm-ss') + '.json')
+      [IO.File]::WriteAllText($tl, ($sess | ConvertTo-Json -Depth 5), [Text.Encoding]::UTF8)
+      $div = Join-Path $PASTA_LIVES '_dividir\dividir_live.py'
+      $py = (Get-Command python -ErrorAction SilentlyContinue).Source
+      if ($py -and (Test-Path $div)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 20 /nobreak >nul & "' + $py + '" "' + $div + '" "' + $tl + '"') }
+    }
+    Remove-Item $sessF -Force -ErrorAction SilentlyContinue
+  }
+}
+
+$tarefa = $null
 while ($http.IsListening) {
-  $ctx = $http.GetContext()
+  if (-not $tarefa) { $tarefa = $http.GetContextAsync() }
+  if (-not $tarefa.Wait(5000)) { try { Tique } catch {}; continue }
+  $ctx = $tarefa.Result; $tarefa = $null
+  try { Tique } catch {}
   try {
     $q = $ctx.Request.QueryString
     "$(Get-Date -f HH:mm:ss) $($ctx.Request.Url.AbsolutePath)" | Out-Host
@@ -317,6 +379,20 @@ while ($http.IsListening) {
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/obs/jogo' { Json $ctx @{ jogo = (JogoAtual); placar = (LeitorRodando); sessao = (Test-Path $sessF) } }
+      '/obs/stream' {
+        # Stream + gravar: live e gravação juntas (a gravação vai para "Lives" e depois é dividida por jogo)
+        try {
+          if ($q['acao'] -eq 'iniciar') {
+            New-Item -ItemType Directory -Force -Path $PASTA_LIVES | Out-Null
+            $r = ObsWs @(@{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $PASTA_LIVES } }, @{ t = 'StartRecord' }, @{ t = 'StartStream' })
+            Json $ctx @{ ok = [bool]$r[2].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
+          } elseif ($q['acao'] -eq 'parar') {
+            $r = ObsWs @(@{ t = 'StopStream' }, @{ t = 'StopRecord' })
+            Json $ctx @{ ok = [bool]$r[0].requestStatus.result -or [bool]$r[1].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
+          } else { Json $ctx @{ ok = $false; msg = 'acao' } }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/cena' {
         try { $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = [string]$q['nome'] } }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment } }
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
@@ -342,7 +418,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 14 } }
+      default  { Json $ctx @{ ok = $true; versao = 15 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
