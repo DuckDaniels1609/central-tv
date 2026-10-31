@@ -198,6 +198,17 @@ while ($http.IsListening) {
         try { $txt = MalChamar $m2 $c2 ([string]$q['corpo']); if (-not $txt) { $txt = '{}' }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes($txt)) }
         catch { Responder $ctx 502 'text/plain' ([Text.Encoding]::UTF8.GetBytes('mal: ' + $_.Exception.Message)) }
       }
+      '/saude' {
+        $discos = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | ForEach-Object { @{ letra = $_.DeviceID; nome = $_.VolumeName; total = [math]::Round($_.Size / 1GB, 1); livre = [math]::Round($_.FreeSpace / 1GB, 1) } })
+        $os = Get-CimInstance Win32_OperatingSystem
+        $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+        $gpu = $null
+        $nv = Get-Command nvidia-smi -ErrorAction SilentlyContinue
+        if (-not $nv -and (Test-Path 'C:\Windows\System32\nvidia-smi.exe')) { $nv = 'C:\Windows\System32\nvidia-smi.exe' }
+        if ($nv) { try { $l = (& $nv --query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits | Select-Object -First 1) -split ',\s*'; $gpu = @{ nome = $l[0]; temp = [int]$l[1]; uso = [int]$l[2]; memUsada = [int]$l[3]; memTotal = [int]$l[4] } } catch {} }
+        $ligado = [math]::Round(((Get-Date) - $os.LastBootUpTime).TotalHours, 1)
+        Json $ctx @{ discos = $discos; memTotal = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1); memLivre = [math]::Round($os.FreePhysicalMemory / 1MB, 1); cpu = [int]$cpu; gpu = $gpu; horasLigado = $ligado }
+      }
       '/sair'  { Json $ctx @{ ok = $true }; $http.Stop(); break }
       '/reiniciar' { Json $ctx @{ ok = $true }; $http.Stop(); Start-Process powershell -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $PSCommandPath + '"'); break }
       '/icone-app' {
@@ -208,7 +219,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 8 } }
+      default  { Json $ctx @{ ok = $true; versao = 9 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

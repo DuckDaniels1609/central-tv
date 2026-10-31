@@ -359,6 +359,14 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
 .sub[hidden] { display: none; }
 .sub .mi { font-size: 14px; min-height: 38px; }
 .menu-pe { margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.07); }
+.saude { display: flex; flex-direction: column; gap: 8px; }
+.sl { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 8px 10px; border-radius: 12px; background: rgba(20,18,52,calc(var(--vidro) + .05)); }
+.sl .sn { font-size: 13px; color: #D9D5F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sl .sv { font-size: 12px; color: var(--muted); }
+.sl.alerta .sv { color: var(--acc); font-weight: 700; }
+.sbar { display: block; height: 7px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+.sbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #8FE3FF, #9CF2A8); }
+.sbar.alerta i { background: linear-gradient(90deg, #FFB37A, var(--acc)); }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
@@ -552,6 +560,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       <section data-s="hoje" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>TV do quarto</h3>
         <div class="tvst" id="tv-st"><p class="note">Carregando…</p></div>
+        <h3 style="margin-top:10px">Este PC</h3>
+        <div class="saude" id="saude"><p class="note" style="margin:0">Lendo o PC…</p></div>
         <h3 style="margin-top:10px">Anotar rápido</h3>
         <form id="hj-nova" class="col" style="gap:8px">
           <input type="text" id="hj-txt" placeholder="O que precisa fazer?" aria-label="Nova tarefa" autocomplete="off">
@@ -577,6 +587,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       </section>
       <section data-s="pc" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Este PC</h3>
+        <div class="saude" id="saude2"></div>
         <div class="pc-acoes"><button class="btn" data-pc="travar">Travar</button><button class="btn" data-pc="dormir">Dormir</button><button class="btn" data-pc="reiniciar">Reiniciar</button><button class="btn" data-pc="desligar">Desligar</button></div>
         <div class="row"><span class="lbl">Desligar em</span><button class="chip" data-pc="agendar" data-min="30">30 min</button><button class="chip" data-pc="agendar" data-min="60">1 h</button><button class="chip" data-pc="agendar" data-min="120">2 h</button><button class="chip" data-pc="cancelar">Cancelar</button></div>
         <span class="note" id="pc-acao-st"></span>
@@ -1076,11 +1087,27 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     var g = e.target.closest('.mg-bt'); if (g) { var gs = g.id.slice(3), ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; try { localStorage.setItem('menu-' + gs, ab ? '1' : ''); } catch (x) {} }
   });
   try { ['tv', 'lazer', 'casa'].forEach(function (gs) { var v = localStorage.getItem('menu-' + gs); if (v === null) return; var ab = v === '1'; $('mg-' + gs).setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; }); } catch (e) {}
+  /* saúde do PC: discos, memória, processador e placa de vídeo */
+  function barra(pct, alerta) { return '<span class="sbar' + (alerta ? ' alerta' : '') + '"><i style="width:' + Math.min(100, Math.max(2, pct)) + '%"></i></span>'; }
+  function saude() {
+    var els = [$('saude'), $('saude2')].filter(function (x) { return x && x.offsetParent !== null; }); if (!els.length) return;
+    fetch(AJ + '/saude?k=' + ajK()).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (d) {
+      var h = (d.discos || []).map(function (x) { var usado = x.total - x.livre, pct = x.total ? usado / x.total * 100 : 0, al = pct >= 90; return '<div class="sl' + (al ? ' alerta' : '') + '"><span class="sn"><b>' + esc(x.letra) + '</b> ' + esc(x.nome || '') + '</span>' + barra(pct, al) + '<span class="sv">' + x.livre + ' GB livres' + (al ? ' · quase cheio' : '') + '</span></div>'; }).join('');
+      var mp = d.memTotal ? (d.memTotal - d.memLivre) / d.memTotal * 100 : 0;
+      h += '<div class="sl"><span class="sn"><b>Memória</b></span>' + barra(mp, mp >= 90) + '<span class="sv">' + (d.memTotal - d.memLivre).toFixed(1) + ' de ' + d.memTotal + ' GB</span></div>';
+      h += '<div class="sl"><span class="sn"><b>Processador</b></span>' + barra(d.cpu || 0, d.cpu >= 90) + '<span class="sv">' + (d.cpu || 0) + '%</span></div>';
+      if (d.gpu) h += '<div class="sl"><span class="sn"><b>Placa de vídeo</b></span>' + barra(d.gpu.uso, d.gpu.temp >= 83) + '<span class="sv">' + d.gpu.uso + '% · ' + d.gpu.temp + ' °C</span></div>';
+      h += '<span class="note">Ligado há ' + (d.horasLigado >= 24 ? Math.floor(d.horasLigado / 24) + ' dia(s) e ' + Math.round(d.horasLigado % 24) + ' h' : d.horasLigado + ' h') + '</span>';
+      els.forEach(function (el) { el.innerHTML = h; });
+    }).catch(function () { els.forEach(function (el) { el.innerHTML = '<p class="note" style="margin:0">O ajudante não respondeu.</p>'; }); });
+  }
+  setTimeout(saude, 2500); setInterval(saude, 60000);
+  document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="hoje"], .mi[data-sec="pc"]')) setTimeout(saude, 50); });
   window.PC_LISTA = function () { return PC_APPS; };
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 8 && !sessionStorage.getItem('aj-reiniciou-8')) { sessionStorage.setItem('aj-reiniciou-8', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 9 && !sessionStorage.getItem('aj-reiniciou-9')) { sessionStorage.setItem('aj-reiniciou-9', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
