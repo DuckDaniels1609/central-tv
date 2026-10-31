@@ -983,7 +983,7 @@ header { align-items: center; }
   function desenharHoje() {
     var el = $('hj-corpo'); if (!el) return;
     var d = new Date(), hj = hoje(), hora = d.getHours();
-    $('hj-tit').textContent = (hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite') + ', Daniel';
+    $('hj-tit').textContent = (hora < 5 ? 'Boa noite' : hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite') + ', Daniel';
     $('hj-sub').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()];
     var reun = itens(hj).filter(function (x) { return x.k !== 'tarefa'; });
     var tar = ((S.tar && S.tar.tarefas) || []).filter(function (t) { return !t.ok && ((t.data && t.data <= hj) || (t.cat === 'trabalho' && (t.resp || []).indexOf('DBA') >= 0)); })
