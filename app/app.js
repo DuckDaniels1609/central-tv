@@ -208,8 +208,11 @@
   function clipeLista() { return (cfg.clipes && cfg.clipes.lista) || ''; }
   function clipeDeve() { var h = new Date().getHours(); return !!clipeLista() && !clipeFalhou && cfg.modo !== 'discreto' && h >= 6 && h < 23; }
   function clipeCmd(c) { try { if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: c }), '*'); } catch (e) {} }
+  var INICIO_APP = Date.now();
   function clipeAtualizar() {
     var sec = document.getElementById('p-inicio'), box = document.getElementById('clipe'); if (!sec || !box) return;
+    /* abrir mais leve: o player do YouTube (pesado) só entra 6 s depois de a Central abrir */
+    if (!clipeFr && Date.now() - INICIO_APP < 6000) { clearTimeout(clipeAtualizar.t); clipeAtualizar.t = setTimeout(clipeAtualizar, 6200 - (Date.now() - INICIO_APP)); return; }
     var on = clipeDeve(); sec.classList.toggle('com-clipe', on);
     if (!on) { if (clipeFr) { box.querySelector('.clipe-v').innerHTML = ''; clipeFr = null; tocarMusica(); } return; }
     if (!clipeFr && !clipeBuscando) {
@@ -311,7 +314,7 @@
   /* ícone oficial do app instalado na TV (o mesmo do menu da Samsung); se não achar ou não carregar, fica o desenho */
   var icFalhou = {};
   function iconeTV(a) {
-    if (!cfg.iconesOficiais) return '';  /* desligado: suspeita de causar o pixelado na TV (31/10) */
+    if (cfg.iconesOficiais === false) return '';  /* religado: o pixelado era o fundo, não os ícones */
     if (!a.match || !appsTV.length) return '';
     for (var i = 0; i < appsTV.length; i++) for (var k = 0; k < a.match.length; k++) if (appsTV[i].name.indexOf(a.match[k]) >= 0 && appsTV[i].ic) {
       var u = appsTV[i].ic; if (u.charAt(0) === '/') u = 'file://' + u;
@@ -1401,6 +1404,10 @@
     if (cfg.modo === 'discreto' && i !== HOME) return;
     pagina = i;
     $('track').style.transform = 'translateX(' + (-1920 * i) + 'px)';
+    /* só a página na tela fica "viva": as outras pausam as animações e não são desenhadas (mais leve) */
+    var pgs = document.querySelectorAll('.page');
+    for (var pi = 0; pi < pgs.length; pi++) { if (pi === i) pgs[pi].classList.add('ativa', 'perto'); }
+    clearTimeout(irPara.t); irPara.t = setTimeout(function () { for (var pj = 0; pj < pgs.length; pj++) { pgs[pj].classList.toggle('ativa', pj === pagina); pgs[pj].classList.toggle('perto', pj === pagina); } }, 600);
     tocarMusica(); clipeAtualizar();
     var l = focaveis(), alvo = null;
     if (lado === 'esq') alvo = l.filter(function (e) { return e.classList.contains('navbtn'); }).pop();

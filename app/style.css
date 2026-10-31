@@ -289,3 +289,7 @@ body.discreto .cont { display: none !important; }
 #p-inicio.com-clipe header .pill { display: none; }
 #p-inicio.com-clipe .ini-esq { gap: 24px; }
 #p-inicio.com-clipe header.row { gap: 4px; }
+
+/* abrir/rodar mais leve: páginas fora da tela não animam nem são desenhadas */
+.page:not(.ativa) * { animation-play-state: paused !important; }
+.page:not(.perto):not(#p-inicio) { content-visibility: hidden; }
