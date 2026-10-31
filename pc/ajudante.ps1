@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $aqui0 = Split-Path -Parent $MyInvocation.MyCommand.Path
 try { Start-Transcript -Path (Join-Path $aqui0 'ajudante_log.txt') -Force | Out-Null } catch {}
 trap { "ERRO: $($_.Exception.Message) (linha $($_.InvocationInfo.ScriptLineNumber))" | Out-File -FilePath (Join-Path $aqui0 'ajudante_erro.txt') -Encoding UTF8; break }
-$porta = 47800
+$porta = 47801
 $aqui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $mesa = [Environment]::GetFolderPath('Desktop')
 $base = Join-Path $mesa ([string][char]0x00C1 + 'rea de trabalho antiga')
@@ -66,8 +66,9 @@ while ($http.IsListening) {
     switch ($ctx.Request.Url.AbsolutePath) {
       '/apps'  { Json $ctx @{ apps = @(Lista $atalhos $true); pastas = @(Lista $base $false) } }
       '/icone' { $it = Achar $q['f']; $png = if ($it) { IconeDe $it } else { $null }; if ($png) { Responder $ctx 200 'image/png' $png } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
-      '/abrir' { $it = Achar $q['f']; if ($it) { Start-Process -FilePath $it.FullName; Json $ctx @{ ok = $true } } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
-      '/pasta' { Start-Process explorer.exe -ArgumentList ('"' + $base + '"'); Json $ctx @{ ok = $true } }
+      '/abrir' { $it = Achar $q['f']; if ($it) { (New-Object -ComObject Shell.Application).ShellExecute($it.FullName); Json $ctx @{ ok = $true } } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
+      '/sair'  { Json $ctx @{ ok = $true }; $http.Stop(); break }
+      '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
       default  { Json $ctx @{ ok = $true; versao = 1 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
