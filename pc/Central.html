@@ -103,6 +103,22 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
 .clip h3 { color: #FFD36E; }
 .hd { display: flex; align-items: center; gap: 6px; background: var(--panel2); border-radius: 10px; padding: 4px 8px; font-size: 13px; font-weight: 700; }
 .hd input { font: inherit; color: var(--fg); background: transparent; border: 0; }
+/* ---------- tela do PC: tudo cabe na tela, sem rolar a página ---------- */
+html, body { height: 100%; margin: 0; }
+.wrap { max-width: none; height: 100vh; padding: 18px 24px; gap: 14px; }
+.grid { flex: 1; min-height: 0; grid-template-columns: 190px minmax(0, 1fr) 460px; gap: 16px; align-items: stretch; }
+.grid > .card { min-height: 0; }
+.menu { gap: 6px; padding: 12px; }
+.mi { font: inherit; font-weight: 700; font-size: 15px; text-align: left; color: var(--fg); background: transparent; border: 0; border-radius: 12px; padding: 12px 14px; cursor: pointer; min-height: 44px; }
+.mi:hover { background: var(--panel2); }
+.mi[aria-pressed="true"] { background: var(--acc); color: #1C1838; }
+.mi:focus-visible { outline: 3px solid #FFF; outline-offset: 2px; }
+#painel { overflow-y: auto; }
+#painel [data-s][hidden] { display: none !important; }
+.grid > .col.card { justify-content: flex-start; }
+.tv { width: 100%; max-width: calc((100vh - 330px) * 16 / 9); align-self: center; flex: none; }
+@media (max-width: 1100px) { .grid { grid-template-columns: 160px minmax(0, 1fr) 380px; } }
+@media (max-width: 900px) { .wrap { height: auto; } .grid { grid-template-columns: minmax(0, 1fr); } .tv { max-width: 100%; } }
 </style>
 
 <div class="wrap">
@@ -125,6 +141,15 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
   </section>
 
   <div class="grid">
+    <nav class="card menu" aria-label="Seções">
+      <button class="mi" data-sec="clip" aria-pressed="true">Clipes</button>
+      <button class="mi" data-sec="visual">Aparência</button>
+      <button class="mi" data-sec="apps">Apps</button>
+      <button class="mi" data-sec="desp">Despertador</button>
+      <button class="mi" data-sec="mus">Música</button>
+      <button class="mi" data-sec="disc">Modo discreto</button>
+      <button class="mi" data-sec="cel">App do celular</button>
+    </nav>
     <div class="col card">
       <div class="tabs" role="group" aria-label="Tela da TV">
         <button class="tab" data-pg="projetos">Projetos</button>
@@ -140,13 +165,13 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
     </div>
 
     <div class="card" id="painel">
-      <section class="sec card clip" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+      <section data-s="clip" class="sec card clip" style="display:flex;flex-direction:column;gap:10px;padding:14px">
         <h3>Clipes do Início · オープニング</h3>
         <label class="f" for="clip-url">Link da playlist do YouTube (não listada)<input type="text" id="clip-url" placeholder="https://youtube.com/playlist?list=..."></label>
         <label class="f" for="clip-vol">Volume do clipe: <span id="clip-vol-v"></span><input type="range" id="clip-vol" min="10" max="100" step="5"></label>
         <p class="note" style="margin:0">Com clipes ligados, o som vem do clipe e as músicas de fundo param (o despertador continua). Deixe o link vazio para desligar os clipes.</p>
       </section>
-      <section class="sec card disc" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+      <section data-s="disc" class="sec card disc" style="display:flex;flex-direction:column;gap:10px;padding:14px">
         <h3>Modo discreto · 控えめ</h3>
         <p class="note" style="margin:0">No discreto a TV mostra só o Início, sem despertador, sem tarefas e sem openings. Escolha aqui o fundo e as músicas.</p>
         <div class="f" style="font-size:14px;color:var(--muted)">Fundo do Início</div>
@@ -156,7 +181,7 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
         <p class="note" style="margin:0">Nenhuma marcada: toca a pasta <b>musicas\discreto</b> do PC (ou todas, se ela não existir).</p>
         <div id="disc-con"></div>
       </section>
-      <section class="sec card cel" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+      <section data-s="cel" class="sec card cel" style="display:flex;flex-direction:column;gap:10px;padding:14px">
         <h3>App do celular · スマホ</h3>
         <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
           <div class="cel-prev" id="cel-prev"></div>
@@ -174,17 +199,17 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
         <p class="note" style="margin:0">O app do celular muda sozinho na próxima vez que você abrir.</p>
       </section>
 
-      <section class="sec col" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="visual" class="sec col" style="display:flex;flex-direction:column;gap:8px">
         <h3>Saudação</h3>
         <label class="f" for="nome">Nome que aparece no Início<input type="text" id="nome" maxlength="24"></label>
       </section>
 
-      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="visual" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3>Cor de destaque</h3>
         <div class="row" id="cores"></div>
       </section>
 
-      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="visual" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3 id="fundo-tit">Fundo da tela Início</h3>
         <div class="row" id="cenas"></div>
         <div class="row">
@@ -193,12 +218,12 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
         <label class="f" for="escuro">Escurecer o fundo: <span id="escuro-v">0%</span><input type="range" id="escuro" min="0" max="70" step="5" value="0"></label>
       </section>
 
-      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="apps" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3>Apps na tela inicial</h3>
         <div class="apps-l" id="apps"></div>
       </section>
 
-      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="mus" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3>Música de fundo</h3>
         <div class="row">
           <button class="chip" id="mus-on">Ligada</button>
@@ -212,7 +237,7 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
         <p class="note" style="margin:0">Vale quando os clipes estão desligados (ou à noite). Os MP3 ficam na pasta <b>CentralTV\musicas</b>.</p>
       </section>
 
-      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="desp" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3>Despertador</h3>
         <div class="row">
           <button class="chip" id="desp-on">Ligado</button>
@@ -232,7 +257,7 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
         <p class="note" style="margin:0">Horário diferente num dia? Mude só aquele dia acima. A TV acerta a rotina do SmartThings sozinha.</p>
       </section>
 
-      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+      <section data-s="visual" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3>Animações</h3>
         <div class="row">
           <button class="chip" id="anim-on">Ligadas</button>
@@ -240,7 +265,7 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
         </div>
       </section>
 
-      <div class="row"><button class="btn" id="reset">Voltar ao padrão</button></div>
+      <div class="row" data-s="visual"><button class="btn" id="reset">Voltar ao padrão</button></div>
     </div>
   </div>
 </div>
@@ -488,6 +513,7 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
     if (t.dataset.celtema) { S.celular.tema = t.dataset.celtema; mudou(); return; }
     if (t.dataset.celini) { var ki = t.dataset.celini; S.celular.inicio[ki] = S.celular.inicio[ki] === false; mudou(); return; }
     if (t.dataset.dfundo !== undefined) { S.discreto.fundo = t.dataset.dfundo; mudouDisc(); return; }
+    if (t.dataset.sec) { mostrarSec(t.dataset.sec); return; }
     if (t.dataset.modo) { mudarModo(t.dataset.modo); return; }
     if (t.id === 'gh-salvar') { var v = ($('gh-tok').value || '').trim(); if (!/^(github_pat_|ghp_)/.test(v)) { $('gh-msg').textContent = 'A chave começa com github_pat_'; return; } try { localStorage.setItem('gh-token', v); } catch (e2) {} GH.ok = null; renderCon(); carregar(); return; }
     if (t.id === 'gh-esquecer') { try { localStorage.removeItem('gh-token'); } catch (e3) {} GH.ok = null; renderCon(); renderModo(); return; }
@@ -535,6 +561,16 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
   window.addEventListener('resize', escala);
   try { new ResizeObserver(escala).observe($('tv')); } catch (e) {}
 
+  var SEC = 'clip';
+  function mostrarSec(sx) {
+    SEC = sx;
+    document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
+    document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
+    var alvo = sx === 'desp' ? 'despertar' : sx === 'disc' ? 'discreto' : (sx === 'visual' ? pg : 'inicio');
+    if (sx === 'visual' && (pg === 'despertar' || pg === 'discreto')) alvo = 'inicio';
+    if (alvo !== pg) { pg = alvo; document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pg === pg); }); render(); }
+    $('painel').scrollTop = 0;
+  }
   function carregar() {
     renderCon(); renderModo();
     if (!ghTok()) { render(); status('Conecte a chave para começar.', false); return; }
@@ -552,6 +588,7 @@ select.sel { font: inherit; color: var(--fg); background: var(--panel2); border:
     }).catch(function (e) { render(); status('Não consegui carregar (' + e.message + ').', false); });
   }
   render();
+  mostrarSec('clip');
   carregar();
   setInterval(lerModo, 60000);
 })();
