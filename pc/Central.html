@@ -339,7 +339,8 @@ header { align-items: center; }
 .obs-it.oculto { opacity: .35; outline: 3px dashed rgba(255,255,255,.4); }
 .obs-it.sel { outline: 6px solid var(--acc); outline-offset: -3px; z-index: 999; }
 .obs-ph { display: grid; place-items: center; font-weight: 800; color: rgba(255,255,255,.75); text-align: center; }
-.obs-ph span { font-size: 48px; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.obs-ex { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .85; }
+.obs-ph span { position: relative; font-size: 48px; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
 .obs-ph.jogo { background: repeating-linear-gradient(135deg, #1D2350 0 60px, #222A5E 60px 120px); }
 .obs-ph.cam { background: linear-gradient(160deg, #3A2A7A, #1B1A4A); }
 .obs-ph.web { outline: 4px dashed rgba(255,211,110,.8); outline-offset: -4px; background: rgba(255,211,110,.08); }
@@ -352,6 +353,8 @@ header { align-items: center; }
 .obs-luz.vivo { background: #FF4D6D; box-shadow: 0 0 0 4px rgba(255,77,109,.25); }
 .obs-tr { font-size: 13px; padding: 6px 12px; }
 .obs-tr.no-ar { background: #FF4D6D; color: #fff; border-color: #FF4D6D; }
+.obs-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; z-index: 5; }
+.obs-selo { position: absolute; left: 10px; top: 10px; z-index: 6; font-size: 12px; font-weight: 800; background: rgba(255,77,109,.9); color: #fff; padding: 3px 10px; border-radius: 99px; }
 .obs-camadas { display: flex; flex-direction: column; gap: 4px; }
 .obs-ly { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; background: rgba(20,18,52,calc(var(--vidro) + .05)); font-size: 13px; cursor: pointer; border: 0; color: var(--fg); font-family: inherit; text-align: left; width: 100%; }
 .obs-ly:hover, .obs-ly.sel { background: rgba(255,127,168,.18); }
@@ -521,7 +524,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
       <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
       <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
-      <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div></div>
+      <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div><img class="obs-foto" id="obs-foto" alt="" hidden><span class="obs-selo" id="obs-selo" hidden>Imagem real do OBS</span></div>
       <span class="note" id="obs-nota"></span>
     </div>
     <div class="col card" id="meio-pc" hidden>
@@ -1211,7 +1214,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     } else if (/^dshow_input/.test(id)) {
       var rs = String(st.resolution || '1920x1080').split('x'); el.classList.add('obs-ph', 'cam'); el.innerHTML = '<span>📷 ' + esc(it.name) + '</span>'; obsPor(el, it, +rs[0] || 1920, +rs[1] || 1080);
     } else if (/capture$/.test(id)) {
-      el.classList.add('obs-ph', 'jogo'); el.innerHTML = '<span>🎮 ' + esc(it.name) + ' (jogo / tela)</span>'; obsPor(el, it, cx, cy);
+      el.classList.add('obs-ph', 'jogo'); el.innerHTML = '<img class="obs-ex" src="' + AJ + '/app/exemplo-jogo.jpg" alt="" onerror="this.remove()"><span>🎮 ' + esc(it.name) + ' (jogo / tela)</span>'; obsPor(el, it, cx, cy);
     } else if (/^browser_source/.test(id) && st.is_local_file && st.local_file) {
       var fr = document.createElement('iframe'); fr.src = obsUrl(st.local_file); fr.width = st.width || 800; fr.height = st.height || 600; fr.setAttribute('scrolling', 'no');
       fr.setAttribute('allowtransparency', 'true'); fr.style.cssText = 'color-scheme:normal;position:absolute;left:0;top:0;border:0;background:transparent;pointer-events:none;transform-origin:0 0;transform:scale(' + (((it.scale || {}).x) || 1) + ',' + (((it.scale || {}).y) || 1) + ')';
@@ -1292,11 +1295,23 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     }).catch(function () { b.disabled = false; });
   });
   setInterval(obsEstado, 3000);
+  /* com o OBS aberto, a prévia mostra a imagem de verdade da cena (foto tirada pelo OBS a cada 2 s) */
+  var fotoOcupado = false;
+  function obsFoto() {
+    var img = $('obs-foto'), selo = $('obs-selo'); if (!img) return;
+    var pode = SEC === 'stream' && !document.hidden && obsEst && obsEst.aberto && !obsEst.erro && OBS.cena;
+    if (!pode) { img.hidden = true; selo.hidden = true; return; }
+    if (fotoOcupado) return; fotoOcupado = true;
+    fetch(AJ + '/obs/foto?k=' + ajK() + '&cena=' + encodeURIComponent(OBS.cena)).then(function (r) { return r.json(); }).then(function (j) {
+      fotoOcupado = false; if (j.ok && j.img) { img.src = j.img; img.hidden = false; selo.hidden = false; } else { img.hidden = true; selo.hidden = true; }
+    }).catch(function () { fotoOcupado = false; img.hidden = true; selo.hidden = true; });
+  }
+  setInterval(obsFoto, 2000);
   document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="stream"]')) setTimeout(obsEstado, 100); });
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 11 && !sessionStorage.getItem('aj-reiniciou-11')) { sessionStorage.setItem('aj-reiniciou-11', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 12 && !sessionStorage.getItem('aj-reiniciou-12')) { sessionStorage.setItem('aj-reiniciou-12', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
