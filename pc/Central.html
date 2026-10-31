@@ -503,6 +503,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
         <h3>MyAnimeList</h3>
         <div class="row" style="flex-wrap:nowrap"><input type="password" id="mal-cid" class="in-txt" placeholder="Cole aqui o Client ID do MAL" aria-label="Client ID do MyAnimeList" autocomplete="off" style="flex:1"><button class="btn prim" type="button" id="mal-salvar">Conectar</button></div>
         <div id="mal-st"></div>
+        <h3>Backup e recomeçar</h3>
+        <p class="note" style="margin:0">Para um Claude novo: <b>"Leia o MANUAL.md do repositório privado DuckDaniels1609/central-dados e continue a Central de onde paramos."</b> Backup do que só existe neste PC: <b>F:\PS5\Ferramentas\tv\Fazer backup da Central.bat</b>.</p>
         <h3>Ícone do app (área de trabalho)</h3>
         <div class="row"><label class="btn" for="lk-icone-in">Usar uma imagem minha…</label><input type="file" id="lk-icone-in" accept="image/*" hidden><button class="btn" id="lk-icone-x">Ícone da Central</button></div>
         <span class="note" id="lk-icone-st"></span>
@@ -1599,7 +1601,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   var AN_ST = [['watching', 'Assistindo'], ['plan_to_watch', 'Planejo ver'], ['on_hold', 'Em espera'], ['completed', 'Completo'], ['dropped', 'Dropado']];
   var anSt = 'watching', anQ = '', anSel = null, anGen = '';
   var GEN_PT = { Action: 'Ação', Adventure: 'Aventura', Comedy: 'Comédia', Drama: 'Drama', Fantasy: 'Fantasia', Horror: 'Terror', Mystery: 'Mistério', Romance: 'Romance', 'Sci-Fi': 'Ficção científica', 'Slice of Life': 'Slice of life', Sports: 'Esportes', Supernatural: 'Sobrenatural', Suspense: 'Suspense', 'Award Winning': 'Premiado', 'Boys Love': 'Boys love', 'Girls Love': 'Girls love', Ecchi: 'Ecchi', Gourmet: 'Culinária', 'Avant Garde': 'Experimental', School: 'Escolar', Isekai: 'Isekai', Mecha: 'Mecha', Music: 'Música', Historical: 'Histórico', Military: 'Militar', Psychological: 'Psicológico', 'Martial Arts': 'Artes marciais', Shounen: 'Shounen', Shoujo: 'Shoujo', Seinen: 'Seinen', Josei: 'Josei', 'Super Power': 'Superpoderes', Harem: 'Harém', 'Reverse Harem': 'Harém reverso', 'Love Polygon': 'Triângulo amoroso', 'Romantic Subtext': 'Romance leve', Gore: 'Gore', 'Time Travel': 'Viagem no tempo', Reincarnation: 'Reencarnação', 'Video Game': 'Videogame', 'Team Sports': 'Esportes em equipe', Detective: 'Detetive', Parody: 'Paródia', Workplace: 'Trabalho', 'Adult Cast': 'Elenco adulto', Iyashikei: 'Relaxante', Idols: 'Ídolos', Vampire: 'Vampiros', Survival: 'Sobrevivência', Strategy: 'Estratégia', Space: 'Espaço', Samurai: 'Samurai', 'Mythology': 'Mitologia', 'Organized Crime': 'Crime organizado', Racing: 'Corrida', 'Combat Sports': 'Lutas', 'Strategy Game': 'Jogo de estratégia', 'High Stakes Game': 'Jogos de alto risco', Delinquents: 'Delinquentes', 'Anthropomorphic': 'Antropomórfico', 'Urban Fantasy': 'Fantasia urbana', 'Visual Arts': 'Artes visuais', 'Performing Arts': 'Artes cênicas', 'Otaku Culture': 'Cultura otaku', 'Childcare': 'Cuidar de crianças', 'Pets': 'Pets', 'Magical Sex Shift': 'Troca de gênero', 'Mahou Shoujo': 'Garota mágica', 'Medical': 'Médico', 'Educational': 'Educativo', 'Crossdressing': 'Crossdressing', 'Kids': 'Infantil', 'Showbiz': 'Showbiz' };
-  function genPt(g) { return GEN_PT[g] || g; }
+  function genPt(g) { return g; }  /* o Daniel prefere os gêneros em inglês, como no MAL */
+  var anOrd = 'recente';
   try { MAL.anime = JSON.parse(localStorage.getItem('mal-anime') || 'null'); } catch (e) {}
   function carregarAnimes() {
     if (!MAL.ok || MAL.carregando) return; MAL.carregando = true;
@@ -1629,8 +1632,9 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     var gl = Object.keys(gens).sort(function (a, b) { return genPt(a).localeCompare(genPt(b), 'pt'); });
     $('an-filtros').innerHTML = AN_ST.map(function (s2) { return '<button class="chip" data-a="anSt" data-v="' + s2[0] + '" aria-pressed="' + (anSt === s2[0]) + '">' + s2[1] + ' <small>' + cont[s2[0]] + '</small></button>'; }).join('') +
       '<span class="sep"></span><label class="gen-sel"><span>Gênero</span><select class="sel" id="an-gen" aria-label="Filtrar por gênero"><option value="">Todos</option>' + gl.map(function (g) { return '<option value="' + esc(g) + '"' + (anGen === g ? ' selected' : '') + '>' + esc(genPt(g)) + ' (' + gens[g] + ')</option>'; }).join('') + '</select></label>' +
-      (anGen ? '<button class="chip" data-a="anGenX" aria-pressed="true">' + esc(genPt(anGen)) + ' ×</button>' : '');
-    var q = norm(anQ), vis = L.filter(function (x) { return (q ? norm(x.t + ' ' + x.en).indexOf(q) >= 0 : x.st === anSt) && (!anGen || (x.gen || []).indexOf(anGen) >= 0); }).sort(function (a, b) { return (b.em || '') < (a.em || '') ? -1 : 1; });
+      (anGen ? '<button class="chip" data-a="anGenX" aria-pressed="true">' + esc(genPt(anGen)) + ' ×</button>' : '') +
+      '<label class="gen-sel"><span>Ordenar</span><select class="sel" id="an-ord" aria-label="Ordenar">' + [['recente', 'Mexidos por último'], ['mal', 'Nota do MAL'], ['minha', 'Minha nota'], ['nome', 'Nome'], ['ano', 'Ano']].map(function (o) { return '<option value="' + o[0] + '"' + (anOrd === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
+    var q = norm(anQ), vis = L.filter(function (x) { return (q ? norm(x.t + ' ' + x.en).indexOf(q) >= 0 : x.st === anSt) && (!anGen || (x.gen || []).indexOf(anGen) >= 0); }).sort(function (a, b) { if (anOrd === 'mal') return (b.nota || 0) - (a.nota || 0); if (anOrd === 'minha') return (b.score || 0) - (a.score || 0) || (b.nota || 0) - (a.nota || 0); if (anOrd === 'nome') return (a.en || a.t).localeCompare(b.en || b.t); if (anOrd === 'ano') return (b.ano || 0) - (a.ano || 0); return (b.em || '') < (a.em || '') ? -1 : 1; });
     el.innerHTML = vis.map(function (x) {
       return '<div class="lv' + (anSel === x.id ? ' sel' : '') + '"><button class="lv-capa tem" data-a="anSel" data-v="' + x.id + '" style="background-image:url(&quot;' + esc(x.img) + '&quot;)" aria-label="Detalhes de ' + esc(x.t) + '"><i class="tp">' + esc((x.tipo || '').toUpperCase()) + '</i></button>' +
         '<div class="lv-tx"><b title="' + esc(x.t) + '">' + esc(x.en || x.t) + '</b>' + (x.en && x.en !== x.t ? '<small class="sub2">' + esc(x.t) + '</small>' : '') + '<span class="cap">' + (x.st === 'completed' ? 'Completo ✓' : 'Ep. ' + x.ep + (x.eps ? ' <small>/ ' + x.eps + '</small>' : '')) + '</span>' +
@@ -1660,7 +1664,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       malApi('DELETE', '/v2/anime/' + v + '/my_list_status').then(function () { MAL.anime = MAL.anime.filter(function (y) { return y.id !== v; }); anSel = null; try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e2) {} desenharAnime(); }).catch(function (e2) { $('an-msg').textContent = 'Não consegui (' + e2.message + ').'; });
     }
   });
-  document.addEventListener('change', function (e) { if (e.target.id === 'an-score' && anSel) anMuda(anSel, { score: +e.target.value }); if (e.target.id === 'an-gen') { anGen = e.target.value; desenharAnime(); } });
+  document.addEventListener('change', function (e) { if (e.target.id === 'an-score' && anSel) anMuda(anSel, { score: +e.target.value }); if (e.target.id === 'an-gen') { anGen = e.target.value; desenharAnime(); } if (e.target.id === 'an-ord') { anOrd = e.target.value; try { localStorage.setItem('an-ord', anOrd); } catch (x) {} desenharAnime(); } });
+  try { anOrd = localStorage.getItem('an-ord') || 'recente'; } catch (e) {}
   document.addEventListener('input', function (e) { if (e.target.id === 'an-busca') { anQ = e.target.value; desenharAnime(); } });
 
   /* ---- mangás do MAL entram na Leitura, e o +1 da Leitura vai para o MAL ---- */

@@ -72,7 +72,7 @@ h1 { font-size: 30px; line-height: 1.1; margin: 8px 0 4px; font-weight: 800; tex
 .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .btns.dois { grid-template-columns: 1fr 1fr; }
-button.b, a.b { font: inherit; font-weight: 800; font-size: 14px; color: var(--tinta); background: rgba(255,255,255,.08); border: 1px solid var(--linha); border-radius: 14px; padding: 13px 6px; cursor: pointer; }
+button.b, a.b, label.b { font: inherit; font-weight: 800; font-size: 14px; color: var(--tinta); background: rgba(255,255,255,.08); border: 1px solid var(--linha); border-radius: 14px; padding: 13px 6px; cursor: pointer; }
 button.b:active, a.b:active { transform: scale(.97); }
 button.b.sel { background: var(--acc); color: #2A0E1C; border-color: var(--acc); }
 button.b:disabled { opacity: .4; }
@@ -176,6 +176,13 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); background: var(--ouro); color: #2A1E00; font-weight: 800; font-size: 14px; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .25s; z-index: 9; pointer-events: none; max-width: 90vw; text-align: center; }
 .toast.on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+.img-lin { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.img-lin span { flex: 1; font-size: 15px; }
+.img-lin .b { padding: 8px 12px; }
+.cmd { font-size: 14px; line-height: 1.45; padding: 12px; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px solid var(--linha); user-select: all; -webkit-user-select: all; }
+body.com-fundo { background-color: #000; background-image: linear-gradient(rgba(7,6,26,var(--escuro-cel,.35)), rgba(7,6,26,var(--escuro-cel,.35))), var(--fundo-cel); background-size: cover; background-position: center; background-attachment: scroll; }
+body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78), rgba(8,6,26,.15)), var(--banner-cel) center/cover; padding: 16px; border-radius: 20px; min-height: 120px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
 </style>
 </head>
 <body>
@@ -267,6 +274,18 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
         <button class="b" data-c="despertador" data-v="testar">Testar agora</button><button class="b" data-c="ping">Testar conexão</button></div>
         <p class="aviso" style="margin:10px 0 0" id="tv-desp"></p></div>
       <div class="card"><h2>Dados (projetos e estante)</h2><div id="cd-config"></div></div>
+      <div class="card"><h2>Minhas imagens</h2>
+        <p class="aviso" style="margin:0 0 10px">Escolha fotos do seu celular. Elas ficam só neste iPhone.</p>
+        <div class="img-lin"><span>Fundo do app</span><label class="b" for="img-fundo">Escolher</label><input type="file" id="img-fundo" accept="image/*" hidden><button class="b" data-img-x="fundo">Tirar</button></div>
+        <div class="img-lin"><span>Banner do topo das telas</span><label class="b" for="img-banner">Escolher</label><input type="file" id="img-banner" accept="image/*" hidden><button class="b" data-img-x="banner">Tirar</button></div>
+        <label class="aviso" style="display:flex;align-items:center;gap:10px;margin-top:8px">Escurecer o fundo <input type="range" id="img-escuro" min="0" max="80" step="5" style="flex:1"></label>
+      </div>
+      <div class="card"><h2>Recomeçar com um Claude novo</h2>
+        <p class="aviso" style="margin:0 0 10px">Se trocar de PC ou de conversa, mande esta frase para o Claude. Tudo o que fizemos está explicado no manual do repositório privado.</p>
+        <div class="cmd" id="cmd-claude">Leia o MANUAL.md do repositório privado DuckDaniels1609/central-dados e continue a Central de onde paramos.</div>
+        <button class="b sel" id="cmd-copiar" style="margin-top:10px;width:100%">Copiar a frase</button>
+        <p class="aviso" style="margin:10px 0 0">Backup do que só existe no PC: dois cliques em <b>F:\PS5\Ferramentas\tv\Fazer backup da Central.bat</b>.</p>
+      </div>
     </div>
   </section>
 
@@ -297,7 +316,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-31.02';
+  var V = '2026-10-31.03';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;
@@ -480,6 +499,47 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
     }
     desenhar(); addEventListener('resize', desenhar);
   })();
+})();
+</script>
+
+<script>
+/* imagens pessoais do celular (ficam só neste aparelho) e cópia da frase do manual */
+(function () {
+  function $(id) { return document.getElementById(id); }
+  var dbp = new Promise(function (ok) { try { var r = indexedDB.open('central-cel', 1); r.onupgradeneeded = function () { r.result.createObjectStore('img'); }; r.onsuccess = function () { ok(r.result); }; r.onerror = function () { ok(null); }; } catch (e) { ok(null); } });
+  function put(k, b) { return dbp.then(function (db) { if (!db) return; return new Promise(function (ok) { var t = db.transaction('img', 'readwrite'); if (b) t.objectStore('img').put(b, k); else t.objectStore('img').delete(k); t.oncomplete = ok; t.onerror = ok; }); }); }
+  function get(k) { return dbp.then(function (db) { if (!db) return null; return new Promise(function (ok) { var q = db.transaction('img').objectStore('img').get(k); q.onsuccess = function () { ok(q.result || null); }; q.onerror = function () { ok(null); }; }); }); }
+  function reduz(file) { /* fotos do iPhone são enormes: reduz para no máximo 1600 px */
+    return new Promise(function (ok) { var im = new Image(); im.onload = function () { var e = Math.min(1, 1600 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * e); c.height = Math.round(im.height * e); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); c.toBlob(function (b) { ok(b || file); }, 'image/jpeg', 0.85); }; im.onerror = function () { ok(file); }; im.src = URL.createObjectURL(file); });
+  }
+  var urls = {};
+  function aplicar() {
+    var r = document.documentElement.style;
+    try { r.setProperty('--escuro-cel', (+(localStorage.getItem('cel-escuro') || 35)) / 100); } catch (e) {}
+    ['fundo', 'banner'].forEach(function (k) {
+      get(k).then(function (b) {
+        if (urls[k]) URL.revokeObjectURL(urls[k]); urls[k] = b ? URL.createObjectURL(b) : null;
+        if (b) r.setProperty('--' + k + '-cel', 'url("' + urls[k] + '")');
+        document.body.classList.toggle(k === 'fundo' ? 'com-fundo' : 'com-banner', !!b);
+      });
+    });
+    var e = $('img-escuro'); if (e) { try { e.value = localStorage.getItem('cel-escuro') || 35; } catch (x) {} }
+  }
+  document.addEventListener('change', function (e) {
+    var t = e.target, k = t.id === 'img-fundo' ? 'fundo' : t.id === 'img-banner' ? 'banner' : null;
+    if (!k || !t.files || !t.files[0]) return;
+    reduz(t.files[0]).then(function (b) { return put(k, b); }).then(aplicar); t.value = '';
+  });
+  document.addEventListener('input', function (e) { if (e.target.id === 'img-escuro') { try { localStorage.setItem('cel-escuro', e.target.value); } catch (x) {} aplicar(); } });
+  document.addEventListener('click', function (e) {
+    var x = e.target.closest('[data-img-x]'); if (x) { put(x.dataset.imgX, null).then(aplicar); return; }
+    if (e.target.id === 'cmd-copiar') {
+      var txt = $('cmd-claude').textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { e.target.textContent = 'Copiado ✓'; }).catch(function () { var r = document.createRange(); r.selectNodeContents($('cmd-claude')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); e.target.textContent = 'Selecionei: toque em Copiar'; });
+      setTimeout(function () { e.target.textContent = 'Copiar a frase'; }, 2500);
+    }
+  });
+  aplicar();
 })();
 </script>
 </body>
