@@ -105,12 +105,29 @@ function MalChamar($metodo, $caminho, $corpo) {
   }
 }
 
+# backup semanal automático do que só existe neste PC (pasta da TV, certificado Samsung, atalhos)
+$bkMarca = Join-Path $aqui 'ultimo_backup.txt'
+$bkScript = Join-Path (Split-Path $aqui -Parent | Split-Path -Parent) 'fazer_backup_central.ps1'
+$script:bkVisto = [DateTime]::MinValue
+function BackupSeVencido() {
+  if (((Get-Date) - $script:bkVisto).TotalHours -lt 1) { return }
+  $script:bkVisto = Get-Date
+  if (-not (Test-Path $bkScript)) { return }
+  $ult = [DateTime]::MinValue; if (Test-Path $bkMarca) { try { $ult = [DateTime]::Parse((Get-Content $bkMarca -Raw).Trim()) } catch {} }
+  if (((Get-Date) - $ult).TotalDays -ge 7) {
+    (Get-Date).ToString('o') | Set-Content $bkMarca
+    Start-Process powershell -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $bkScript + '"')
+  }
+}
+try { BackupSeVencido } catch {}
+
 while ($http.IsListening) {
   $ctx = $http.GetContext()
   try {
     $q = $ctx.Request.QueryString
     "$(Get-Date -f HH:mm:ss) $($ctx.Request.Url.AbsolutePath)" | Out-Host
     $cam = $ctx.Request.Url.AbsolutePath
+    try { BackupSeVencido } catch {}
     # páginas do app (só para este PC: confere o Host; sem liberar para outros sites)
     if ($cam -like '/app/*' -or $cam -like '/fundos/*') {
       $hostOk = $ctx.Request.Headers['Host'] -eq "localhost:$porta"
@@ -191,7 +208,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 7 } }
+      default  { Json $ctx @{ ok = $true; versao = 8 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
