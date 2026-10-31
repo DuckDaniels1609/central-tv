@@ -216,12 +216,13 @@ function CfgStream {
   $c = $null; try { $c = [IO.File]::ReadAllText($cfgStreamF, [Text.Encoding]::UTF8) | ConvertFrom-Json } catch {}
   if (-not $c) { $c = [pscustomobject]@{} }
   if ($null -eq $c.tecla) { $c | Add-Member -NotePropertyName tecla -NotePropertyValue 'F9' -Force }
-  if ($null -eq $c.autoCena) { $c | Add-Member -NotePropertyName autoCena -NotePropertyValue $true -Force }
+  if ($null -eq $c.autoCena) { $c | Add-Member -NotePropertyName autoCena -NotePropertyValue $false -Force }
+  if ($null -eq $c.leitoresAoVivo) { $c | Add-Member -NotePropertyName leitoresAoVivo -NotePropertyValue $false -Force }
   if ($null -eq $c.cenas) { $c | Add-Member -NotePropertyName cenas -NotePropertyValue ([pscustomobject]@{ sf6 = 'Jogos de Luta'; valorant = 'Main Right' }) -Force }
   return $c
 }
 function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | Out-Null; [IO.File]::WriteAllText($cfgStreamF, ($c | ConvertTo-Json -Depth 4), [Text.Encoding]::UTF8) }
-$script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false
+$script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false; $script:gravAnt = $false
 # Captura do jogo (e não da tela inteira): cria "Jogo: Street Fighter 6", "Jogo: Valorant" e "Jogo (tela cheia)"
 # nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
 $capOkF = Join-Path $aqui 'captura_jogo_ok3.txt'
@@ -276,10 +277,16 @@ function Tique {
   $vivo = $false; $grav = $false; $durMs = 0
   if ($obs) { try { $r = ObsWs @(@{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }); $vivo = [bool]$r[0].responseData.outputActive; $grav = [bool]$r[1].responseData.outputActive; $durMs = [double]$r[1].responseData.outputDuration } catch {} }
   # leitor ao vivo do SF6 (placar): só com o SF6 aberto e com live ou gravação; desliga sozinho fora disso
-  if ($jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
+  $cfgS = CfgStream; $aoVivoOn = [bool]$cfgS.leitoresAoVivo
+  if ($aoVivoOn -and $jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
+  if ($script:gravAnt -and -not $grav) {
+    $cm = Join-Path $SCR 'cortar_marcas.py'; $py = (Get-Command python -ErrorAction SilentlyContinue).Source
+    if ($py -and (Test-Path $cm)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 15 /nobreak >nul & "' + $py + '" "' + $cm + '"') }
+  }
+  $script:gravAnt = $grav
   # encerrar a live: depois da contagem, para a stream e a gravação
   if (Test-Path $encF) {
     $quando = [double](Get-Content $encF -Raw)
@@ -299,7 +306,7 @@ function Tique {
     } catch {}
   }
   # clipes de abates do Valorant para o BRB: só com Valorant aberto, ao vivo E gravando (os cortes saem da gravação)
-  if ($jogo -eq 'valorant' -and $vivo -and $grav) { if (-not (ProcRodando $clipPid)) { ProcIniciar (Join-Path $PASTA_VAL '_analisador\clipes_ao_vivo.py') $clipPid } } elseif (Test-Path $clipPid) { ProcParar $clipPid }
+  if ($aoVivoOn -and $jogo -eq 'valorant' -and $vivo -and $grav) { if (-not (ProcRodando $clipPid)) { ProcIniciar (Join-Path $PASTA_VAL '_analisador\clipes_ao_vivo.py') $clipPid } } elseif (Test-Path $clipPid) { ProcParar $clipPid }
   # informa aos leitores onde está a gravação e quando começou (para cortar dela enquanto grava)
   if ($grav) { try { $dirG = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory; $ini = [DateTimeOffset]::Now.ToUnixTimeSeconds() - [math]::Round($durMs / 1000); [IO.File]::WriteAllText($gravAtualF, (@{ pasta = $dirG; inicio = $ini } | ConvertTo-Json -Compress), [Text.Encoding]::UTF8) } catch {} }
   # linha do tempo da gravação (qual jogo em cada trecho). As gravações "por jogo" já têm o próprio fluxo.
@@ -446,7 +453,7 @@ while ($http.IsListening) {
         $pastaGrav = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'
         $cenaSo = 'S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'
         $jogos = @{ sf6 = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6')); bat = 'Analisar partidas.bat'; nome = 'Street Fighter 6' };
-                    valorant = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')); bat = ''; nome = 'Valorant' };
+                    valorant = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')); bat = 'Cortar Valorant.bat'; nome = 'Valorant' };
                     outro = @{ pasta = (Join-Path $pastaGrav $cenaSo); bat = ''; nome = 'outro jogo' } }
         $estF = Join-Path $aqui 'gravando_jogo.txt'
         try {
@@ -526,8 +533,8 @@ while ($http.IsListening) {
         try {
           if ($q['acao'] -eq 'iniciar') {
             New-Item -ItemType Directory -Force -Path $PASTA_LIVES | Out-Null
-            $r = ObsWs @(@{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $PASTA_LIVES } }, @{ t = 'StartRecord' }, @{ t = 'StartStream' })
-            Json $ctx @{ ok = [bool]$r[2].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
+            $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = 'Clean' } }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $PASTA_LIVES } }, @{ t = 'StartRecord' }, @{ t = 'StartStream' })
+            Json $ctx @{ ok = [bool]$r[3].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
           } elseif ($q['acao'] -eq 'parar') {
             $r = ObsWs @(@{ t = 'StopStream' }, @{ t = 'StopRecord' })
             Json $ctx @{ ok = [bool]$r[0].requestStatus.result -or [bool]$r[1].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
@@ -569,7 +576,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 22 } }
+      default  { Json $ctx @{ ok = $true; versao = 23 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

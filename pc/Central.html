@@ -635,7 +635,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
         <label class="row" style="gap:8px;font-size:13px">Atalho de marcar momento <input type="text" id="obs-tecla" class="in-txt" value="F9" style="width:110px;padding:6px 10px" aria-label="Atalho de marcar momento"></label>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-auto" checked> Trocar de cena sozinho quando a partida começar</label>
         <span class="note" id="obs-auto-info"></span>
-        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando.</p>
+        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando; os momentos viram clipes na pasta Gravações da Stream\\Momentos quando a gravação termina.</p>
         <h3 style="margin-top:8px">Como mudar</h3>
         <p class="note" style="margin:0">Me peça no chat (ex.: "aumenta a câmera no Jogos de Luta"). Eu faço uma cópia de segurança e edito com o OBS fechado; depois é só abrir o OBS de novo. A prévia lê o arquivo de cenas que o OBS salva, então mostra a última versão salva.</p>
       </section>
@@ -1356,8 +1356,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     var enc = obsCfg && obsCfg.encerrarEm ? Math.max(0, Math.round(obsCfg.encerrarEm - Date.now() / 1000)) : null;
     var marcar = j.gravando ? '<button class="btn obs-tr marca" data-obsmarca="1">⭐ Marcar momento (' + esc((obsCfg && obsCfg.tecla) || 'F9') + ')</button>' : '';
     if (gb && j.aoVivo) { gb.innerHTML = (enc !== null ? '<span class="obs-enc">Encerrando em ' + Math.floor(enc / 60) + ':' + ('0' + enc % 60).slice(-2) + '</span><button class="btn obs-tr" data-obsenc="cancelar">Cancelar</button><button class="btn obs-tr grav on" data-obsenc="ja">Encerrar já</button>'
-        : '<button class="btn obs-tr grav on" data-obsenc="iniciar">🏁 Encerrar live (tela End + 3 min)</button>') + marcar + info + '<span class="note">' + (obsJogo && obsJogo.jogo === 'valorant' ? 'Valorant: seus abates viram clipes para o BRB durante a live. ' : '') + 'No fim, os trechos de SF6 são cortados partida a partida.</span>'; }
-    else if (gb) gb.innerHTML = (j.gravando ? marcar : '') + (j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : 'o vídeo fica salvo inteiro.') + '</span>'
+        : '<button class="btn obs-tr grav on" data-obsenc="iniciar">🏁 Encerrar live (tela End + 3 min)</button>') + marcar + info + '<span class="note">Só o jogo, sem câmera. No fim: SF6 cortado partida a partida, Valorant com clipes de multi-abate, e os momentos do F9 viram clipes.</span>'; }
+    else if (gb) gb.innerHTML = (j.gravando ? marcar : '') + (j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : (gravJogo === 'Valorant' ? 'o vídeo fica inteiro e os multi-abates viram clipes.' : 'o vídeo fica salvo.')) + '</span>'
       : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join(''));
   }
   document.addEventListener('click', function (e) {
@@ -1379,7 +1379,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       return;
     }
     b = e.target.closest('[data-obsmarca]'); if (b) {
-      fetch(AJ + '/obs/marcar?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { $('obs-nota').textContent = j.ok ? 'Momento marcado: os últimos 15 s entram no compilado do BRB.' : 'Não consegui: ' + (j.msg || 'erro'); });
+      fetch(AJ + '/obs/marcar?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { $('obs-nota').textContent = j.ok ? 'Momento marcado: os últimos 20 s viram um clipe quando a gravação terminar (pasta Momentos).' : 'Não consegui: ' + (j.msg || 'erro'); });
       return;
     }
   });
@@ -1433,7 +1433,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 22 && !sessionStorage.getItem('aj-reiniciou-22')) { sessionStorage.setItem('aj-reiniciou-22', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 23 && !sessionStorage.getItem('aj-reiniciou-23')) { sessionStorage.setItem('aj-reiniciou-23', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
