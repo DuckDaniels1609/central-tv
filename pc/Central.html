@@ -1246,7 +1246,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     } else if (/^dshow_input/.test(id)) {
       var rs = String(st.resolution || '1920x1080').split('x'); el.classList.add('obs-ph', 'cam'); el.innerHTML = '<span>📷 ' + esc(it.name) + '</span>'; obsPor(el, it, +rs[0] || 1920, +rs[1] || 1080);
     } else if (/capture$/.test(id)) {
-      el.classList.add('obs-ph', 'jogo'); el.innerHTML = '<img class="obs-ex" src="' + AJ + '/app/exemplo-jogo.jpg" alt="" onerror="this.remove()"><span>🎮 ' + esc(it.name) + ' (jogo / tela)</span>'; obsPor(el, it, cx, cy);
+      el.classList.add('obs-ph', 'jogo'); el.innerHTML = '<img class="obs-ex" src="' + AJ + '/app/exemplo-jogo.jpg" alt="" onerror="this.remove()"><span>🎮 ' + esc(it.name) + ' · exemplo (abra o OBS para ver a imagem real)</span>'; obsPor(el, it, cx, cy);
     } else if (/^browser_source/.test(id) && st.is_local_file && st.local_file) {
       var fr = document.createElement('iframe'); fr.src = obsUrl(st.local_file); fr.width = st.width || 800; fr.height = st.height || 600; fr.setAttribute('scrolling', 'no');
       fr.setAttribute('allowtransparency', 'true'); fr.style.cssText = 'color-scheme:normal;position:absolute;left:0;top:0;border:0;background:transparent;pointer-events:none;transform-origin:0 0;transform:scale(' + (((it.scale || {}).x) || 1) + ',' + (((it.scale || {}).y) || 1) + ')';
@@ -1303,7 +1303,22 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.addEventListener('resize', function () { if (SEC === 'stream') obsDesenhar(); });
   window.obsCarregar = obsCarregar;
   /* no ar: cena atual do OBS + botões para trocar (controle remoto do OBS, pelo ajudante) */
-  var obsEst = null, gravJogo = '', obsJogo = null, obsCfg = null;
+  var obsEst = null, gravJogo = '', obsJogo = null, obsCfg = null, obsAbrindo = false;
+  function abrirObs() { var a = (PC_APPS || []).filter(function (x) { return /\bobs\b/i.test(x.nome) && !/streamlabs/i.test(x.nome); })[0]; if (a) { pcAbrir(a.f); return true; } $('obs-nota').textContent = 'Não achei o atalho do OBS em Meus programas.'; return false; }
+  /* se o OBS estiver fechado: abre, espera o controle remoto responder (até 60 s) e então faz a ação */
+  function comObs(fn) {
+    if (obsEst && obsEst.aberto && !obsEst.erro) { fn(); return; }
+    if (!abrirObs()) return;
+    obsAbrindo = true; obsDesenharAr(); $('obs-nota').textContent = 'Abrindo o OBS… a ação começa assim que ele estiver pronto.';
+    var t0 = Date.now();
+    (function espera() {
+      fetch(AJ + '/obs/estado?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.aberto && !j.erro && j.cenas) { obsAbrindo = false; obsEst = j; setTimeout(fn, 1500); return; }
+        if (Date.now() - t0 > 60000) { obsAbrindo = false; $('obs-nota').textContent = 'O OBS demorou para abrir. Tente o botão de novo.'; obsDesenharAr(); return; }
+        setTimeout(espera, 2000);
+      }).catch(function () { setTimeout(espera, 2000); });
+    })();
+  }
   function obsDesenharCfg() {
     var c = obsCfg; if (!c || !$('obs-tecla')) return;
     if (document.activeElement !== $('obs-tecla')) $('obs-tecla').value = c.tecla || 'F9';
@@ -1320,11 +1335,15 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   }
   function obsDesenharAr() {
     var j = obsEst, tx = $('obs-ar-tx'), luz = $('obs-luz'), bt = $('obs-trocar'); if (!tx) return;
-    var gb0 = $('obs-grav'); if (gb0 && (!j || !j.aberto || j.erro)) gb0.innerHTML = '';
+    var gb0 = $('obs-grav'); if (gb0 && (!j || j.erro)) gb0.innerHTML = '';
     var nomes = j && j.cenas && j.cenas.length ? j.cenas.slice().reverse() : (OBS.d ? (OBS.d.scene_order || []).map(function (x) { return x.name; }) : []);
     nomes = nomes.filter(function (n) { return n !== 'Base'; });
     if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
-    if (!j.aberto) { tx.textContent = 'OBS fechado · abra o OBS para trocar de cena por aqui'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
+    if (!j.aberto) {
+      tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz'; bt.innerHTML = '';
+      var gbf = $('obs-grav'); if (gbf && !obsAbrindo) gbf.innerHTML = '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button><span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('');
+      return;
+    }
     if (j.erro) { tx.textContent = 'OBS aberto, mas não consegui falar com ele (' + j.erro + ')'; luz.className = 'obs-luz amarelo'; bt.innerHTML = ''; return; }
     tx.textContent = (j.aoVivo ? 'AO VIVO ' + (j.tempo || '').slice(0, 8) : 'Fora do ar') + (j.gravando ? ' · gravando' : '') + ' · no ar: ' + j.cena;
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
@@ -1377,6 +1396,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obsstream]'); if (!b) return;
+    if (!(obsEst && obsEst.aberto && !obsEst.erro)) { comObs(function () { var n = document.querySelector('[data-obsstream="' + b.dataset.obsstream + '"]'); if (n) n.click(); }); return; }
     if (b.dataset.obsstream === 'parar' && !b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'Clique de novo para encerrar a live'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; obsDesenharAr(); } }, 4000); return; }
     b.disabled = true;
     fetch(AJ + '/obs/stream?k=' + ajK() + '&acao=' + b.dataset.obsstream).then(function (r) { return r.json(); }).then(function (j) {
@@ -1385,7 +1405,9 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     }).catch(function () { b.disabled = false; });
   });
   document.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-obsgrav]'); if (!b) return; b.disabled = true;
+    var b = e.target.closest('[data-obsgrav]'); if (!b) return;
+    if (!(obsEst && obsEst.aberto && !obsEst.erro)) { var jg0 = b.dataset.jogo, ac0 = b.dataset.obsgrav; comObs(function () { var n = document.querySelector('[data-obsgrav="' + ac0 + '"]' + (jg0 ? '[data-jogo="' + jg0 + '"]' : '')); if (n) n.click(); }); return; }
+    b.disabled = true;
     fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=' + b.dataset.obsgrav + (b.dataset.jogo ? '&jogo=' + b.dataset.jogo : '')).then(function (r) { return r.json(); }).then(function (j) {
       if (j.ok && b.dataset.obsgrav === 'jogo') gravJogo = j.jogo;
       if (b.dataset.obsgrav === 'parar') gravJogo = '';
