@@ -183,6 +183,15 @@ $PASTA_LIVES = Join-Path $GRAV 'Lives'
 $PASTA_SF6 = Join-Path $GRAV ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6')
 $sessF = Join-Path $aqui 'sessao_gravacao.json'
 $leitorPid = Join-Path $aqui 'leitor_sf6.pid'
+$clipPid = Join-Path $aqui 'clipes_valorant.pid'
+$PASTA_VAL = Join-Path $GRAV ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')
+$gravAtualF = Join-Path $GRAV ('Arte da stream\overlays\gravacao_atual.json')
+function ProcRodando($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
+function ProcParar($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $f -Force -ErrorAction SilentlyContinue } }
+function ProcIniciar($sc, $f) {
+  $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; if (-not $py -or -not (Test-Path $sc)) { return }
+  $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru; Set-Content -Path $f -Value $pr.Id
+}
 function JogoAtual {
   $nomes = @(Get-Process -ErrorAction SilentlyContinue | ForEach-Object { $_.ProcessName })
   if ($nomes -contains 'StreetFighter6') { return 'sf6' }
@@ -206,6 +215,10 @@ function Tique {
   if ($obs) { try { $r = ObsWs @(@{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }); $vivo = [bool]$r[0].responseData.outputActive; $grav = [bool]$r[1].responseData.outputActive; $durMs = [double]$r[1].responseData.outputDuration } catch {} }
   # leitor ao vivo do SF6 (placar): só com o SF6 aberto e com live ou gravação; desliga sozinho fora disso
   if ($jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
+  # clipes de abates do Valorant para o BRB: só com Valorant aberto, ao vivo E gravando (os cortes saem da gravação)
+  if ($jogo -eq 'valorant' -and $vivo -and $grav) { if (-not (ProcRodando $clipPid)) { ProcIniciar (Join-Path $PASTA_VAL '_analisador\clipes_ao_vivo.py') $clipPid } } elseif (Test-Path $clipPid) { ProcParar $clipPid }
+  # informa aos leitores onde está a gravação e quando começou (para cortar dela enquanto grava)
+  if ($grav) { try { $dirG = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory; $ini = [DateTimeOffset]::Now.ToUnixTimeSeconds() - [math]::Round($durMs / 1000); [IO.File]::WriteAllText($gravAtualF, (@{ pasta = $dirG; inicio = $ini } | ConvertTo-Json -Compress), [Text.Encoding]::UTF8) } catch {} }
   # linha do tempo da gravação (qual jogo em cada trecho). As gravações "por jogo" já têm o próprio fluxo.
   if (Test-Path (Join-Path $aqui 'gravando_jogo.txt')) { return }
   $sess = $null; if (Test-Path $sessF) { try { $sess = [IO.File]::ReadAllText($sessF) | ConvertFrom-Json } catch {} }
@@ -349,7 +362,7 @@ while ($http.IsListening) {
         $pastaGrav = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'
         $cenaSo = 'S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'
         $jogos = @{ sf6 = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6')); bat = 'Analisar partidas.bat'; nome = 'Street Fighter 6' };
-                    valorant = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')); bat = 'Cortar Valorant.bat'; nome = 'Valorant' };
+                    valorant = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')); bat = ''; nome = 'Valorant' };
                     outro = @{ pasta = (Join-Path $pastaGrav $cenaSo); bat = ''; nome = 'outro jogo' } }
         $estF = Join-Path $aqui 'gravando_jogo.txt'
         try {

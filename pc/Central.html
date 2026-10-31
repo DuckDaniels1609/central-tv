@@ -1316,8 +1316,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       '';
     var gb = $('obs-grav'), jg = obsJogo && obsJogo.jogo ? JOGO_NOME[obsJogo.jogo] : '';
     var info = '<span class="obs-jogo">' + (jg ? 'Jogo aberto: <b>' + esc(jg) + '</b>' + (obsJogo.placar ? ' · placar ao vivo ligado' : '') : 'Nenhum jogo com análise aberto') + '</span>';
-    if (gb && j.aoVivo) { gb.innerHTML = '<button class="btn obs-tr grav on" data-obsstream="parar">■ Encerrar stream' + (j.gravando ? ' e gravação' : '') + '</button>' + info + '<span class="note">No fim, a gravação é dividida por jogo e cada trecho vai para o seu analisador.</span>'; }
-    else if (gb) gb.innerHTML = j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : gravJogo === 'Valorant' ? 'os seus abates viram clipes sozinhos.' : 'o vídeo fica salvo.') + '</span>'
+    if (gb && j.aoVivo) { gb.innerHTML = '<button class="btn obs-tr grav on" data-obsstream="parar">■ Encerrar stream' + (j.gravando ? ' e gravação' : '') + '</button>' + info + '<span class="note">' + (obsJogo && obsJogo.jogo === 'valorant' ? 'Valorant: seus abates viram clipes para o BRB durante a live. ' : '') + 'No fim, os trechos de SF6 são cortados partida a partida.</span>'; }
+    else if (gb) gb.innerHTML = j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : 'o vídeo fica salvo inteiro.') + '</span>'
       : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('');
   }
   document.addEventListener('click', function (e) {
@@ -1334,7 +1334,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     if (b.dataset.obsstream === 'parar' && !b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'Clique de novo para encerrar a live'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; obsDesenharAr(); } }, 4000); return; }
     b.disabled = true;
     fetch(AJ + '/obs/stream?k=' + ajK() + '&acao=' + b.dataset.obsstream).then(function (r) { return r.json(); }).then(function (j) {
-      $('obs-nota').textContent = !j.ok ? 'Não consegui: ' + (j.msg || 'erro') : b.dataset.obsstream === 'iniciar' ? 'Ao vivo e gravando! O jogo é detectado sozinho.' : 'Live encerrada. Em instantes a gravação é dividida por jogo e analisada.';
+      $('obs-nota').textContent = !j.ok ? 'Não consegui: ' + (j.msg || 'erro') : b.dataset.obsstream === 'iniciar' ? 'Ao vivo e gravando! O jogo é detectado sozinho.' : 'Live encerrada. A gravação fica em Lives; os trechos de SF6 vão ser cortados partida a partida.';
       setTimeout(obsEstado, 800);
     }).catch(function () { b.disabled = false; });
   });
