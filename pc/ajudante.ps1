@@ -222,6 +222,44 @@ function CfgStream {
 }
 function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | Out-Null; [IO.File]::WriteAllText($cfgStreamF, ($c | ConvertTo-Json -Depth 4), [Text.Encoding]::UTF8) }
 $script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false
+# Captura do jogo (e não da tela inteira): cria "Jogo: Street Fighter 6", "Jogo: Valorant" e "Jogo (tela cheia)"
+# nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
+$capOkF = Join-Path $aqui 'captura_jogo_ok.txt'
+function CapturaJogo {
+  $novos = @(
+    @{ n = 'Jogo: Street Fighter 6'; s = @{ capture_mode = 'window'; window = 'Street Fighter 6::StreetFighter6.exe'; priority = 2; capture_cursor = $false; anti_cheat_hook = $true } },
+    @{ n = 'Jogo: Valorant'; s = @{ capture_mode = 'window'; window = 'VALORANT::VALORANT-Win64-Shipping.exe'; priority = 2; capture_cursor = $false; anti_cheat_hook = $true } },
+    @{ n = 'Jogo (tela cheia)'; s = @{ capture_mode = 'any_fullscreen'; capture_cursor = $false; anti_cheat_hook = $true } }
+  )
+  $cenas = @('Clean', ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'), 'Main Right', 'Jogos de Luta')
+  $log = @()
+  $ex = @((ObsWs @(@{ t = 'GetInputList' }))[0].responseData.inputs | ForEach-Object { $_.inputName })
+  foreach ($cena in $cenas) {
+    $its = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0].responseData.sceneItems)
+    $tela = $its | Where-Object { $_.sourceName -eq 'Tela 1' } | Select-Object -First 1
+    if (-not $tela) { $log += "$cena sem Tela 1"; continue }
+    # de cima para baixo: SF6, Valorant, tela cheia (insere ao contrário logo acima da Tela 1)
+    foreach ($nv in @($novos[2], $novos[1], $novos[0])) {
+      if ($its | Where-Object { $_.sourceName -eq $nv.n }) { continue }
+      if ($ex -notcontains $nv.n) {
+        $r = ObsWs @(@{ t = 'CreateInput'; d = @{ sceneName = $cena; inputName = $nv.n; inputKind = 'game_capture'; inputSettings = $nv.s; sceneItemEnabled = $true } })
+        $id = $r[0].responseData.sceneItemId; $ex += $nv.n
+      } else {
+        $r = ObsWs @(@{ t = 'CreateSceneItem'; d = @{ sceneName = $cena; sourceName = $nv.n; sceneItemEnabled = $true } }); $id = $r[0].responseData.sceneItemId
+      }
+      if ($id) {
+        $idx = [int]((ObsWs @(@{ t = 'GetSceneItemIndex'; d = @{ sceneName = $cena; sceneItemId = [int]$tela.sceneItemId } }))[0].responseData.sceneItemIndex)
+        $null = ObsWs @(@{ t = 'SetSceneItemIndex'; d = @{ sceneName = $cena; sceneItemId = [int]$id; sceneItemIndex = $idx + 1 } },
+                        @{ t = 'SetSceneItemTransform'; d = @{ sceneName = $cena; sceneItemId = [int]$id; sceneItemTransform = @{ positionX = 0; positionY = 0; alignment = 5; boundsType = 'OBS_BOUNDS_SCALE_INNER'; boundsWidth = 1920; boundsHeight = 1080; boundsAlignment = 0 } } })
+        $log += "$cena + $($nv.n)"
+      } else { $log += "$cena falhou $($nv.n): $($r[0].requestStatus.comment)" }
+    }
+    $null = ObsWs @(@{ t = 'SetSceneItemEnabled'; d = @{ sceneName = $cena; sceneItemId = [int]$tela.sceneItemId; sceneItemEnabled = $false } })
+    $log += "$cena Tela 1 oculta"
+  }
+  Set-Content -Path $capOkF -Value ($log -join "`r`n") -Encoding UTF8
+  return $log
+}
 $script:tiqueEm = [DateTime]::MinValue
 function Tique {
   if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
@@ -233,6 +271,7 @@ function Tique {
   if ($jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
+  if ($obs -and -not (Test-Path $capOkF)) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
   # encerrar a live: depois da contagem, para a stream e a gravação
   if (Test-Path $encF) {
     $quando = [double](Get-Content $encF -Raw)
@@ -453,6 +492,7 @@ while ($http.IsListening) {
         $em = $null; if (Test-Path $encF) { $em = [double](Get-Content $encF -Raw) }
         Json $ctx @{ tecla = $c.tecla; autoCena = [bool]$c.autoCena; cenas = $c.cenas; encerrarEm = $em }
       }
+      '/obs/captura-jogo' { try { if (Test-Path $capOkF) { Remove-Item $capOkF -Force }; Json $ctx @{ ok = $true; log = @(CapturaJogo) } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
       '/obs/camera' {
         # mostra/oculta a câmera (Webcam, Moldura e o grupo Camera) na cena que está no ar
         try {
@@ -511,7 +551,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 18 } }
+      default  { Json $ctx @{ ok = $true; versao = 19 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
