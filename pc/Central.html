@@ -336,6 +336,26 @@ header { align-items: center; }
 .le-det { display: flex; flex-direction: column; gap: 10px; }
 .le-det .desc { margin: 0; font-size: 14px; line-height: 1.55; color: #E2DEF7; white-space: pre-line; max-height: 300px; overflow-y: auto; padding-right: 6px; }
 .gen { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--acc) 22%, transparent); }
+
+/* ---------- barra lateral (nova) ---------- */
+.grid { grid-template-columns: 232px minmax(0, 1fr) 460px; }
+.menu { gap: 2px; padding: 14px 10px; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; }
+.menu .mi { position: relative; display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 8px 12px; border-radius: 12px; font-size: 14.5px; font-weight: 700; color: #DCD8F2; white-space: nowrap; }
+.menu .mi span { flex: 1; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.menu .mi svg { width: 19px; height: 19px; opacity: .8; }
+.menu .mi:hover { background: rgba(255,255,255,.06); color: #FFF; }
+.menu .mi[aria-pressed="true"] { background: color-mix(in srgb, var(--acc) 22%, transparent); color: #FFF; box-shadow: none; }
+.menu .mi[aria-pressed="true"]::before { content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--acc); }
+.menu .mi[aria-pressed="true"] svg { opacity: 1; color: var(--acc); }
+.bdg { font-style: normal; font-size: 11px; font-weight: 800; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: none; align-items: center; justify-content: center; background: var(--acc); color: #1C1838; }
+.bdg.on { display: inline-flex; }
+.bdg.suave { background: rgba(255,255,255,.12); color: #E2DEF7; }
+.menu-top { display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.mg-bt { font-size: 11px !important; letter-spacing: .12em; text-transform: uppercase; color: var(--muted) !important; font-weight: 800; padding: 12px 12px 6px !important; min-height: 0; }
+.sub { display: flex; flex-direction: column; gap: 2px; border-left: 0 !important; margin-left: 0 !important; padding-left: 0 !important; }
+.sub[hidden] { display: none; }
+.sub .mi { font-size: 14px; min-height: 38px; }
+.menu-pe { margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.07); }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
@@ -361,32 +381,37 @@ header { align-items: center; }
 
   <div class="grid">
     <nav class="card menu" aria-label="Seções">
-      <span class="mg">Central</span>
-      <button class="mi" data-sec="hoje" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>Hoje</button>
-      <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Tarefas</button>
-      <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
-      <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Projetos</button>
-      <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Estante</button>
-      <button class="mg mg-bt" id="mg-an" aria-expanded="false">Animes e mangás <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="sub-tv" id="sub-an" hidden>
-      <button class="mi" data-sec="anime"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 2l-5 5-5-5M10 11l5 3-5 3z"/></svg>Animes</button>
-      <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>Mangás e manhwas</button>
+      <div class="menu-top">
+        <button class="mi" aria-pressed="true" data-sec="hoje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg><span>Hoje</span><i class="bdg" id="bdg-hoje"></i></button>
+        <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg><span>Tarefas</span><i class="bdg" id="bdg-tar"></i></button>
+        <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Calendário</span><i class="bdg" id="bdg-cal"></i></button>
+        <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Projetos</span><i class="bdg" id="bdg-proj"></i></button>
       </div>
-      <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>Lançamentos</button>
-      <button class="mi" data-sec="tvc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Controle da TV</button>
-      <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
+      <button class="mg mg-bt" id="mg-lazer" aria-expanded="true">Lazer <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="sub" id="sub-lazer">
+        <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Estante</span><i class="bdg" id="bdg-est"></i></button>
+        <button class="mi" data-sec="anime"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 2l-5 5-5-5M10 11l5 3-5 3z"/></svg><span>Animes</span><i class="bdg" id="bdg-anime"></i></button>
+        <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg><span>Mangás</span><i class="bdg" id="bdg-leit"></i></button>
+        <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
+      </div>
+      <button class="mg mg-bt" id="mg-casa" aria-expanded="true">PC e TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="sub" id="sub-casa">
+        <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Meus programas</span><i class="bdg" id="bdg-pc"></i></button>
+        <button class="mi" data-sec="tvc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Controle da TV</span><i class="bdg" id="bdg-tvc"></i></button>
+      </div>
       <button class="mg mg-bt" id="mg-tv" aria-expanded="false">Ajustes da TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="sub-tv" id="sub-tv" hidden>
-      <button class="mi" data-sec="clip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Clipes</button>
-      <button class="mi" data-sec="visual"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 10c0-4.4-4.5-8-10-8z"/></svg>Aparência</button>
-      <button class="mi" data-sec="apps"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>Apps</button>
-      <button class="mi" data-sec="desp"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3L2 6M22 6l-3-3"/></svg>Despertador</button>
-      <button class="mi" data-sec="mus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Música</button>
-      <button class="mi" data-sec="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>Modo discreto</button>
-      <button class="mi" data-sec="cel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>App do celular</button>
+      <div class="sub" id="sub-tv" hidden>
+        <button class="mi" data-sec="clip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg><span>Clipes</span><i class="bdg" id="bdg-clip"></i></button>
+        <button class="mi" data-sec="visual"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 10c0-4.4-4.5-8-10-8z"/></svg><span>Aparência</span><i class="bdg" id="bdg-visual"></i></button>
+        <button class="mi" data-sec="apps"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M17 2l-5 5-5-5"/></svg><span>Apps</span><i class="bdg" id="bdg-apps"></i></button>
+        <button class="mi" data-sec="desp"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3L2 6M22 6l-3-3"/></svg><span>Despertador</span><i class="bdg" id="bdg-desp"></i></button>
+        <button class="mi" data-sec="mus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>Música</span><i class="bdg" id="bdg-mus"></i></button>
+        <button class="mi" data-sec="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg><span>Modo discreto</span><i class="bdg" id="bdg-disc"></i></button>
+        <button class="mi" data-sec="cel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg><span>App do celular</span><i class="bdg" id="bdg-cel"></i></button>
       </div>
-      <span class="mg">Este app</span>
-      <button class="mi" data-sec="look"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Personalizar</button>
+      <div class="menu-pe">
+        <button class="mi" data-sec="look"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Personalizar</span><i class="bdg" id="bdg-look"></i></button>
+      </div>
     </nav>
     <div class="col card meio" id="meio-hoje" hidden>
       <div class="banner" id="hj-banner"><div class="banner-tx"><h2 id="hj-tit">Olá, Daniel</h2><span id="hj-sub"></span></div></div>
@@ -1043,21 +1068,21 @@ header { align-items: center; }
     var b = e.target.closest('[data-pccat]'), mn = $('pc-menu');
     if (b) { var m = catsPC(); m[b.dataset.f] = b.dataset.pccat; try { localStorage.setItem('pc-cats', JSON.stringify(m)); } catch (x) {} desenharApps(); }
     if (mn && !e.target.closest('#pc-menu .x0')) mn.remove();
-    var g = e.target.closest('#mg-tv, #mg-an'); if (g) { var gs = g.id.slice(3), ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; try { localStorage.setItem('menu-' + gs, ab ? '1' : ''); } catch (x) {} }
+    var g = e.target.closest('.mg-bt'); if (g) { var gs = g.id.slice(3), ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; try { localStorage.setItem('menu-' + gs, ab ? '1' : ''); } catch (x) {} }
   });
-  try { ['tv', 'an'].forEach(function (gs) { if (localStorage.getItem('menu-' + gs)) { $('mg-' + gs).setAttribute('aria-expanded', 'true'); $('sub-' + gs).hidden = false; } }); } catch (e) {}
+  try { ['tv', 'lazer', 'casa'].forEach(function (gs) { var v = localStorage.getItem('menu-' + gs); if (v === null) return; var ab = v === '1'; $('mg-' + gs).setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; }); } catch (e) {}
   window.PC_LISTA = function () { return PC_APPS; };
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 6 && !sessionStorage.getItem('aj-reiniciou-6')) { sessionStorage.setItem('aj-reiniciou-6', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 7 && !sessionStorage.getItem('aj-reiniciou-7')) { sessionStorage.setItem('aj-reiniciou-7', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
-    if (['anime', 'leit'].indexOf(sx) >= 0) { $('mg-an').setAttribute('aria-expanded', 'true'); $('sub-an').hidden = false; }
+    var grp = { est: 'lazer', anime: 'lazer', leit: 'lazer', lanc: 'lazer', pc: 'casa', tvc: 'casa' }[sx]; if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
@@ -1653,7 +1678,16 @@ header { align-items: center; }
   };
   setTimeout(function () { malStatus().then(function (ok) { if (ok) { carregarAnimes(); sincManga(); } else desenharAnime(); }); }, 2500);
 
-  function desenhar() { desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
+  function bdg(k, n, suave) { var el = $('bdg-' + k); if (!el) return; el.textContent = n > 99 ? '99+' : n; el.className = 'bdg' + (n ? ' on' : '') + (suave ? ' suave' : ''); }
+  function badges() {
+    var hj = hoje(), T = (S.tar && S.tar.tarefas) || [];
+    var at = T.filter(function (t) { return !t.ok && t.data && t.data <= hj; }).length;
+    bdg('tar', T.filter(function (t) { return !t.ok; }).length, !at);
+    bdg('hoje', itens(hj).filter(function (x) { return x.k === 'reuniao'; }).length, true);
+    bdg('anime', (MAL.anime || []).filter(function (x) { return x.st === 'watching'; }).length, true);
+    bdg('leit', ((S.le && S.le.itens) || []).filter(function (x) { return x.status === 'lendo'; }).length, true);
+  }
+  function desenhar() { badges(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }

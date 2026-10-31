@@ -80,7 +80,7 @@ $malArq = Join-Path $aqui 'mal.dat'
 $malRedirect = "http://localhost:$porta/mal/retorno"
 function MalLer() {
   if (-not (Test-Path $malArq)) { return @{} }
-  try { $sec = Get-Content $malArq -Raw | ConvertTo-SecureString; $txt = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)); $o = $txt | ConvertFrom-Json; $h = @{}; $o.PSObject.Properties | ForEach-Object { $h[$_.Name] = $_.Value }; return $h } catch { return @{} }
+  try { $sec = (Get-Content $malArq -Raw).Trim() | ConvertTo-SecureString; $txt = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)); $o = $txt | ConvertFrom-Json; $h = @{}; $o.PSObject.Properties | ForEach-Object { $h[$_.Name] = $_.Value }; return $h } catch { return @{} }
 }
 function MalGravar($h) { ($h | ConvertTo-Json -Compress) | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString | Set-Content $malArq }
 function MalToken($h, $form) {
@@ -191,7 +191,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 6 } }
+      default  { Json $ctx @{ ok = $true; versao = 7 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
