@@ -277,11 +277,26 @@ header { align-items: center; }
 #busca { position: fixed; inset: 0; z-index: 80; background: rgba(5,4,18,.55); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; }
 #busca[hidden] { display: none; }
 .busca-box { width: 720px; background: #1B1842; border: 1px solid rgba(255,255,255,.15); border-radius: 20px; box-shadow: 0 30px 80px rgba(0,0,0,.6); overflow: hidden; }
-#busca-in { width: 100%; font: inherit; font-size: 22px; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid rgba(255,255,255,.1); padding: 20px 24px; outline: none; }
-#busca-res { max-height: 56vh; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
-.br { font: inherit; color: var(--fg); background: transparent; border: 0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; gap: 16px; cursor: pointer; text-align: left; font-size: 16px; font-weight: 700; }
-.br small { color: var(--muted); font-weight: 500; flex: none; }
-.br.sel, .br:hover { background: color-mix(in srgb, var(--acc) 22%, transparent); }
+.busca-campo { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.busca-campo svg { width: 22px !important; height: 22px !important; color: var(--acc); flex: none; }
+#busca-in { flex: 1; min-width: 0; font: inherit; font-size: 19px; color: var(--fg); background: transparent; border: 0; outline: none; padding: 4px 0; }
+#busca-in::placeholder { color: rgba(226,222,247,.45); }
+.busca-box kbd { font: inherit; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); color: var(--muted); }
+#busca-res { max-height: 58vh; overflow-y: auto; padding: 6px 10px 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
+.bg-tit { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 12px 10px 6px; }
+.bg-grp { display: flex; flex-direction: column; gap: 2px; }
+.bg-grp.grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.br { font: inherit; color: var(--fg); background: transparent; border: 0; border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; text-align: left; font-size: 15px; font-weight: 600; min-width: 0; }
+.bg-grp.grade .br { background: rgba(255,255,255,.04); padding: 10px 12px; }
+.br .bi { width: 32px; height: 32px; flex: none; border-radius: 9px; background: rgba(255,255,255,.06); display: grid; place-items: center; }
+.br .bi svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.br .bi.foto { background: #24205A center/cover no-repeat; }
+.br .bt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.br small { color: var(--muted); font-weight: 500; font-size: 12px; flex: none; max-width: 40%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.br.sel, .br:hover { background: color-mix(in srgb, var(--acc) 22%, transparent) !important; }
+.br.sel .bi { background: var(--acc); color: #1C1838; }
+.busca-pe { display: flex; gap: 18px; padding: 10px 20px; border-top: 1px solid rgba(255,255,255,.08); font-size: 12px; color: var(--muted); }
+.busca-pe span { display: flex; align-items: center; gap: 5px; }
 .jg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; overflow-y: auto; align-content: start; }
 .jg { font: inherit; color: var(--fg); text-align: left; display: flex; gap: 14px; padding: 12px; border-radius: 18px; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.08); cursor: pointer; }
 .jg[aria-pressed="true"] { border-color: var(--acc); }
@@ -1309,6 +1324,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   setInterval(obsFoto, 2000);
   document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="stream"]')) setTimeout(obsEstado, 100); });
   window.PC_ABRIR = function (f) { pcAbrir(f); };
+  window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
     fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 12 && !sessionStorage.getItem('aj-reiniciou-12')) { sessionStorage.setItem('aj-reiniciou-12', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
@@ -1659,17 +1675,26 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   }
 
   /* ========== BUSCA RÁPIDA (Ctrl+Espaço) ========== */
+  /* busca rápida: resultados em grupos, com ícone e detalhe */
+  var IC_B = {
+    tarefa: '<path d="M4 12l5 5L20 6"/>', projeto: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    jogo: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>', anime: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 2l-5 5-5-5M10 11l5 3-5 3z"/>',
+    manga: '<path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/>', lanc: '<rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/>',
+    dia: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
+  };
+  function icB(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + IC_B[k] + '</svg>'; }
+  var GRUPOS_B = ['Dia', 'Telas', 'Programas', 'Tarefas', 'Projetos', 'Calendário', 'Estante', 'Animes', 'Mangás', 'Lançamentos'];
   function itensBusca() {
     var out = [];
-    document.querySelectorAll('.mi').forEach(function (b) { out.push({ tipo: 'Tela', t: b.textContent.trim(), ir: function () { b.click(); } }); });
-    (window.PC_LISTA ? window.PC_LISTA() : []).forEach(function (a) { out.push({ tipo: 'Programa', t: a.nome, ir: function () { window.PC_ABRIR(a.f); } }); });
-    ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (!t.ok) out.push({ tipo: 'Tarefa', t: (t.cli ? t.cli + ': ' : '') + t.t, ir: function () { document.querySelector('.mi[data-sec="tar"]').click(); } }); });
-    var P = (S.pj && S.pj.projetos) || {}; Object.keys(P).forEach(function (k) { out.push({ tipo: 'Projeto', t: P[k].nome, ir: function () { pjSel = k; document.querySelector('.mi[data-sec="proj"]').click(); desenharProj(); } }); });
-    jogosEst().forEach(function (j) { out.push({ tipo: 'Estante', t: j.name, ir: function () { esSel = j.id; document.querySelector('.mi[data-sec="est"]').click(); desenharEst(); } }); });
-    (MAL.anime || []).forEach(function (x) { out.push({ tipo: 'Anime · ' + ({ watching: 'assistindo', plan_to_watch: 'planejo ver', on_hold: 'em espera', completed: 'completo', dropped: 'dropado' }[x.st] || ''), t: x.en || x.t, ir: function () { anSel = x.id; anQ = x.en || x.t; document.querySelector('.mi[data-sec="anime"]').click(); $('an-busca').value = anQ; desenharAnime(); } }); });
-    ((S.le && S.le.itens) || []).forEach(function (x) { out.push({ tipo: x.tipo + (x.cap != null ? ' · cap. ' + x.cap : ''), t: x.nome, ir: function () { leSel = x.id; leQ = x.nome; document.querySelector('.mi[data-sec="leit"]').click(); $('le-busca').value = x.nome; desenharLeit(); } }); });
-    ((S.ln && S.ln.jogos) || []).forEach(function (j) { out.push({ tipo: 'Lançamento ' + dmy(j.d), t: j.nome, ir: function () { document.querySelector('.mi[data-sec="lanc"]').click(); } }); });
-    ((S.ev && S.ev.eventos) || []).concat(((S.ag && S.ag.reunioes) || [])).forEach(function (e) { out.push({ tipo: dmy(e.d), t: e.t, ir: function () { dia = e.d; mes = e.d.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); });
+    document.querySelectorAll('.mi').forEach(function (b) { var sp = b.querySelector('span'), sv = b.querySelector('svg'); out.push({ g: 'Telas', tipo: 'Tela', t: (sp ? sp.textContent : b.textContent).trim(), ic: sv ? sv.outerHTML : '', ir: function () { b.click(); } }); });
+    (window.PC_LISTA ? window.PC_LISTA() : []).forEach(function (a) { out.push({ g: 'Programas', tipo: 'Programa', t: a.nome, img: window.PC_ICONE ? window.PC_ICONE(a.f) : '', ir: function () { window.PC_ABRIR(a.f); } }); });
+    ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (!t.ok) out.push({ g: 'Tarefas', tipo: (t.data ? 'até ' + dmy(t.data) + ' · ' : '') + cat(t.cat)[1], t: (t.cli ? t.cli + ': ' : '') + t.t, ic: icB('tarefa'), ir: function () { document.querySelector('.mi[data-sec="tar"]').click(); } }); });
+    var P = (S.pj && S.pj.projetos) || {}; Object.keys(P).forEach(function (k) { var et = P[k].etapas || [], f = et.filter(function (x) { return x.ok; }).length; out.push({ g: 'Projetos', tipo: et.length ? f + ' de ' + et.length + ' etapas' : 'Projeto', t: P[k].nome, ic: icB('projeto'), ir: function () { pjSel = k; document.querySelector('.mi[data-sec="proj"]').click(); desenharProj(); } }); });
+    jogosEst().forEach(function (j) { out.push({ g: 'Estante', tipo: (STATUS.filter(function (x) { return x[0] === (progDe(j.id).status || 'fila'); })[0] || [, 'Jogo'])[1], t: j.name, ic: icB('jogo'), ir: function () { esSel = j.id; document.querySelector('.mi[data-sec="est"]').click(); desenharEst(); } }); });
+    (MAL.anime || []).forEach(function (x) { out.push({ g: 'Animes', tipo: ({ watching: 'Assistindo · ep. ' + x.ep, plan_to_watch: 'Planejo ver', on_hold: 'Em espera', completed: 'Completo', dropped: 'Dropado' }[x.st] || 'Anime'), t: x.en || x.t, img: x.img, ir: function () { anSel = x.id; anQ = x.en || x.t; document.querySelector('.mi[data-sec="anime"]').click(); $('an-busca').value = anQ; desenharAnime(); } }); });
+    ((S.le && S.le.itens) || []).forEach(function (x) { out.push({ g: 'Mangás', tipo: x.tipo + (x.cap != null ? ' · cap. ' + x.cap : ''), t: x.nome, ic: icB('manga'), ir: function () { leSel = x.id; leQ = x.nome; document.querySelector('.mi[data-sec="leit"]').click(); $('le-busca').value = x.nome; desenharLeit(); } }); });
+    ((S.ln && S.ln.jogos) || []).forEach(function (j) { out.push({ g: 'Lançamentos', tipo: 'sai ' + dmy(j.d), t: j.nome, ic: icB('lanc'), ir: function () { document.querySelector('.mi[data-sec="lanc"]').click(); } }); });
+    ((S.ev && S.ev.eventos) || []).concat(((S.ag && S.ag.reunioes) || [])).forEach(function (e) { out.push({ g: 'Calendário', tipo: dmy(e.d) + (e.h ? ' · ' + e.h : ''), t: e.t, ic: icB('dia'), ir: function () { dia = e.d; mes = e.d.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); });
     return out;
   }
   function norm(x) { return String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
@@ -1679,19 +1704,33 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   function buscaFiltrar() {
     var q = norm($('busca-in').value.trim()), todos = itensBusca();
     var m = q.match(/^(\d{1,2})\/(\d{1,2})$/);
-    bRes = q ? todos.filter(function (x) { return norm(x.t).indexOf(q) >= 0 || norm(x.tipo).indexOf(q) >= 0; }).sort(function (a, b) { return norm(a.t).indexOf(q) - norm(b.t).indexOf(q); }) : todos.filter(function (x) { return x.tipo === 'Tela' || x.tipo === 'Programa'; });
-    if (m) { var y = new Date().getFullYear(), di = y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); bRes.unshift({ tipo: 'Dia', t: 'Abrir ' + dmy(di) + ' no calendário', ir: function () { dia = di; mes = di.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); }
-    if (q === 'amanha' || q === 'hoje') { var dd = new Date(); if (q === 'amanha') dd.setDate(dd.getDate() + 1); var d2 = iso(dd); bRes.unshift({ tipo: 'Dia', t: 'Abrir ' + (q === 'hoje' ? 'hoje' : 'amanhã') + ' no calendário', ir: function () { dia = d2; mes = d2.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); }
-    bRes = bRes.slice(0, 12); bSel = 0; buscaDesenhar();
+    bRes = q ? todos.filter(function (x) { return norm(x.t).indexOf(q) >= 0 || norm(x.tipo).indexOf(q) >= 0; }).sort(function (a, b) { return GRUPOS_B.indexOf(a.g) - GRUPOS_B.indexOf(b.g) || norm(a.t).indexOf(q) - norm(b.t).indexOf(q); }) : todos.filter(function (x) { return x.g === 'Telas'; });
+    var porG = {}; bRes = bRes.filter(function (x) { porG[x.g] = (porG[x.g] || 0) + 1; return porG[x.g] <= (q ? 5 : 30); });
+    if (m) { var y = new Date().getFullYear(), di = y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); bRes.unshift({ g: 'Dia', ic: icB('dia'), tipo: 'Dia', t: 'Abrir ' + dmy(di) + ' no calendário', ir: function () { dia = di; mes = di.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); }
+    if (q === 'amanha' || q === 'hoje') { var dd = new Date(); if (q === 'amanha') dd.setDate(dd.getDate() + 1); var d2 = iso(dd); bRes.unshift({ g: 'Dia', ic: icB('dia'), tipo: 'Dia', t: 'Abrir ' + (q === 'hoje' ? 'hoje' : 'amanhã') + ' no calendário', ir: function () { dia = d2; mes = d2.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); }
+    bRes = bRes.slice(0, q ? 30 : 40); bSel = 0; buscaDesenhar();
   }
-  function buscaDesenhar() { $('busca-res').innerHTML = bRes.map(function (x, i) { return '<button class="br' + (i === bSel ? ' sel' : '') + '" data-bi="' + i + '"><span>' + esc(x.t) + '</span><small>' + esc(x.tipo) + '</small></button>'; }).join('') || '<p class="note" style="padding:12px">Nada encontrado.</p>'; }
+  function buscaDesenhar() {
+    var vazio = !$('busca-in').value.trim(), h = '', gAt = null;
+    bRes.forEach(function (x, i) {
+      if (x.g !== gAt) { if (gAt !== null) h += '</div>'; gAt = x.g; h += '<div class="bg-tit">' + esc(vazio && x.g === 'Telas' ? 'Ir para' : x.g) + '</div><div class="bg-grp' + (vazio && x.g === 'Telas' ? ' grade' : '') + '">'; }
+      var ic = x.img ? '<i class="bi foto" style="background-image:url(&quot;' + esc(x.img) + '&quot;)"></i>' : '<i class="bi">' + (x.ic || '') + '</i>';
+      h += '<button class="br' + (i === bSel ? ' sel' : '') + '" data-bi="' + i + '">' + ic + '<span class="bt">' + esc(x.t) + '</span>' + (vazio && x.g === 'Telas' ? '' : '<small>' + esc(x.tipo) + '</small>') + '</button>';
+    });
+    if (gAt !== null) h += '</div>';
+    $('busca-res').innerHTML = h || '<p class="note" style="padding:18px">Nada encontrado. Tente outro nome ou um dia, como 12/11.</p>';
+    var sel = $('busca-res').querySelector('.br.sel'); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+  }
   function buscaIr(i) { var x = bRes[i]; if (!x) return; buscaFechar(); x.ir(); }
   document.addEventListener('keydown', function (e) {
     if ((e.ctrlKey && (e.code === 'Space' || e.key === 'k' || e.key === 'K'))) { e.preventDefault(); if ($('busca').hidden) buscaAbrir(); else buscaFechar(); return; }
     if ($('busca').hidden) return;
     if (e.key === 'Escape') { buscaFechar(); }
-    else if (e.key === 'ArrowDown') { e.preventDefault(); bSel = Math.min(bRes.length - 1, bSel + 1); buscaDesenhar(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); bSel = Math.max(0, bSel - 1); buscaDesenhar(); }
+    else if (/^Arrow(Down|Up|Left|Right)$/.test(e.key)) {
+      var grade = !$('busca-in').value.trim(), passo = { ArrowDown: grade ? 3 : 1, ArrowUp: grade ? -3 : -1, ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!grade && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
+      e.preventDefault(); bSel = Math.max(0, Math.min(bRes.length - 1, bSel + passo)); buscaDesenhar();
+    }
     else if (e.key === 'Enter') { e.preventDefault(); buscaIr(bSel); }
   });
   document.addEventListener('input', function (e) { if (e.target.id === 'busca-in') buscaFiltrar(); });
@@ -2197,7 +2236,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   aplicar();
 })();
 </script>
-<div id="busca" hidden><div class="busca-box" role="dialog" aria-label="Busca rápida"><input id="busca-in" type="text" placeholder="Digite um programa, tarefa, projeto, jogo ou um dia (ex.: 12/11)…" autocomplete="off"><div id="busca-res"></div></div></div>
+<div id="busca" hidden><div class="busca-box" role="dialog" aria-label="Busca rápida"><label class="busca-campo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="busca-in" type="text" placeholder="Programa, tarefa, anime, jogo ou um dia (12/11)" autocomplete="off"><kbd>Esc</kbd></label><div id="busca-res"></div><div class="busca-pe"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>Enter</kbd> abrir</span><span><kbd>Esc</kbd> fechar</span></div></div></div>
 <script>
 /* Capas dos jogos: imagem principal do artigo do jogo na Wikipedia (carregada na hora, guardada por 7 dias).
    Só aceita a página se ela for de um jogo, para não pegar a foto de outra coisa com o mesmo nome. */
