@@ -1,0 +1,13 @@
+{
+  "name": "Central no PC",
+  "short_name": "Central",
+  "start_url": "/app/Central.html",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#100E2B",
+  "theme_color": "#100E2B",
+  "icons": [
+    { "src": "icone192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

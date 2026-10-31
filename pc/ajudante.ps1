@@ -85,7 +85,7 @@ while ($http.IsListening) {
     if ($cam -like '/app/*' -or $cam -like '/fundos/*') {
       $hostOk = $ctx.Request.Headers['Host'] -eq "localhost:$porta"
       $nome = [IO.Path]::GetFileName([Uri]::UnescapeDataString($cam))
-      $permitidos = @{ 'Central.html' = 'text/html; charset=utf-8'; 'icone.png' = 'image/png'; 'central.ico' = 'image/x-icon' }
+      $permitidos = @{ 'Central.html' = 'text/html; charset=utf-8'; 'icone.png' = 'image/png'; 'icone192.png' = 'image/png'; 'icone512.png' = 'image/png'; 'central.ico' = 'image/x-icon'; 'manifest.json' = 'application/manifest+json' }
       if ($cam -like '/fundos/*') { $arq = Join-Path (Split-Path $aqui -Parent) ('fundos\' + $nome); $tipo = if ($nome -like '*.png') { 'image/png' } else { 'image/jpeg' }; $ok = $nome -match '^[\w-]+\.(jpg|png)$' }
       else { $arq = Join-Path $aqui $nome; $tipo = $permitidos[$nome]; $ok = [bool]$tipo }
       if (-not $hostOk -or -not $ok -or -not (Test-Path -LiteralPath $arq)) { $ctx.Response.StatusCode = 404; $ctx.Response.Close(); continue }
@@ -108,7 +108,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 3 } }
+      default  { Json $ctx @{ ok = $true; versao = 4 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

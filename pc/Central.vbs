@@ -18,7 +18,7 @@ x.Open "GET", "http://localhost:47803/?k=" & k, False
 x.Send
 If Err.Number = 0 Then v = x.responseText
 Err.Clear
-If InStr(v, """versao"":3") > 0 Then
+If InStr(v, """versao"":4") > 0 Then
   ' tudo certo
 ElseIf InStr(v, "versao") > 0 Then
   Set x = CreateObject("MSXML2.XMLHTTP"): x.Open "GET", "http://localhost:47803/reiniciar?k=" & k, False: x.Send
@@ -29,4 +29,10 @@ Else
   WScript.Sleep 2500
 End If
 On Error GoTo 0
-sh.Run "msedge --app=http://localhost:47803/app/Central.html --start-maximized --window-size=1920,1080 --window-position=0,0", 1, False
+' se a Central foi instalada como app do Edge, abre por ele (ícone próprio na barra de tarefas)
+pwa = sh.ExpandEnvironmentStrings("%APPDATA%") & "\Microsoft\Windows\Start Menu\Programs\Central no PC.lnk"
+If fs.FileExists(pwa) Then
+  sh.Run """" & pwa & """", 1, False
+Else
+  sh.Run "msedge --app=http://localhost:47803/app/Central.html --start-maximized --window-size=1920,1080 --window-position=0,0", 1, False
+End If
