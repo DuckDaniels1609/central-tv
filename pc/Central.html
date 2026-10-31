@@ -155,7 +155,24 @@ html, body { height: 100%; margin: 0; }
 .nova { display: grid; grid-template-columns: minmax(0, 1fr) 280px 170px auto; gap: 10px; }
 .nova input, #hj-txt, #cal-txt, .hora-in { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .nova input[hidden] { display: none; }
-.tar-lista { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; overflow-y: auto; flex: 1; min-height: 0; align-content: start; }
+.tar-lista { overflow-y: auto; flex: 1; min-height: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(12,10,34,.35); }
+.tab { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tab thead th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 12px 14px; background: rgba(22,19,56,.96); border-bottom: 1px solid rgba(255,255,255,.14); }
+.tab td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: middle; }
+.tab .gh td { padding: 16px 14px 8px; border-bottom: 2px solid var(--c); background: transparent; }
+.gtag { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.gn { margin-left: 10px; font-size: 13px; color: var(--muted); }
+.tab .lin:hover td { background: rgba(255,255,255,.04); }
+.c-chk { width: 44px; }
+.c-x { width: 70px; text-align: right; }
+.c-t { font-weight: 700; }
+.c-cli { color: #D9D5F2; max-width: 280px; }
+.c-resp { white-space: nowrap; }
+.c-dt { width: 160px; }
+.rb { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #2E2870; color: var(--muted); margin-right: 4px; }
+.rb.eu { background: color-mix(in srgb, var(--acc) 30%, transparent); color: #FFF; }
+.vz { color: rgba(183,178,218,.5); }
+.tab .dt-in { margin: 0; font-size: 14px; color: #D9D5F2; }
 .grupo { display: flex; flex-direction: column; gap: 6px; }
 .tr { align-items: flex-start; padding: 10px 12px; }
 .tc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -198,6 +215,33 @@ header { align-items: center; }
 .tema { font: inherit; font-size: 12px; font-weight: 700; color: #FFF; height: 64px; border-radius: 14px; border: 3px solid transparent; cursor: pointer; display: flex; align-items: flex-end; padding: 6px 8px; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .tema[aria-pressed="true"] { border-color: #FFF; }
 .bloco h3, .grupo h3, .sec h3 { color: color-mix(in srgb, var(--acc) 45%, var(--muted)); }
+
+.mg-bt { font: inherit; white-space: nowrap; gap: 6px; display: flex; align-items: center; justify-content: space-between; background: transparent; border: 0; cursor: pointer; width: 100%; text-align: left; border-radius: 10px; }
+.mg-bt:hover { color: var(--fg); }
+.mg-bt svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; transition: transform .2s; }
+.mg-bt[aria-expanded="true"] svg { transform: rotate(180deg); }
+.sub-tv { display: flex; flex-direction: column; gap: 4px; padding-left: 6px; border-left: 2px solid rgba(255,255,255,.08); margin-left: 12px; }
+.sub-tv[hidden] { display: none; }
+.sub-tv .mi { min-height: 40px; font-size: 14px; padding: 8px 12px; }
+.menu { overflow-y: auto; }
+.banner.slim { min-height: 96px; padding: 16px 22px; }
+.banner.slim h2 { font-size: 28px; }
+.topo { position: relative; overflow: hidden; background-image: var(--topo, none); background-size: cover; background-position: center; }
+.topo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,8,30,.85), rgba(10,8,30,.35)); opacity: var(--topo-on, 0); pointer-events: none; }
+.topo > * { position: relative; }
+.pc-grid { display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+.pc-cat h3 { margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, var(--acc) 45%, var(--muted)); }
+.pc-cat h3 small { color: var(--muted); font-weight: 500; }
+.pc-grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.pc-app { height: 104px; border-radius: 16px; gap: 8px; padding: 8px; border: 1px solid rgba(255,255,255,.08); }
+.pc-app img, .pc-app .ini { width: 40px; height: 40px; border-radius: 10px; }
+.pc-app .ini { font-size: 18px; }
+.pc-app span { font-size: 13px; }
+.pc-menu { position: fixed; z-index: 50; width: 220px; background: #1F1B4D; border: 1px solid rgba(255,255,255,.15); border-radius: 14px; padding: 8px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 16px 40px rgba(0,0,0,.5); }
+.pc-menu b { font-size: 13px; color: var(--muted); padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-menu button { font: inherit; text-align: left; color: var(--fg); background: transparent; border: 0; border-radius: 10px; padding: 9px 10px; cursor: pointer; font-weight: 700; font-size: 14px; }
+.pc-menu button:hover { background: rgba(255,255,255,.08); }
+.pc-menu button[aria-pressed="true"] { color: var(--acc); }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
@@ -207,7 +251,7 @@ header { align-items: center; }
     <div class="status" role="status"><span class="dot" id="dot"></span><span id="st">Carregando…</span></div>
   </header>
 
-  <section class="card topo" aria-label="Modo e conexão">
+  <section class="card topo" id="topo" aria-label="Modo e conexão">
     <div class="row" style="justify-content:space-between;gap:16px">
       <div class="row" role="group" aria-label="Modo da TV" id="modos">
         <span class="lbl">Modo da TV</span>
@@ -227,7 +271,8 @@ header { align-items: center; }
       <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Tarefas</button>
       <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
       <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
-      <span class="mg">Ajustes da TV</span>
+      <button class="mg mg-bt" id="mg-tv" aria-expanded="false">Ajustes da TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="sub-tv" id="sub-tv" hidden>
       <button class="mi" data-sec="clip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Clipes</button>
       <button class="mi" data-sec="visual"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 10c0-4.4-4.5-8-10-8z"/></svg>Aparência</button>
       <button class="mi" data-sec="apps"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>Apps</button>
@@ -235,6 +280,7 @@ header { align-items: center; }
       <button class="mi" data-sec="mus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Música</button>
       <button class="mi" data-sec="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>Modo discreto</button>
       <button class="mi" data-sec="cel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>App do celular</button>
+      </div>
       <span class="mg">Este app</span>
       <button class="mi" data-sec="look"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Personalizar</button>
     </nav>
@@ -243,6 +289,7 @@ header { align-items: center; }
       <div class="hj-grid" id="hj-corpo"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-tar" hidden>
+      <div class="banner slim"><div class="banner-tx"><h2>Tarefas</h2><span id="tar-resumo"></span></div></div>
       <form id="tar-nova" class="nova">
         <input type="text" id="tar-txt" placeholder="Nova tarefa…" aria-label="Nova tarefa" autocomplete="off">
         <input type="text" id="tar-cli" list="cliLista" placeholder="Cliente (opcional)" aria-label="Cliente" autocomplete="off">
@@ -254,12 +301,12 @@ header { align-items: center; }
       <div class="tar-lista" id="tar-lista"></div>
     </div>
     <div class="col card meio" id="meio-cal" hidden>
-      <div class="row" style="justify-content:space-between"><h2 id="cal-tit" style="margin:0;font-size:28px"></h2>
-        <div class="row"><button class="btn" data-a="mes" data-v="-1" aria-label="Mês anterior">‹</button><button class="btn" data-a="mes" data-v="0">Hoje</button><button class="btn" data-a="mes" data-v="1" aria-label="Próximo mês">›</button></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2 id="cal-tit"></h2><span>Reuniões, eventos, aniversários e prazos</span></div>
+        <div class="row" style="position:relative"><button class="btn" data-a="mes" data-v="-1" aria-label="Mês anterior">‹</button><button class="btn" data-a="mes" data-v="0">Hoje</button><button class="btn" data-a="mes" data-v="1" aria-label="Próximo mês">›</button></div></div>
       <div class="cal-grade" id="cal-grade"></div>
     </div>
     <div class="col card" id="meio-pc" hidden>
-      <div class="row" style="justify-content:space-between"><h2 style="margin:0;font-size:26px">Meus programas</h2><span class="note" id="pc-st"></span></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Meus programas</h2><span id="pc-st"></span></div><span class="note" style="position:relative">Botão direito num programa: mudar categoria ou fixar</span></div>
       <div class="pc-grid" id="pc-apps"></div>
     </div>
     <div class="col card" id="meio-tv">
@@ -281,13 +328,18 @@ header { align-items: center; }
         <h3>Fundo do app</h3>
         <div class="temas" id="lk-temas"></div>
         <div class="row"><label class="btn" for="lk-fundo-in">Escolher imagem do PC…</label><input type="file" id="lk-fundo-in" accept="image/*" hidden><button class="btn" id="lk-fundo-x">Tirar imagem</button></div>
-        <h3>Imagem do topo (tela Hoje)</h3>
+        <h3>Imagem da barra do modo (topo)</h3>
+        <div class="row"><label class="btn" for="lk-topo-in">Escolher imagem…</label><input type="file" id="lk-topo-in" accept="image/*" hidden><button class="btn" id="lk-topo-x">Tirar</button></div>
+        <h3>Imagem dos banners (Hoje, Tarefas, Calendário, Programas)</h3>
         <div class="row"><label class="btn" for="lk-banner-in">Escolher imagem…</label><input type="file" id="lk-banner-in" accept="image/*" hidden><button class="btn" id="lk-banner-x">Tirar</button></div>
         <h3>Cor de destaque</h3>
         <div class="row" id="lk-cores"></div>
         <label class="f" for="lk-escuro">Escurecer o fundo: <span id="lk-escuro-v"></span><input type="range" id="lk-escuro" min="0" max="85" step="5"></label>
         <label class="f" for="lk-vidro">Painéis transparentes: <span id="lk-vidro-v"></span><input type="range" id="lk-vidro" min="0" max="80" step="5"></label>
         <div class="row"><button class="chip" id="lk-blur">Desfocar atrás dos painéis</button></div>
+        <h3>Ícone do app (área de trabalho)</h3>
+        <div class="row"><label class="btn" for="lk-icone-in">Usar uma imagem minha…</label><input type="file" id="lk-icone-in" accept="image/*" hidden><button class="btn" id="lk-icone-x">Ícone da Central</button></div>
+        <span class="note" id="lk-icone-st"></span>
         <p class="note" style="margin:0">Fica salvo só neste PC. As imagens não saem do computador.</p>
       </section>
       <section data-s="hoje" class="sec" style="display:flex;flex-direction:column;gap:10px">
@@ -719,7 +771,7 @@ header { align-items: center; }
   try { new ResizeObserver(escala).observe($('tv')); } catch (e) {}
 
   /* ---------- meus programas (ajudante no PC) ---------- */
-  var AJ = 'http://localhost:47802';
+  var AJ = 'http://localhost:47803';
   function ajK() { return window.AJUDANTE_CHAVE || ''; }
   function carregarChave(cb) {
     var sc = document.createElement('script'); sc.src = 'ajudante_chave.js?t=' + Date.now();
@@ -730,9 +782,7 @@ header { align-items: center; }
     carregarChave(function () {
       fetch(AJ + '/apps?k=' + ajK()).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
         $('pc-st').textContent = d.apps.length + ' programas';
-        $('pc-apps').innerHTML = d.apps.map(function (a) {
-          return '<button class="pc-app" data-abrir="' + esc(a.f) + '" title="' + esc(a.nome) + '"><img alt="" src="' + AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(a.f) + '" onerror="this.outerHTML=\'<b class=ini>' + esc(a.nome.charAt(0).toUpperCase()) + '</b>\'"><span>' + esc(a.nome) + '</span></button>';
-        }).join('') || '<p class="note">Nenhum atalho ainda na pasta Atalhos.</p>';
+        PC_APPS = d.apps; desenharApps();
         $('pc-pastas').innerHTML = d.pastas.map(function (a) { return '<button class="pc-pasta" data-abrir="' + esc(a.f) + '">' + esc(a.nome) + '<small>' + (a.pasta ? 'pasta' : a.ext.replace('.', '')) + '</small></button>'; }).join('');
       }).catch(function () {
         $('pc-st').textContent = 'Ligando o ajudante…';
@@ -741,10 +791,41 @@ header { align-items: center; }
       });
     });
   }
+  var PC_APPS = [], CATS_PC = ['Fixados', 'Jogos', 'Lojas e launchers', 'Stream e mídia', 'Ferramentas', 'Outros'];
+  var AUTO = [['Jogos', /valorant|league of legends|overwatch|heroes of the storm|2xko|street fighter|rematch|risk of rain|tabletop|witcher|trails|meccha|minion|sabu|quasar/i],
+    ['Lojas e launchers', /steam|riot|stove|thunderstore|vortex|musehub|wemod|wand|xbox|epic|battle\.net|ubisoft|ea app/i],
+    ['Stream e mídia', /obs|stream deck|elgato|audacity|spotify|vlc|discord|remote play/i],
+    ['Ferramentas', /chrome|edge|nvidia|windirstat|localsend|assinador|cheat engine|gcap|occt|7-zip|winrar/i]];
+  function catsPC() { try { return JSON.parse(localStorage.getItem('pc-cats') || '{}'); } catch (e) { return {}; } }
+  function catDe(a) { var m = catsPC(); if (m[a.f]) return m[a.f]; for (var i = 0; i < AUTO.length; i++) if (AUTO[i][1].test(a.nome)) return AUTO[i][0]; return 'Outros'; }
+  function desenharApps() {
+    if (!PC_APPS.length) { $('pc-apps').innerHTML = '<p class="note">Nenhum atalho ainda na pasta Atalhos.</p>'; return; }
+    $('pc-apps').innerHTML = CATS_PC.map(function (c) {
+      var L = PC_APPS.filter(function (a) { return catDe(a) === c; }); if (!L.length) return '';
+      return '<section class="pc-cat"><h3>' + c + ' <small>' + L.length + '</small></h3><div class="pc-grid2">' + L.map(function (a) {
+        return '<button class="pc-app" data-abrir="' + esc(a.f) + '" title="' + esc(a.nome) + '"><img alt="" src="' + AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(a.f) + '" onerror="this.outerHTML=\'<b class=ini>' + esc(a.nome.charAt(0).toUpperCase()) + '</b>\'"><span>' + esc(a.nome) + '</span></button>';
+      }).join('') + '</div></section>';
+    }).join('');
+  }
+  document.addEventListener('contextmenu', function (e) {
+    var b = e.target.closest('.pc-app'); var mn = $('pc-menu'); if (mn) mn.remove(); if (!b) return;
+    e.preventDefault(); var f = b.dataset.abrir, atual = catDe({ f: f, nome: b.title });
+    var m = document.createElement('div'); m.id = 'pc-menu'; m.className = 'pc-menu'; m.style.left = Math.min(e.clientX, innerWidth - 240) + 'px'; m.style.top = Math.min(e.clientY, innerHeight - 300) + 'px';
+    m.innerHTML = '<b>' + esc(b.title) + '</b>' + CATS_PC.map(function (c) { return '<button data-pccat="' + esc(c) + '" data-f="' + esc(f) + '" aria-pressed="' + (c === atual) + '">' + (c === 'Fixados' ? 'Fixar no topo' : c) + '</button>'; }).join('');
+    document.body.appendChild(m);
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pccat]'), mn = $('pc-menu');
+    if (b) { var m = catsPC(); m[b.dataset.f] = b.dataset.pccat; try { localStorage.setItem('pc-cats', JSON.stringify(m)); } catch (x) {} desenharApps(); }
+    if (mn && !e.target.closest('#pc-menu .x0')) mn.remove();
+    var g = e.target.closest('#mg-tv'); if (g) { var ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-tv').hidden = !ab; try { localStorage.setItem('menu-tv', ab ? '1' : ''); } catch (x) {} }
+  });
+  try { if (localStorage.getItem('menu-tv')) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; } } catch (e) {}
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
     SEC = sx;
+    if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
@@ -881,18 +962,21 @@ header { align-items: center; }
     $('tar-resp').innerHTML = catNova === 'trabalho' ? ['DBA', 'MSS', 'PAA'].map(function (r) { return '<button class="chip" data-a="respNova" data-v="' + r + '" aria-pressed="' + (respNova.indexOf(r) >= 0) + '">' + r + '</button>'; }).join('') : '';
     $('tar-cli').hidden = catNova !== 'trabalho';
     $('cliLista').innerHTML = ((S.cli && S.cli.clientes) || []).map(function (c) { return '<option value="' + esc(c) + '">'; }).join('');
+    var nAb = L.filter(function (t) { return !t.ok; }).length, nAt = L.filter(function (t) { return !t.ok && t.data && t.data < hj; }).length;
+    $('tar-resumo').textContent = nAb + ' abertas' + (nAt ? ' · ' + nAt + ' atrasada' + (nAt > 1 ? 's' : '') : '') + ' · ' + L.filter(function (t) { return t.ok; }).length + ' feitas';
     var abertas = L.filter(function (t) { return !t.ok && (filtro === 'todas' || (t.cat || 'pessoal') === filtro) && (!soDBA || (t.resp || []).indexOf('DBA') >= 0); });
     var grupos = CATS.filter(function (c) { return filtro === 'todas' || filtro === c[0]; });
-    el.innerHTML = grupos.map(function (c) {
+    var corpo = grupos.map(function (c) {
       var g = abertas.filter(function (t) { return (t.cat || 'pessoal') === c[0]; }).sort(function (a, b) { return (a.data || '9') < (b.data || '9') ? -1 : 1; });
-      return '<section class="grupo"><h3 style="color:' + c[2] + '">' + c[1] + ' <small>' + g.length + '</small></h3>' + (g.length ? g.map(function (t) {
+      return '<tbody><tr class="gh" style="--c:' + c[2] + '"><td colspan="6"><span class="gtag">' + c[1] + '</span><span class="gn">' + g.length + (g.length === 1 ? ' tarefa' : ' tarefas') + '</span></td></tr>' + (g.length ? g.map(function (t) {
         var at = t.data && t.data < hj;
-        return '<div class="tr"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button><div class="tc"><span class="t">' + esc(t.t) + '</span><div class="meta">' +
-          (t.cli ? '<span class="cli">' + esc(t.cli) + '</span>' : '') + ((t.resp || []).length ? '<span class="resp">' + t.resp.map(esc).join(' · ') + '</span>' : '') +
-          '<input type="date" class="dt-in' + (at ? ' atraso' : '') + '" data-a="data" data-id="' + t.id + '" value="' + (t.data || '') + '" aria-label="Prazo">' +
-          '<button class="x" data-a="tarApaga" data-id="' + t.id + '" aria-label="Excluir">×</button></div></div></div>';
-      }).join('') : '<p class="note">Nenhuma.</p>') + '</section>';
+        return '<tr class="lin"><td class="c-chk"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button></td><td class="c-t">' + esc(t.t) + '</td>' +
+          '<td class="c-cli">' + (t.cli ? esc(t.cli) : '<span class="vz">—</span>') + '</td><td class="c-resp">' + ((t.resp || []).length ? t.resp.map(function (r) { return '<span class="rb' + (r === 'DBA' ? ' eu' : '') + '">' + esc(r) + '</span>'; }).join('') : '<span class="vz">—</span>') + '</td>' +
+          '<td class="c-dt"><input type="date" class="dt-in' + (at ? ' atraso' : '') + '" data-a="data" data-id="' + t.id + '" value="' + (t.data || '') + '" aria-label="Prazo"></td>' +
+          '<td class="c-x"><button class="x" data-a="tarApaga" data-id="' + t.id + '" aria-label="Excluir">×</button></td></tr>';
+      }).join('') : '<tr class="lin vazia"><td></td><td colspan="5" class="vz">Nenhuma tarefa aqui.</td></tr>') + '</tbody>';
     }).join('');
+    el.innerHTML = '<table class="tab"><thead><tr><th class="c-chk"></th><th>Tarefa</th><th>Cliente</th><th>Resp.</th><th>Prazo</th><th class="c-x"></th></tr></thead>' + corpo + '</table>';
     $('tar-filtros').innerHTML = [['todas', 'Todas']].concat(CATS).map(function (c) { return '<button class="chip" data-a="filtro" data-v="' + c[0] + '" aria-pressed="' + (filtro === c[0]) + '">' + c[1] + '</button>'; }).join('') +
       '<button class="chip" data-a="soDBA" aria-pressed="' + soDBA + '">Só as minhas (DBA)</button>';
     var feitas = L.filter(function (t) { return t.ok; }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
@@ -1004,6 +1088,7 @@ header { align-items: center; }
       r.setProperty('--fundo-app', u ? 'url("' + u + '")' : (TEMAS[P.tema] || TEMAS.noite)[1] || TEMAS.noite[1]);
     });
     imgGet('banner').then(function (b) { var u = b ? urlDe('banner', b) : null; if (u) r.setProperty('--banner', 'url("' + u + '")'); else r.removeProperty('--banner'); });
+    imgGet('topo').then(function (b) { var u = b ? urlDe('topo', b) : null; if (u) { r.setProperty('--topo', 'url("' + u + '")'); r.setProperty('--topo-on', 1); } else { r.removeProperty('--topo'); r.setProperty('--topo-on', 0); } });
     desenhar();
   }
   function desenhar() {
@@ -1027,6 +1112,8 @@ header { align-items: center; }
     else if (b.id === 'lk-blur') { P.blur = !P.blur; salvar(); aplicar(); }
     else if (b.id === 'lk-fundo-x') { imgPut('fundo', null).then(function () { if (P.tema === 'imagem') P.tema = 'noite'; salvar(); aplicar(); }); }
     else if (b.id === 'lk-banner-x') { imgPut('banner', null).then(aplicar); }
+    else if (b.id === 'lk-topo-x') { imgPut('topo', null).then(aplicar); }
+    else if (b.id === 'lk-icone-x') { iconeApp(null); }
   });
   document.addEventListener('input', function (e) {
     var t = e.target;
@@ -1037,7 +1124,26 @@ header { align-items: center; }
   document.addEventListener('change', function (e) {
     if (e.target.id === 'lk-fundo-in') lerArquivo(e.target, 'fundo');
     if (e.target.id === 'lk-banner-in') lerArquivo(e.target, 'banner');
+    if (e.target.id === 'lk-topo-in') lerArquivo(e.target, 'topo');
+    if (e.target.id === 'lk-icone-in') { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) iconeApp(f); }
   });
+  /* ícone do atalho da área de trabalho (o ajudante troca) */
+  function iconeApp(file) {
+    var AJ = 'http://localhost:47803', st = $('lk-icone-st');
+    function enviar(buf) {
+      var k = window.AJUDANTE_CHAVE || '';
+      return fetch(AJ + '/icone-app?k=' + k + (buf ? '' : '&padrao=1'), { method: 'POST', body: buf || new ArrayBuffer(0) }).then(function (r) { if (!r.ok) throw new Error(r.status); st.textContent = 'Ícone trocado. Pode levar alguns segundos para aparecer na área de trabalho.'; try { localStorage.setItem('icone-feito', '1'); } catch (e) {} })
+        .catch(function () { st.textContent = 'Não consegui trocar. O ajudante está ligado?'; });
+    }
+    if (!file) return enviar(null);
+    var im = new Image(); im.onload = function () {
+      var c = document.createElement('canvas'); c.width = c.height = 256; var g = c.getContext('2d'), s = Math.min(im.width, im.height);
+      g.beginPath(); if (g.roundRect) g.roundRect(0, 0, 256, 256, 52); else g.rect(0, 0, 256, 256); g.clip();
+      g.drawImage(im, (im.width - s) / 2, (im.height - s) / 2, s, s, 0, 0, 256, 256);
+      c.toBlob(function (b) { b.arrayBuffer().then(enviar); }, 'image/png');
+    }; im.src = URL.createObjectURL(file);
+  }
+  setTimeout(function () { try { if (!localStorage.getItem('icone-feito') && window.AJUDANTE_CHAVE) iconeApp(null); } catch (e) {} }, 6000);
   /* relógio do topo */
   var DS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'], MS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   function relogio() { var d = new Date(); $('relogio').textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); $('hdata').textContent = DS[d.getDay()] + ', ' + d.getDate() + ' ' + MS[d.getMonth()]; }

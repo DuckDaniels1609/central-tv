@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $aqui0 = Split-Path -Parent $MyInvocation.MyCommand.Path
 try { Start-Transcript -Path (Join-Path $aqui0 'ajudante_log.txt') -Force | Out-Null } catch {}
 trap { "ERRO: $($_.Exception.Message) (linha $($_.InvocationInfo.ScriptLineNumber))" | Out-File -FilePath (Join-Path $aqui0 'ajudante_erro.txt') -Encoding UTF8; break }
-$porta = 47802
+$porta = 47803
 $aqui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $mesa = [Environment]::GetFolderPath('Desktop')
 $base = Join-Path $mesa ([string][char]0x00C1 + 'rea de trabalho antiga')
@@ -57,6 +57,24 @@ function IconeDe($item) {
   } catch { return $null }
 }
 
+function TrocarIcone([byte[]]$png) {
+  # PNG dentro de um .ico (Windows Vista em diante aceita); nome novo a cada troca para o Windows não usar o ícone antigo guardado
+  Get-ChildItem -LiteralPath $aqui -Filter 'icone_*.ico' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+  if ($png) {
+    $ico = Join-Path $aqui ('icone_' + (Get-Date -f yyyyMMddHHmmss) + '.ico')
+    $fs = [IO.File]::Create($ico); $bw = New-Object IO.BinaryWriter($fs)
+    $bw.Write([uint16]0); $bw.Write([uint16]1); $bw.Write([uint16]1)
+    $bw.Write([byte]0); $bw.Write([byte]0); $bw.Write([byte]0); $bw.Write([byte]0); $bw.Write([uint16]1); $bw.Write([uint16]32)
+    $bw.Write([uint32]$png.Length); $bw.Write([uint32]22); $bw.Write($png); $bw.Close()
+  } else { $ico = Join-Path $aqui 'central.ico' }
+  $w = New-Object -ComObject WScript.Shell
+  foreach ($d in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Startup'))) {
+    $l = Join-Path $d 'Central no PC.lnk'
+    if (Test-Path -LiteralPath $l) { $sc = $w.CreateShortcut($l); $sc.IconLocation = $ico + ',0'; $sc.Save() }
+  }
+  try { & ie4uinit.exe -show } catch {}
+}
+
 while ($http.IsListening) {
   $ctx = $http.GetContext()
   try {
@@ -68,8 +86,16 @@ while ($http.IsListening) {
       '/icone' { $it = Achar $q['f']; $png = if ($it) { IconeDe $it } else { $null }; if ($png) { Responder $ctx 200 'image/png' $png } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
       '/abrir' { $it = Achar $q['f']; if ($it) { (New-Object -ComObject Shell.Application).ShellExecute($it.FullName); Json $ctx @{ ok = $true } } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
       '/sair'  { Json $ctx @{ ok = $true }; $http.Stop(); break }
+      '/reiniciar' { Json $ctx @{ ok = $true }; $http.Stop(); Start-Process powershell -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $PSCommandPath + '"'); break }
+      '/icone-app' {
+        if ($q['padrao'] -eq '1') { TrocarIcone $null } else {
+          $ms = New-Object IO.MemoryStream; $ctx.Request.InputStream.CopyTo($ms); $b = $ms.ToArray()
+          if ($b.Length -lt 100 -or $b[0] -ne 0x89) { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('png')); continue }
+          TrocarIcone $b
+        }
+        Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 1 } }
+      default  { Json $ctx @{ ok = $true; versao = 2 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
