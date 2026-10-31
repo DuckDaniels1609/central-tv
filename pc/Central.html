@@ -1,0 +1,560 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Central no PC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: prévia da TV grande à esquerda, painel de ajustes à direita; empilha no celular */
+:root {
+  --bg: #100E2B; --panel: #1B1842; --panel2: #24205A; --line: rgba(255,255,255,.12);
+  --fg: #F3F1FF; --muted: #B7B2DA; --acc: #FF7FA8; --ok: #9CF2A8;
+  --round: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--round); font-size: 15px; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-size: 30px; font-weight: 800; text-wrap: balance; }
+h1 small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+.status { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--ok); }
+.grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab, .chip, .btn { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid transparent; border-radius: 999px; padding: 8px 14px; cursor: pointer; font-weight: 700; font-size: 14px; }
+.tab[aria-pressed="true"], .chip[aria-pressed="true"] { background: var(--acc); color: #1C1838; }
+.tab:focus-visible, .chip:focus-visible, .btn:focus-visible, input:focus-visible, .sw:focus-visible { outline: 3px solid #FFF; outline-offset: 2px; }
+.btn.prim { background: var(--acc); color: #1C1838; }
+.tv { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 14px; overflow: hidden; background: #000; border: 6px solid #0A0920; box-shadow: 0 10px 0 rgba(0,0,0,.35); }
+.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; color: #FFF; font-family: var(--round); }
+.stage .cena, .stage .bgimg { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+.stage .bgimg { background-size: cover; background-position: center; }
+.stage .dim { position: absolute; inset: 0; background: #000; }
+.ui { position: absolute; inset: 0; padding: 64px 96px 44px; display: flex; flex-direction: column; gap: 34px; }
+.ui .pill { align-self: flex-start; font-size: 24px; font-weight: 700; padding: 6px 18px; border-radius: 999px; background: var(--acc); color: #1C1838; }
+.ui h2 { margin: 0; font-size: 76px; font-weight: 800; text-shadow: 0 4px 0 rgba(10,8,30,.75); }
+.ui .sub { font-size: 27px; text-shadow: 0 2px 0 rgba(10,8,30,.7); }
+.ui .top { display: flex; justify-content: space-between; align-items: flex-start; }
+.ui .clock { font-size: 108px; font-weight: 800; line-height: 1; text-shadow: 0 5px 0 #2A2148; }
+.ui .apps { margin-top: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 22px; }
+.ui .app { height: 196px; border-radius: 26px; border: 3px solid rgba(255,255,255,.22); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font-size: 25px; font-weight: 700; box-shadow: 0 8px 0 rgba(28,24,56,.55); }
+.ui .app.f { outline: 6px solid var(--acc); outline-offset: 5px; }
+.ui .app svg { width: 60px; height: 60px; }
+.ui .cards { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 22px; }
+.ui .c { border-radius: 26px; background: rgba(18,18,50,.84); border: 3px solid rgba(255,255,255,.15); padding: 28px 36px; font-size: 32px; font-weight: 700; display: flex; gap: 20px; align-items: center; }
+.ui .c span { font-size: 22px; color: #1C1838; background: var(--acc); padding: 6px 14px; border-radius: 12px; }
+.ui .big { margin: auto 0; display: flex; flex-direction: column; gap: 22px; }
+.ui .ph { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.ui .ph div { height: 240px; border-radius: 26px; background: rgba(16,20,58,.88); border: 3px solid rgba(255,255,255,.15); }
+.sec h3 { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sw { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(255,255,255,.2); cursor: pointer; padding: 0; }
+.sw[aria-pressed="true"] { border-color: #FFF; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+label.f { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); }
+input[type=text] { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; width: 100%; }
+input[type=range] { width: 100%; accent-color: var(--acc); }
+input[type=color] { width: 36px; height: 36px; border: 0; background: none; padding: 0; cursor: pointer; }
+.apps-l { display: flex; flex-direction: column; gap: 6px; }
+.ap { display: flex; align-items: center; gap: 10px; background: var(--panel2); border-radius: 12px; padding: 8px 10px; }
+.ap .ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex: none; }
+.ap .ic svg { width: 20px; height: 20px; }
+.ap .nm { flex: 1; font-weight: 700; min-width: 0; }
+.ap.off .nm { color: var(--muted); text-decoration: line-through; }
+.mini { font: inherit; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 16px; }
+.mini:disabled { opacity: .3; cursor: default; }
+.thumb { width: 100%; aspect-ratio: 16/9; border-radius: 10px; background: var(--panel2) center/cover; border: 1px solid var(--line); }
+.note { font-size: 14px; color: var(--muted); line-height: 1.5; }
+.send { background: linear-gradient(0deg, var(--panel), var(--panel)); border: 2px dashed var(--acc); }
+.send b { color: var(--acc); }
+.disc { border: 2px solid #8FE3FF; }
+.disc h3 { color: #8FE3FF; }
+.mus-l { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow: auto; }
+.mus { display: flex; align-items: center; gap: 10px; background: var(--panel2); border-radius: 10px; padding: 8px 10px; cursor: pointer; font-size: 14px; }
+.mus input { width: 18px; height: 18px; accent-color: #8FE3FF; flex: none; }
+.ok-pill { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(156,242,168,.15); color: var(--ok); }
+.ok-pill.off { background: rgba(255,127,168,.15); color: var(--acc); }
+input[type=password] { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; width: 100%; }
+.cel { border: 2px solid #9CF2A8; }
+.cel h3 { color: #9CF2A8; }
+.cel-prev { width: 150px; height: 230px; border-radius: 22px; border: 4px solid #0A0920; padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; flex: none; }
+.cel-prev .pp { align-self: flex-start; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 99px; color: #1C1838; }
+.cel-prev .tt { font-size: 15px; font-weight: 800; }
+.cel-prev .cc { background: rgba(18,20,52,.72); border: 1px solid rgba(255,255,255,.1); border-radius: 9px; height: 26px; }
+.cel-prev .nb { margin-top: auto; display: flex; justify-content: space-around; font-size: 8px; color: #B9B6DA; }
+.cel-prev .nb b { color: var(--celacc); }
+.tema-sw { width: 34px; height: 34px; border-radius: 10px; border: 3px solid rgba(255,255,255,.2); cursor: pointer; padding: 0; }
+.tema-sw[aria-pressed="true"] { border-color: #FFF; }
+select.sel { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .stage * { animation: none !important; } }
+.semanim * { animation: none !important; }
+.cloud1 { animation: drift 60s ease-in-out infinite alternate; }
+.cloud2 { animation: drift 45s ease-in-out infinite alternate-reverse; }
+@keyframes drift { from { transform: translateX(-40px); } to { transform: translateX(40px); } }
+.topo { gap: 10px; }
+.lbl { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-right: 6px; }
+.modo { font: inherit; font-weight: 800; font-size: 16px; color: var(--fg); background: var(--panel2); border: 2px solid transparent; border-radius: 14px; padding: 12px 22px; cursor: pointer; min-height: 48px; }
+.modo[aria-pressed="true"] { background: var(--acc); color: #1C1838; }
+.modo:focus-visible { outline: 3px solid #FFF; outline-offset: 2px; }
+.modo:disabled { opacity: .5; cursor: default; }
+.clip { border: 2px solid #FFD36E; }
+.clip h3 { color: #FFD36E; }
+.hd { display: flex; align-items: center; gap: 6px; background: var(--panel2); border-radius: 10px; padding: 4px 8px; font-size: 13px; font-weight: 700; }
+.hd input { font: inherit; color: var(--fg); background: transparent; border: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Central no PC <small>TV do quarto · カスタマイズ</small></h1>
+    <div class="status" role="status"><span class="dot" id="dot"></span><span id="st">Carregando…</span></div>
+  </header>
+
+  <section class="card topo" aria-label="Modo e conexão">
+    <div class="row" style="justify-content:space-between;gap:16px">
+      <div class="row" role="group" aria-label="Modo da TV" id="modos">
+        <span class="lbl">Modo da TV</span>
+        <button class="modo" data-modo="normal">Normal</button>
+        <button class="modo" data-modo="discreto">Discreto</button>
+        <button class="modo" data-modo="ferias">Férias</button>
+      </div>
+      <span class="note" id="modo-st"></span>
+    </div>
+    <div id="con"></div>
+  </section>
+
+  <div class="grid">
+    <div class="col card">
+      <div class="tabs" role="group" aria-label="Tela da TV">
+        <button class="tab" data-pg="projetos">Projetos</button>
+        <button class="tab" data-pg="inicio" aria-pressed="true">Início</button>
+        <button class="tab" data-pg="treino">Evo Brazil</button>
+        <button class="tab" data-pg="exercicios">Exercícios</button>
+        <button class="tab" data-pg="agenda">Agenda</button>
+        <button class="tab" data-pg="despertar">Despertar</button>
+        <button class="tab" data-pg="discreto">Início no modo discreto</button>
+      </div>
+      <div class="tv" id="tv"><div class="stage" id="stage"></div></div>
+      <p class="note" style="margin:0">Cada mudança vai sozinha para a TV: ela aplica em até 5 minutos, ou na hora quando a Central volta para a tela. Imagens de fundo são as que já estão na TV (pasta <b>CentralTV\fundos</b>).</p>
+    </div>
+
+    <div class="card" id="painel">
+      <section class="sec card clip" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+        <h3>Clipes do Início · オープニング</h3>
+        <label class="f" for="clip-url">Link da playlist do YouTube (não listada)<input type="text" id="clip-url" placeholder="https://youtube.com/playlist?list=..."></label>
+        <label class="f" for="clip-vol">Volume do clipe: <span id="clip-vol-v"></span><input type="range" id="clip-vol" min="10" max="100" step="5"></label>
+        <p class="note" style="margin:0">Com clipes ligados, o som vem do clipe e as músicas de fundo param (o despertador continua). Deixe o link vazio para desligar os clipes.</p>
+      </section>
+      <section class="sec card disc" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+        <h3>Modo discreto · 控えめ</h3>
+        <p class="note" style="margin:0">No discreto a TV mostra só o Início, sem despertador, sem tarefas e sem openings. Escolha aqui o fundo e as músicas.</p>
+        <div class="f" style="font-size:14px;color:var(--muted)">Fundo do Início</div>
+        <div class="row" id="disc-fundo"></div>
+        <div class="f" style="font-size:14px;color:var(--muted)">Músicas <span id="disc-mus-n"></span></div>
+        <div class="mus-l" id="disc-mus"></div>
+        <p class="note" style="margin:0">Nenhuma marcada: toca a pasta <b>musicas\discreto</b> do PC (ou todas, se ela não existir).</p>
+        <div id="disc-con"></div>
+      </section>
+      <section class="sec card cel" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+        <h3>App do celular · スマホ</h3>
+        <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+          <div class="cel-prev" id="cel-prev"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-width:180px">
+            <div class="f" style="font-size:14px;color:var(--muted)">Cor de destaque</div>
+            <div class="row" id="cel-cores"></div>
+            <div class="f" style="font-size:14px;color:var(--muted)">Fundo</div>
+            <div class="row" id="cel-temas"></div>
+          </div>
+        </div>
+        <div class="f" style="font-size:14px;color:var(--muted)">Cartões no Início</div>
+        <div class="row" id="cel-inicio"></div>
+        <div class="f" style="font-size:14px;color:var(--muted)">Abas na barra de baixo (além do Início e do Mais)</div>
+        <div class="row"><select class="sel" id="cel-aba1" aria-label="Primeira aba"></select><select class="sel" id="cel-aba2" aria-label="Segunda aba"></select></div>
+        <p class="note" style="margin:0">O app do celular muda sozinho na próxima vez que você abrir.</p>
+      </section>
+
+      <section class="sec col" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Saudação</h3>
+        <label class="f" for="nome">Nome que aparece no Início<input type="text" id="nome" maxlength="24"></label>
+      </section>
+
+      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Cor de destaque</h3>
+        <div class="row" id="cores"></div>
+      </section>
+
+      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+        <h3 id="fundo-tit">Fundo da tela Início</h3>
+        <div class="row" id="cenas"></div>
+        <div class="row">
+          <span class="note" id="up-st"></span>
+        </div>
+        <label class="f" for="escuro">Escurecer o fundo: <span id="escuro-v">0%</span><input type="range" id="escuro" min="0" max="70" step="5" value="0"></label>
+      </section>
+
+      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Apps na tela inicial</h3>
+        <div class="apps-l" id="apps"></div>
+      </section>
+
+      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Música de fundo</h3>
+        <div class="row">
+          <button class="chip" id="mus-on">Ligada</button>
+          <button class="chip" id="mus-off">Desligada</button>
+        </div>
+        <label class="f" for="vol">Volume: <span id="vol-v">40%</span><input type="range" id="vol" min="10" max="100" step="10" value="40"></label>
+        <div class="row">
+          <button class="chip" id="ord-seq">Em ordem</button>
+          <button class="chip" id="ord-ale">Aleatória</button>
+        </div>
+        <p class="note" style="margin:0">Vale quando os clipes estão desligados (ou à noite). Os MP3 ficam na pasta <b>CentralTV\musicas</b>.</p>
+      </section>
+
+      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Despertador</h3>
+        <div class="row">
+          <button class="chip" id="desp-on">Ligado</button>
+          <button class="chip" id="desp-off">Desligado</button>
+          <label class="f" for="desp-hora" style="flex-direction:row;align-items:center;gap:8px">Horário <input type="time" id="desp-hora" style="font:inherit;color:var(--fg);background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:6px 8px"></label>
+        </div>
+        <div class="row" id="desp-dias" role="group" aria-label="Dias"></div>
+        <div class="row" id="desp-horas"></div>
+        <div class="row">
+          <button class="chip" id="fer-on">Pular feriados</button>
+          <button class="chip" id="fer-off">Tocar nos feriados</button>
+        </div>
+        <label class="f" for="desp-mus">Música<select id="desp-mus" style="font:inherit;color:var(--fg);background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:10px 12px"></select></label>
+        <label class="f" for="desp-vi">Volume da TV no começo: <span id="desp-vi-v"></span><input type="range" id="desp-vi" min="0" max="50" step="1"></label>
+        <label class="f" for="desp-vf">Volume final: <span id="desp-vf-v"></span><input type="range" id="desp-vf" min="1" max="60" step="1"></label>
+        <label class="f" for="desp-min">Subir o volume em: <span id="desp-min-v"></span><input type="range" id="desp-min" min="1" max="30" step="1"></label>
+        <p class="note" style="margin:0">Horário diferente num dia? Mude só aquele dia acima. A TV acerta a rotina do SmartThings sozinha.</p>
+      </section>
+
+      <section class="sec" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Animações</h3>
+        <div class="row">
+          <button class="chip" id="anim-on">Ligadas</button>
+          <button class="chip" id="anim-off">Desligadas</button>
+        </div>
+      </section>
+
+      <div class="row"><button class="btn" id="reset">Voltar ao padrão</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var CENAS = {"noite": "<svg class=\"cena\" viewBox=\"0 0 1920 1080\" preserveAspectRatio=\"xMidYMid slice\" aria-hidden=\"true\"> <defs> <linearGradient id=\"ednoitepSky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#0B0F33\"/><stop offset=\"0.6\" stop-color=\"#1F2A6E\"/><stop offset=\"1\" stop-color=\"#4B3F8F\"/></linearGradient> <radialGradient id=\"ednoitepMoon\"><stop offset=\"0\" stop-color=\"#FFFBEA\"/><stop offset=\"0.35\" stop-color=\"#FFF1C2\" stop-opacity=\"0.5\"/><stop offset=\"1\" stop-color=\"#FFF1C2\" stop-opacity=\"0\"/></radialGradient> </defs> <rect width=\"1920\" height=\"1080\" fill=\"url(#ednoitepSky)\"/> <g fill=\"#FFF\" class=\"stars\"><circle cx=\"90\" cy=\"90\" r=\"2\"/><circle cx=\"300\" cy=\"200\" r=\"1.6\"/><circle cx=\"520\" cy=\"80\" r=\"2.2\"/><circle cx=\"700\" cy=\"260\" r=\"1.4\"/><circle cx=\"900\" cy=\"140\" r=\"2\"/><circle cx=\"1150\" cy=\"60\" r=\"1.6\"/><circle cx=\"1250\" cy=\"300\" r=\"1.5\"/><circle cx=\"1800\" cy=\"320\" r=\"2\"/><circle cx=\"1880\" cy=\"80\" r=\"1.6\"/><circle cx=\"420\" cy=\"380\" r=\"1.3\"/><circle cx=\"1000\" cy=\"420\" r=\"1.4\"/></g> <circle cx=\"1600\" cy=\"180\" r=\"260\" fill=\"url(#ednoitepMoon)\"/> <circle cx=\"1600\" cy=\"180\" r=\"80\" fill=\"#FFF8DE\"/> <circle cx=\"1630\" cy=\"160\" r=\"72\" fill=\"#1A2361\" opacity=\"0.18\"/> <path d=\"M0 1080 V960 H90 V900 H180 V980 H260 V920 H360 V870 H440 V950 H560 V900 H660 V980 H760 V930 H860 V880 H960 V960 H1080 V910 H1180 V870 H1260 V950 H1380 V900 H1480 V970 H1580 V910 H1700 V950 H1800 V900 H1920 V1080 Z\" fill=\"#080A22\"/> <g fill=\"#FFD36E\" opacity=\"0.8\"><rect x=\"200\" y=\"935\" width=\"10\" height=\"12\"/><rect x=\"380\" y=\"890\" width=\"10\" height=\"12\"/><rect x=\"410\" y=\"910\" width=\"10\" height=\"12\"/><rect x=\"890\" y=\"900\" width=\"10\" height=\"12\"/><rect x=\"1200\" y=\"890\" width=\"10\" height=\"12\"/><rect x=\"1500\" y=\"935\" width=\"10\" height=\"12\"/><rect x=\"1730\" y=\"920\" width=\"10\" height=\"12\"/></g> </svg>", "entardecer": "<svg class=\"cena\" viewBox=\"0 0 1920 1080\" preserveAspectRatio=\"xMidYMid slice\" aria-hidden=\"true\"> <defs> <linearGradient id=\"edentardecermSky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#23266B\"/><stop offset=\"0.42\" stop-color=\"#6E4AA6\"/><stop offset=\"0.72\" stop-color=\"#EE86A2\"/><stop offset=\"1\" stop-color=\"#FFC58C\"/></linearGradient> <radialGradient id=\"edentardecermSun\"><stop offset=\"0\" stop-color=\"#FFF6DA\"/><stop offset=\"0.28\" stop-color=\"#FFDDA6\" stop-opacity=\"0.85\"/><stop offset=\"1\" stop-color=\"#FFB08A\" stop-opacity=\"0\"/></radialGradient> </defs> <rect width=\"1920\" height=\"1080\" fill=\"url(#edentardecermSky)\"/> <g fill=\"#FFF\" class=\"stars\"><circle cx=\"140\" cy=\"70\" r=\"2\"/><circle cx=\"420\" cy=\"140\" r=\"1.5\"/><circle cx=\"760\" cy=\"60\" r=\"2\"/><circle cx=\"1080\" cy=\"120\" r=\"1.5\"/><circle cx=\"1360\" cy=\"50\" r=\"2.2\"/><circle cx=\"1720\" cy=\"110\" r=\"1.6\"/><circle cx=\"600\" cy=\"210\" r=\"1.4\"/><circle cx=\"1600\" cy=\"230\" r=\"1.3\"/></g> <path class=\"shoot\" d=\"M1180 90 L1420 170\" stroke=\"#FFF\" stroke-width=\"2.5\" stroke-linecap=\"round\"/> <circle cx=\"1480\" cy=\"860\" r=\"380\" fill=\"url(#edentardecermSun)\"/> <g class=\"cloud1\"><g fill=\"#FFE6EE\" opacity=\"0.92\"><circle cx=\"300\" cy=\"640\" r=\"90\"/><circle cx=\"400\" cy=\"600\" r=\"120\"/><circle cx=\"530\" cy=\"640\" r=\"95\"/><circle cx=\"210\" cy=\"690\" r=\"70\"/><rect x=\"160\" y=\"650\" width=\"460\" height=\"110\" rx=\"55\"/></g><rect x=\"170\" y=\"715\" width=\"440\" height=\"45\" rx=\"22\" fill=\"#E89AB8\" opacity=\"0.7\"/></g> <g class=\"cloud2\" fill=\"#FFE6EE\" opacity=\"0.85\"><circle cx=\"1600\" cy=\"430\" r=\"70\"/><circle cx=\"1690\" cy=\"400\" r=\"95\"/><circle cx=\"1790\" cy=\"440\" r=\"75\"/><rect x=\"1540\" y=\"440\" width=\"320\" height=\"80\" rx=\"40\"/></g> <g fill=\"none\" stroke=\"#2A2148\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M1215 720 Q1225 712 1235 720 Q1245 712 1255 720\"/><path d=\"M1275 690 Q1283 683 1291 690 Q1299 683 1307 690\"/></g> <path d=\"M0 1080 V930 H70 V880 H150 V960 H210 V900 H300 V850 H340 V820 H380 V850 H420 V940 H520 V890 H600 V960 H700 V910 H760 V870 H850 V950 H960 V900 H1030 V860 H1100 V940 H1200 V905 H1290 V960 H1380 V880 H1440 V840 H1500 V880 H1560 V950 H1660 V900 H1760 V940 H1840 V890 H1920 V1080 Z\" fill=\"#1C1838\"/> <g stroke=\"#1C1838\" stroke-width=\"10\" stroke-linecap=\"round\"><path d=\"M1700 1080 V560\"/><path d=\"M1650 600 H1750 M1660 640 H1740\"/></g> <g fill=\"none\" stroke=\"#1C1838\" stroke-width=\"2.5\"><path d=\"M0 520 Q850 700 1650 600\"/><path d=\"M0 560 Q860 740 1660 640\"/><path d=\"M1750 600 Q1840 640 1920 630\"/></g> <rect width=\"1920\" height=\"1080\" fill=\"#120E2A\" opacity=\"0.18\"/> </svg>", "dia": "<svg class=\"cena\" viewBox=\"0 0 1920 1080\" preserveAspectRatio=\"xMidYMid slice\" aria-hidden=\"true\"> <defs> <linearGradient id=\"eddiatSky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2F6FD0\"/><stop offset=\"0.6\" stop-color=\"#6BB4F2\"/><stop offset=\"1\" stop-color=\"#BFE6FF\"/></linearGradient> <radialGradient id=\"eddiatSun\"><stop offset=\"0\" stop-color=\"#FFF\"/><stop offset=\"0.3\" stop-color=\"#FFFBE0\" stop-opacity=\"0.7\"/><stop offset=\"1\" stop-color=\"#FFFBE0\" stop-opacity=\"0\"/></radialGradient> </defs> <rect width=\"1920\" height=\"1080\" fill=\"url(#eddiatSky)\"/> <circle cx=\"1720\" cy=\"120\" r=\"300\" fill=\"url(#eddiatSun)\"/> <g class=\"cloud1\"><g fill=\"#FFF\"><circle cx=\"980\" cy=\"760\" r=\"150\"/><circle cx=\"1160\" cy=\"680\" r=\"200\"/><circle cx=\"1380\" cy=\"740\" r=\"170\"/><circle cx=\"1560\" cy=\"800\" r=\"130\"/><rect x=\"840\" y=\"760\" width=\"860\" height=\"200\" rx=\"100\"/></g><g fill=\"#CFE6FA\"><rect x=\"860\" y=\"880\" width=\"820\" height=\"80\" rx=\"40\"/></g></g> <g class=\"cloud2\" fill=\"#FFF\" opacity=\"0.85\"><circle cx=\"160\" cy=\"300\" r=\"60\"/><circle cx=\"240\" cy=\"270\" r=\"80\"/><circle cx=\"330\" cy=\"300\" r=\"60\"/><rect x=\"110\" y=\"300\" width=\"270\" height=\"60\" rx=\"30\"/></g> <path d=\"M0 1080 V990 Q240 950 480 985 Q760 1020 1040 975 Q1360 930 1640 980 Q1800 1005 1920 985 V1080 Z\" fill=\"#2E7A5A\"/> <path d=\"M0 1080 V1030 Q300 1005 640 1030 Q980 1055 1320 1025 Q1640 1000 1920 1030 V1080 Z\" fill=\"#225E46\"/> <g fill=\"#FFB7CC\" class=\"petals\"><ellipse cx=\"300\" cy=\"520\" rx=\"10\" ry=\"6\" transform=\"rotate(30 300 520)\"/><ellipse cx=\"760\" cy=\"180\" rx=\"9\" ry=\"5\" transform=\"rotate(-20 760 180)\"/><ellipse cx=\"1500\" cy=\"420\" rx=\"10\" ry=\"6\" transform=\"rotate(45 1500 420)\"/><ellipse cx=\"1820\" cy=\"640\" rx=\"9\" ry=\"5\" transform=\"rotate(10 1820 640)\"/><ellipse cx=\"620\" cy=\"860\" rx=\"10\" ry=\"6\" transform=\"rotate(-35 620 860)\"/><ellipse cx=\"1260\" cy=\"240\" rx=\"8\" ry=\"5\" transform=\"rotate(60 1260 240)\"/></g> </svg>", "praia": "<svg class=\"cena\" viewBox=\"0 0 1920 1080\" preserveAspectRatio=\"xMidYMid slice\" aria-hidden=\"true\"> <defs> <linearGradient id=\"edpraiaeSky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#3C7BD9\"/><stop offset=\"0.5\" stop-color=\"#8CC6F0\"/><stop offset=\"0.8\" stop-color=\"#FFD9A8\"/><stop offset=\"1\" stop-color=\"#FFE9C4\"/></linearGradient> <radialGradient id=\"edpraiaeSun\"><stop offset=\"0\" stop-color=\"#FFF\"/><stop offset=\"0.25\" stop-color=\"#FFF3C8\" stop-opacity=\"0.8\"/><stop offset=\"1\" stop-color=\"#FFE0A0\" stop-opacity=\"0\"/></radialGradient> </defs> <rect width=\"1920\" height=\"1080\" fill=\"url(#edpraiaeSky)\"/> <circle cx=\"300\" cy=\"760\" r=\"340\" fill=\"url(#edpraiaeSun)\"/> <g class=\"cloud2\" fill=\"#FFF\" opacity=\"0.9\"><circle cx=\"1500\" cy=\"220\" r=\"70\"/><circle cx=\"1600\" cy=\"190\" r=\"95\"/><circle cx=\"1710\" cy=\"225\" r=\"70\"/><rect x=\"1440\" y=\"220\" width=\"330\" height=\"70\" rx=\"35\"/></g> <path d=\"M0 880 Q480 840 960 870 Q1440 900 1920 860 V1080 H0 Z\" fill=\"#3D86C6\"/> <path d=\"M0 900 Q480 870 960 895 Q1440 920 1920 885\" fill=\"none\" stroke=\"#FFF\" stroke-width=\"4\" opacity=\"0.6\"/> <path d=\"M0 960 Q600 930 1200 955 Q1600 970 1920 950 V1080 H0 Z\" fill=\"#F6DDB0\"/> <g stroke=\"#7A5634\" stroke-width=\"8\" stroke-linecap=\"round\"><path d=\"M1380 1010 V870\"/><path d=\"M1760 1000 V860\"/></g> <path d=\"M1380 885 L1760 875\" stroke=\"#FFF\" stroke-width=\"3\"/> <path d=\"M1380 905 L1760 895\" stroke=\"#FFF\" stroke-width=\"2\" opacity=\"0.8\"/> <g class=\"ball\"><circle cx=\"1560\" cy=\"800\" r=\"26\" fill=\"#FFF6D6\" stroke=\"#E07B3C\" stroke-width=\"5\"/><path d=\"M1540 790 Q1560 800 1580 790\" fill=\"none\" stroke=\"#E07B3C\" stroke-width=\"4\"/></g> </svg>"};
+  var APPS = [{"nome": "PS5", "cor": "#24306A", "icone": "M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"}, {"nome": "YouTube", "cor": "#5A1A30", "icone": "M6 5h12a3.5 3.5 0 0 1 3.5 3.5v7A3.5 3.5 0 0 1 18 19H6a3.5 3.5 0 0 1-3.5-3.5v-7A3.5 3.5 0 0 1 6 5zM10 9.5v5l4.5-2.5z"}, {"nome": "Twitch", "cor": "#3A2470", "icone": "M4 3h16v11l-4 4h-4l-3 3v-3H4zM11 7v4M15 7v4"}, {"nome": "Spotify", "cor": "#15483A", "icone": "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}, {"nome": "Crunchyroll", "cor": "#6A3214", "icone": "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM10 8.5v7l5.5-3.5z"}, {"nome": "Disney+", "cor": "#1A2E6E", "icone": "M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"}, {"nome": "Netflix", "cor": "#561A1E", "icone": "M4 4h16v16H4zM8 4v16M16 4v16M4 9h4M4 15h4M16 9h4M16 15h4"}, {"nome": "Prime Video", "cor": "#123F5C", "icone": "M3 6h18v11H3zM8 21h8M12 17v4"}];
+  var NOMES_CENA = { noite: 'Noite', entardecer: 'Entardecer', dia: 'Dia', praia: 'Praia' };
+  var PAGS = { projetos: 'Projetos', inicio: 'Início', treino: 'Evo Brazil', exercicios: 'Exercícios', agenda: 'Agenda', despertar: 'Despertar' };
+  CENAS.aurora = '<div class="bgimg" style="background:radial-gradient(circle at 50% 120%, #FFB28A 0%, #E06C8C 30%, #4B3A8F 65%, #17143F 100%)"></div>';
+  var MUSICAS = ['01 - Butterfly (Digimon Adventure)', '02 - The Biggest Dreamer (Digimon Tamers)', '03 - FIRE!! (Digimon Frontier)', '04 - Johto (Pokemon)', '05 - crossing field (Sword Art Online)', '06 - Main Theme (Fairy Tail)', '07 - Standing Friends (Katekyo Hitman Reborn!)', '08 - Tsuna Awakes (Katekyo Hitman Reborn!)', '09 - Kibou no Uta (Shokugeki no Soma)'];
+  var DSEM = [['1', 'Seg'], ['2', 'Ter'], ['3', 'Qua'], ['4', 'Qui'], ['5', 'Sex'], ['6', 'Sáb'], ['0', 'Dom']];
+  var CORES = ['#FF7FA8', '#8FE3FF', '#FFD36E', '#9CF2A8', '#C8A6FF', '#FF9F6E'];
+  function padrao() {
+    return {
+      nome: 'Daniel', cor: '#FF7FA8', escuro: 0, anim: true, musica: { on: true, vol: 40 },
+      fundos: { projetos: { tipo: 'cena', cena: 'noite' }, inicio: { tipo: 'cena', cena: 'entardecer' }, treino: { tipo: 'cena', cena: 'dia' }, exercicios: { tipo: 'cena', cena: 'praia' }, agenda: { tipo: 'cena', cena: 'dia' }, despertar: { tipo: 'cena', cena: 'aurora' } },
+      despertar: { on: true, hora: '06:00', dias: [1, 2, 3, 4, 5], feriados: true, musica: '07 - Standing Friends (Katekyo Hitman Reborn!)', volIni: 5, volFim: 25, min: 10 },
+      apps: APPS.map(function (a) { return { nome: a.nome, visivel: true }; }),
+      discreto: { fundo: '', musicas: [] },
+      celular: { cor: '#FF7FA8', tema: 'noite', inicio: { tv: true, treino: true, tarefas: true, projetos: true }, abas: ['tar', 'cal'] },
+      clipes: { lista: '', vol: 100 }
+    };
+  }
+  var S = padrao(), pg = 'inicio', timer = null, carregou = false;
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function icone(d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+  function appInfo(n) { for (var i = 0; i < APPS.length; i++) if (APPS[i].nome === n) return APPS[i]; return null; }
+  function status(t, on) { $('st').textContent = t; $('dot').className = 'dot' + (on ? ' on' : ''); }
+
+  /* ---------- prévia ---------- */
+  function escala() { var w = $('tv').clientWidth; $('stage').style.transform = 'scale(' + (w / 1920) + ')'; }
+  function fundoHTML(p) {
+    if (p === 'discreto') {
+      var df = (S.discreto || {}).fundo;
+      if (!df) return fundoHTML('inicio');
+      if (df === 'img') return '<div class="bgimg" style="background-image:url(../fundos/discreto.jpg)"></div>';
+      return CENAS[df] || CENAS.noite;
+    }
+    var f = S.fundos[p] || {};
+    if (f.tipo === 'img') return '<div class="bgimg" style="background-image:url(../fundos/' + p + '.jpg), url(../fundos/' + p + '.png)"></div>';
+    return CENAS[f.cena] || CENAS.entardecer;
+  }
+  function render() {
+    document.documentElement.style.setProperty('--acc', S.cor);
+    var h = fundoHTML(pg) + '<div class="dim" style="opacity:' + (S.escuro / 100) + '"></div><div class="ui">';
+    if (pg === 'inicio') {
+      var vis = S.apps.filter(function (a) { return a.visivel; }), comClipe = S.clipes && S.clipes.lista;
+      var cards = '<div class="c"><span style="background:#C8A6FF">予定 · Reunião</span>Próxima reunião</div><div class="c"><span style="background:#9CF2A8">仕事 · Trabalho</span>Tarefas DBA</div>';
+      if (comClipe) {
+        h += '<div style="display:grid;grid-template-columns:1fr 1024px;gap:48px;align-items:start"><div style="display:flex;flex-direction:column;gap:22px"><span class="clock" style="font-size:96px">21:52</span><span class="pill">ホーム · Início</span><h2 style="font-size:60px">Boa noite, ' + esc(S.nome || 'Daniel') + '!</h2><span class="sub">sexta, 30 de outubro · おかえり</span><div style="display:grid;gap:20px">' + cards + '</div></div>' +
+          '<div style="display:flex;flex-direction:column;gap:12px"><div style="height:576px;border-radius:24px;border:4px solid var(--acc);background:repeating-linear-gradient(135deg,#18213B 0 28px,#141C33 28px 56px);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:#C3CAE0">Clipe da sua playlist</div><div style="display:flex;justify-content:space-between;font-size:24px;font-weight:700"><span>Opening tocando</span><span>OK · próximo clipe</span></div></div></div>';
+        h += '<div class="apps" style="margin-top:auto">' + vis.map(function (a, i) { var x = appInfo(a.nome) || {}; return '<div class="app' + (i === 1 ? ' f' : '') + '" style="height:150px;background:' + (x.cor || '#333') + '">' + icone(x.icone || '') + '<span>' + esc(a.nome) + '</span></div>'; }).join('') + '</div>';
+      } else {
+        h += '<div class="top"><div style="display:flex;flex-direction:column;gap:10px"><span class="pill">ホーム · Início</span><h2>Boa noite, ' + esc(S.nome || 'Daniel') + '!</h2><span class="sub">sexta, 30 de outubro · おかえり</span></div><span class="clock">21:52</span></div>';
+        h += '<div class="apps">' + vis.map(function (a, i) { var x = appInfo(a.nome) || {}; return '<div class="app' + (i === 1 ? ' f' : '') + '" style="background:' + (x.cor || '#333') + '">' + icone(x.icone || '') + '<span>' + esc(a.nome) + '</span></div>'; }).join('') + '</div>';
+        h += '<div class="cards" style="grid-template-columns:1fr 1fr">' + cards + '</div>';
+      }
+    } else if (pg === 'discreto') {
+      var vis2 = S.apps.filter(function (a) { return a.visivel; });
+      h += '<div class="top"><div style="display:flex;flex-direction:column;gap:10px"><span class="pill">ホーム · Início</span><h2>Boa noite, ' + esc(S.nome || 'Daniel') + '!</h2><span class="sub">quarta, 28 de outubro · おかえり</span></div><span class="clock">21:52</span></div>';
+      h += '<div class="apps">' + vis2.map(function (a, i) { var x = appInfo(a.nome) || {}; return '<div class="app' + (i === 1 ? ' f' : '') + '" style="background:' + (x.cor || '#333') + '">' + icone(x.icone || '') + '<span>' + esc(a.nome) + '</span></div>'; }).join('') + '</div>';
+      h += '<div style="font-size:24px;opacity:.8;text-shadow:0 2px 0 rgba(10,8,30,.7)">Modo discreto · ♪ ' + esc(discMusTxt()) + '</div>';
+    } else if (pg === 'despertar') {
+      var dz = S.despertar || padrao().despertar;
+      h += '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;text-align:center"><span class="pill" style="align-self:center;font-size:30px">おはよう · Bom dia</span><div style="font-size:260px;font-weight:800;line-height:1;text-shadow:0 10px 0 rgba(20,10,50,.45)">' + esc(dz.hora) + '</div><div style="font-size:44px;font-weight:700">segunda, 2 de novembro</div><div style="display:flex;gap:28px;margin-top:20px"><div class="c">SF6: Lab 1h30 · Academia: Treino C</div><div class="c">Primeira reunião: 10:00</div></div><div class="sub" style="font-size:28px;opacity:.85">♪ ' + esc(dz.musica) + '</div></div>';
+    } else {
+      var tit = { projetos: ['プロジェクト · Projetos', 'Meus projetos'], treino: ['トレーニング · Treino', 'Treino de quarta'], exercicios: ['ジム · Exercícios', 'Treino C · Fôlego e core'], agenda: ['カレンダー · Agenda', 'Agenda'] }[pg];
+      h += '<div style="display:flex;flex-direction:column;gap:10px"><span class="pill">' + tit[0] + '</span><h2 style="font-size:68px">' + tit[1] + '</h2></div><div class="big"><div class="ph"><div></div><div></div><div></div></div></div>';
+    }
+    h += '</div>';
+    $('stage').innerHTML = h;
+    $('stage').classList.toggle('semanim', !S.anim);
+    escala();
+    renderPainel();
+  }
+  function renderPainel() {
+    if (document.activeElement !== $('nome')) $('nome').value = S.nome;
+    $('cores').innerHTML = CORES.map(function (c) { return '<button class="sw" style="background:' + c + '" aria-label="Cor ' + c + '" aria-pressed="' + (S.cor.toLowerCase() === c.toLowerCase()) + '" data-cor="' + c + '"></button>'; }).join('') + '<input type="color" id="cor-livre" aria-label="Outra cor" value="' + S.cor + '">';
+    var pgF = pg === 'discreto' ? 'inicio' : pg;
+    $('fundo-tit').textContent = 'Fundo da tela ' + PAGS[pgF] + (pg === 'discreto' ? ' (modo normal)' : '');
+    var f = S.fundos[pgF];
+    $('cenas').innerHTML = (pg === 'despertar' ? ['aurora'] : []).concat(Object.keys(NOMES_CENA)).map(function (k) { return '<button class="chip" data-cena="' + k + '" aria-pressed="' + (f.tipo === 'cena' && f.cena === k) + '">' + (NOMES_CENA[k] || 'Aurora') + '</button>'; }).join('') +
+      (pg !== 'despertar' && pg !== 'agenda' ? '<button class="chip" data-minha="1" aria-pressed="' + (f.tipo === 'img') + '">Imagem da TV</button>' : '');
+    $('escuro').value = S.escuro; $('escuro-v').textContent = S.escuro + '%';
+    $('anim-on').setAttribute('aria-pressed', S.anim); $('anim-off').setAttribute('aria-pressed', !S.anim);
+    if (!S.musica) S.musica = { on: true, vol: 40 };
+    $('mus-on').setAttribute('aria-pressed', S.musica.on); $('mus-off').setAttribute('aria-pressed', !S.musica.on);
+    $('vol').value = S.musica.vol; $('vol-v').textContent = S.musica.vol + '%';
+    if (!S.despertar) S.despertar = padrao().despertar;
+    var dz = S.despertar;
+    $('desp-on').setAttribute('aria-pressed', dz.on); $('desp-off').setAttribute('aria-pressed', !dz.on);
+    if (document.activeElement !== $('desp-hora')) $('desp-hora').value = dz.hora;
+    $('desp-dias').innerHTML = DSEM.map(function (d) { return '<button class="chip" data-dia="' + d[0] + '" aria-pressed="' + (dz.dias.indexOf(+d[0]) >= 0) + '">' + d[1] + '</button>'; }).join('');
+    $('fer-on').setAttribute('aria-pressed', dz.feriados); $('fer-off').setAttribute('aria-pressed', !dz.feriados);
+    $('desp-mus').innerHTML = MUSICAS.map(function (m) { return '<option' + (m === dz.musica ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('');
+    $('desp-vi').value = dz.volIni; $('desp-vi-v').textContent = dz.volIni;
+    $('desp-vf').value = dz.volFim; $('desp-vf-v').textContent = dz.volFim;
+    $('desp-min').value = dz.min; $('desp-min-v').textContent = dz.min + ' min';
+    $('ord-seq').setAttribute('aria-pressed', S.musica.ordem !== 'aleatoria'); $('ord-ale').setAttribute('aria-pressed', S.musica.ordem === 'aleatoria');
+    $('apps').innerHTML = S.apps.map(function (a, i) {
+      var x = appInfo(a.nome) || {};
+      return '<div class="ap' + (a.visivel ? '' : ' off') + '"><span class="ic" style="background:' + (x.cor || '#333') + '">' + icone(x.icone || '') + '</span><span class="nm">' + esc(a.nome) + '</span>' +
+        '<button class="mini" data-up="' + i + '" aria-label="Subir ' + esc(a.nome) + '"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+        '<button class="mini" data-down="' + i + '" aria-label="Descer ' + esc(a.nome) + '"' + (i === S.apps.length - 1 ? ' disabled' : '') + '>↓</button>' +
+        '<button class="chip" data-vis="' + i + '" aria-pressed="' + a.visivel + '">' + (a.visivel ? 'Aparece' : 'Escondido') + '</button></div>';
+    }).join('');
+    renderHoras(); renderClip(); renderModo();
+    renderDisc(); renderCel();
+  }
+
+  /* ---------- modo discreto: vai direto para a TV pelo repositório privado central-dados ----------
+     A chave do GitHub fica só neste navegador (não vai para o banco do artefato). */
+  var GH = { base: 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/', ok: null, inv: null, publicado: null, timer: null, erro: '' };
+  function ghTok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
+  function ghH() { return { Authorization: 'Bearer ' + ghTok(), Accept: 'application/vnd.github+json' }; }
+  function ghDec(t) { var b = atob(t.replace(/\s/g, '')), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new TextDecoder().decode(u); }
+  function ghEnc(t) { var u = new TextEncoder().encode(t), s2 = ''; for (var i = 0; i < u.length; i += 8192) s2 += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s2); }
+  function ghGet(arq) { return fetch(GH.base + arq + '?t=' + Date.now(), { headers: ghH(), cache: 'no-store' }).then(function (r) { if (r.status === 404) return null; if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
+  function ghTestar() {
+    if (!ghTok()) return;
+    ghGet('tv-inventario.json').then(function (j) {
+      GH.ok = true; GH.erro = '';
+      if (j) { try { GH.inv = JSON.parse(ghDec(j.content)); } catch (e) {} }
+      return ghGet('config.json').then(function (c) { if (c) { var d = JSON.parse(ghDec(c.content)); GH.publicado = d.versao || null; } });
+    }).catch(function (e) { GH.ok = false; GH.erro = /Failed to fetch|NetworkError|Load failed/i.test(e.message) ? 'sem internet' : e.message; }).then(function () { renderDisc(); renderCon(); });
+  }
+  /* o que a TV entende (mesmo formato do antigo tvconfig.js) */
+  function paraTV() {
+    var f = {}; Object.keys(S.fundos).forEach(function (k) { var x = S.fundos[k] || {}; f[k] = x.tipo === 'img' ? 'img' : x.cena; });
+    var dz = JSON.parse(JSON.stringify(S.despertar)); dz.musica = 'musicas/' + dz.musica + '.mp3';
+    return { versao: S.atualizado, nome: S.nome, apps: S.apps, cor: S.cor, escuro: S.escuro, anim: S.anim, musica: S.musica, fundos: f, despertar: dz };
+  }
+  function ghPut(arq, d, msg, sha) {
+    var corpo = { message: msg, content: ghEnc(JSON.stringify(d, null, 1)) }; if (sha) corpo.sha = sha;
+    var h = ghH(); h['Content-Type'] = 'application/json';
+    return fetch(GH.base + arq, { method: 'PUT', headers: h, body: JSON.stringify(corpo) });
+  }
+  function ghSalvar(tent) {
+    S.atualizado = new Date().toISOString();
+    ghGet('config.json').then(function (c) {
+      var d = c ? JSON.parse(ghDec(c.content)) : {};
+      d.versao = Date.now(); d.atualizado = S.atualizado;
+      d.editor = JSON.parse(JSON.stringify(S)); d.tv = paraTV();
+      d.discreto = { fundo: S.discreto.fundo || '', musicas: S.discreto.musicas.slice() };
+      d.celular = JSON.parse(JSON.stringify(S.celular));
+      var cl = d.clipes || {}; cl.lista = S.clipes.lista || ''; cl.vol = S.clipes.vol || 100; d.clipes = cl;
+      return ghPut('config.json', d, 'Central no PC', c && c.sha).then(function (r) {
+        if (r.status === 409 && tent < 3) return ghSalvar(tent + 1);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        status('Salvo · a TV aplica em até 5 minutos', true);
+      });
+    }).catch(function (e) { status('Não consegui salvar (' + e.message + '). Confira a internet e a chave.', false); });
+  }
+  /* ---------- modo da TV (vale mesmo com a TV desligada) ---------- */
+  var MODO = null;
+  function renderModo() {
+    document.querySelectorAll('.modo').forEach(function (b) { b.setAttribute('aria-pressed', MODO && b.dataset.modo === MODO.modo); b.disabled = !ghTok(); });
+    var nm = { normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' };
+    $('modo-st').textContent = !ghTok() ? 'Conecte a chave para trocar o modo.' : MODO ? 'Agora: ' + (nm[MODO.modo] || MODO.modo) + (MODO.enviando ? ' · enviando…' : ' · se a TV estiver desligada, ela entra nesse modo quando ligar') : 'Lendo o modo…';
+  }
+  function lerModo() { if (!ghTok()) return; ghGet('estado.json').then(function (c) { MODO = c ? JSON.parse(ghDec(c.content)) : { modo: 'normal' }; renderModo(); }).catch(function () {}); }
+  function mudarModo(m, tent) {
+    MODO = MODO || {}; MODO.modo = m; MODO.enviando = true; renderModo();
+    ghGet('estado.json').then(function (c) {
+      var d = c ? JSON.parse(ghDec(c.content)) : {}; d.modo = m; d.modoEm = Date.now(); d.atualizado = new Date().toISOString();
+      return ghPut('estado.json', d, 'Central no PC: modo ' + m, c && c.sha).then(function (r) {
+        if (r.status === 409 && (tent || 0) < 3) return mudarModo(m, (tent || 0) + 1);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        MODO = d; renderModo();
+      });
+    }).catch(function (e) { MODO.enviando = false; $('modo-st').textContent = 'Não consegui trocar o modo (' + e.message + ').'; });
+  }
+  /* ---------- conexão ---------- */
+  function renderCon() {
+    var h;
+    if (!ghTok()) h = '<div class="row" style="align-items:flex-end"><label class="f" for="gh-tok" style="flex:1;min-width:240px">Chave do GitHub (a mesma do celular; fica só neste PC)<input type="password" id="gh-tok" autocomplete="off" placeholder="github_pat_..."></label><button class="btn prim" id="gh-salvar">Conectar</button></div><span class="note" id="gh-msg">Cole a chave uma vez. Ela não sai deste computador.</span>';
+    else h = '<div class="row">' + (GH.ok === false ? '<span class="ok-pill off">Não consegui falar com o GitHub (' + esc(GH.erro) + ')</span>' : GH.ok ? '<span class="ok-pill">Conectado à TV</span>' : '<span class="ok-pill">Conectando…</span>') + '<button class="btn" id="gh-esquecer" style="padding:4px 10px;font-size:12px">Esquecer chave</button></div>';
+    $('con').innerHTML = h;
+  }
+  /* ---------- horário por dia ---------- */
+  function renderHoras() {
+    var dz = S.despertar, hs = dz.horas || {};
+    $('desp-horas').innerHTML = DSEM.filter(function (d) { return dz.dias.indexOf(+d[0]) >= 0; }).map(function (d) {
+      return '<label class="hd">' + d[1] + ' <input type="time" data-hdia="' + d[0] + '" value="' + (hs[d[0]] || dz.hora) + '" aria-label="Horário de ' + d[1] + '"></label>';
+    }).join('');
+  }
+  /* ---------- clipes ---------- */
+  function renderClip() {
+    if (!S.clipes) S.clipes = { lista: '', vol: 100 };
+    if (document.activeElement !== $('clip-url')) $('clip-url').value = S.clipes.lista ? 'https://youtube.com/playlist?list=' + S.clipes.lista : '';
+    $('clip-vol').value = S.clipes.vol || 100; $('clip-vol-v').textContent = (S.clipes.vol || 100) + '%';
+  }
+  function mudouDisc() { mudou(); }
+  function nomesMusicas() { return (GH.inv && GH.inv.musicas && GH.inv.musicas.length) ? GH.inv.musicas : MUSICAS; }
+  function discMusTxt() { var L = (S.discreto || {}).musicas || []; return L.length ? L.length + (L.length === 1 ? ' música escolhida' : ' músicas escolhidas') : 'pasta musicas\\discreto'; }
+  function renderDisc() {
+    if (!S.discreto) S.discreto = { fundo: '', musicas: [] };
+    var df = S.discreto.fundo || '';
+    var ops = [['', 'Igual ao normal'], ['noite', 'Noite'], ['entardecer', 'Entardecer'], ['dia', 'Dia'], ['praia', 'Praia'], ['img', 'Minha imagem']];
+    $('disc-fundo').innerHTML = ops.map(function (o) { return '<button class="chip" data-dfundo="' + o[0] + '" aria-pressed="' + (df === o[0]) + '">' + o[1] + '</button>'; }).join('') +
+      (df === 'img' ? '<p class="note" style="margin:4px 0 0;width:100%">Coloque a imagem em <b>CentralTV\\fundos\\discreto.jpg</b> no PC e rode o instalador uma vez.' + (GH.inv && GH.inv.fundosImg && GH.inv.fundosImg.indexOf('discreto') >= 0 ? ' <span class="ok-pill">a TV já tem essa imagem</span>' : '') + '</p>' : '');
+    var L = S.discreto.musicas;
+    $('disc-mus').innerHTML = nomesMusicas().map(function (m) { return '<label class="mus"><input type="checkbox" data-dmus="' + esc(m) + '"' + (L.indexOf(m) >= 0 ? ' checked' : '') + '>' + esc(m) + '</label>'; }).join('');
+    $('disc-mus-n').textContent = L.length ? '(' + L.length + ' marcadas)' : '';
+    $('disc-con').innerHTML = '';
+  }
+
+  /* ---------- app do celular ---------- */
+  var TEMAS_CEL = { noite: ['Noite', '#0B0F33', '#2A1B5C', '#5B2E7A'], oceano: ['Oceano', '#06202E', '#0E3B57', '#1F6E8C'], sakura: ['Sakura', '#2A0F24', '#4A1D3D', '#8A3B6A'], floresta: ['Floresta', '#081C15', '#12372A', '#2D6A4F'], grafite: ['Grafite', '#0E0F14', '#1C1E26', '#3A3F4F'] };
+  var ABAS_CEL = [['tar', 'Tarefas'], ['cal', 'Calendário'], ['proj', 'Projetos'], ['est', 'Estante'], ['lanc', 'Lançamentos'], ['treino', 'Evo'], ['gym', 'Academia'], ['tv', 'Controle da TV']];
+  var CARTOES_CEL = [['tv', 'TV do quarto'], ['treino', 'SF6 e academia'], ['tarefas', 'Tarefas'], ['projetos', 'Projetos']];
+  function renderCel() {
+    if (!S.celular) S.celular = padrao().celular;
+    var c = S.celular, t = TEMAS_CEL[c.tema] || TEMAS_CEL.noite, nome = function (k) { for (var i = 0; i < ABAS_CEL.length; i++) if (ABAS_CEL[i][0] === k) return ABAS_CEL[i][1]; return k; };
+    var pv = $('cel-prev'); pv.style.background = 'radial-gradient(120% 60% at 80% 0%, ' + t[3] + ' 0%, transparent 60%), linear-gradient(180deg, ' + t[1] + ', ' + t[2] + ')'; pv.style.setProperty('--celacc', c.cor);
+    pv.innerHTML = '<span class="pp" style="background:' + c.cor + '">ホーム · Início</span><span class="tt">Olá, ' + esc(S.nome || 'Daniel') + '!</span>' +
+      CARTOES_CEL.filter(function (x) { return c.inicio[x[0]] !== false; }).map(function () { return '<div class="cc"></div>'; }).join('') +
+      '<div class="nb"><b>Início</b><span>' + esc(nome(c.abas[0])) + '</span><span>' + esc(nome(c.abas[1])) + '</span><span>Mais</span></div>';
+    $('cel-cores').innerHTML = CORES.map(function (k) { return '<button class="sw" style="background:' + k + '" aria-label="Cor ' + k + '" aria-pressed="' + (c.cor.toLowerCase() === k.toLowerCase()) + '" data-celcor="' + k + '"></button>'; }).join('');
+    $('cel-temas').innerHTML = Object.keys(TEMAS_CEL).map(function (k) { var x = TEMAS_CEL[k]; return '<button class="tema-sw" title="' + x[0] + '" aria-label="Fundo ' + x[0] + '" aria-pressed="' + (c.tema === k) + '" data-celtema="' + k + '" style="background:linear-gradient(160deg,' + x[1] + ',' + x[3] + ')"></button>'; }).join('');
+    $('cel-inicio').innerHTML = CARTOES_CEL.map(function (x) { return '<button class="chip" data-celini="' + x[0] + '" aria-pressed="' + (c.inicio[x[0]] !== false) + '">' + x[1] + '</button>'; }).join('');
+    ['cel-aba1', 'cel-aba2'].forEach(function (id, i) { $(id).innerHTML = ABAS_CEL.map(function (a) { return '<option value="' + a[0] + '"' + (c.abas[i] === a[0] ? ' selected' : '') + (c.abas[1 - i] === a[0] ? ' disabled' : '') + '>' + a[1] + '</option>'; }).join(''); });
+  }
+
+  /* ---------- salvar ---------- */
+  function mudou() {
+    render();
+    if (!ghTok()) { status('Conecte a chave para mandar para a TV.', false); return; }
+    status('Salvando…', false);
+    clearTimeout(timer);
+    timer = setTimeout(function () { timer = null; ghSalvar(0); }, 900);
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.pg) { pg = t.dataset.pg; document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-pressed', b === t); }); render(); return; }
+    if (t.dataset.cor) { S.cor = t.dataset.cor; mudou(); return; }
+    if (t.dataset.cena) { var pc = pg === 'discreto' ? 'inicio' : pg; S.fundos[pc] = { tipo: 'cena', cena: t.dataset.cena, id: S.fundos[pc].id }; mudou(); return; }
+    if (t.dataset.minha) { S.fundos[pg === 'discreto' ? 'inicio' : pg].tipo = 'img'; mudou(); return; }
+    if (t.dataset.celcor) { S.celular.cor = t.dataset.celcor; mudou(); return; }
+    if (t.dataset.celtema) { S.celular.tema = t.dataset.celtema; mudou(); return; }
+    if (t.dataset.celini) { var ki = t.dataset.celini; S.celular.inicio[ki] = S.celular.inicio[ki] === false; mudou(); return; }
+    if (t.dataset.dfundo !== undefined) { S.discreto.fundo = t.dataset.dfundo; mudouDisc(); return; }
+    if (t.dataset.modo) { mudarModo(t.dataset.modo); return; }
+    if (t.id === 'gh-salvar') { var v = ($('gh-tok').value || '').trim(); if (!/^(github_pat_|ghp_)/.test(v)) { $('gh-msg').textContent = 'A chave começa com github_pat_'; return; } try { localStorage.setItem('gh-token', v); } catch (e2) {} GH.ok = null; renderCon(); carregar(); return; }
+    if (t.id === 'gh-esquecer') { try { localStorage.removeItem('gh-token'); } catch (e3) {} GH.ok = null; renderCon(); renderModo(); return; }
+    if (t.dataset.vis) { var a = S.apps[+t.dataset.vis]; a.visivel = !a.visivel; mudou(); return; }
+    if (t.dataset.up) { var i = +t.dataset.up; S.apps.splice(i - 1, 0, S.apps.splice(i, 1)[0]); mudou(); return; }
+    if (t.dataset.down) { var j = +t.dataset.down; S.apps.splice(j + 1, 0, S.apps.splice(j, 1)[0]); mudou(); return; }
+    if (t.id === 'mus-on') { S.musica.on = true; mudou(); return; }
+    if (t.id === 'mus-off') { S.musica.on = false; mudou(); return; }
+    if (t.id === 'ord-seq') { S.musica.ordem = 'seq'; mudou(); return; }
+    if (t.id === 'desp-on') { S.despertar.on = true; mudou(); return; }
+    if (t.id === 'desp-off') { S.despertar.on = false; mudou(); return; }
+    if (t.id === 'fer-on') { S.despertar.feriados = true; mudou(); return; }
+    if (t.id === 'fer-off') { S.despertar.feriados = false; mudou(); return; }
+    if (t.dataset.dia) { var nd = +t.dataset.dia, ds = S.despertar.dias, ix = ds.indexOf(nd); if (ix >= 0) ds.splice(ix, 1); else ds.push(nd); ds.sort(); mudou(); return; }
+    if (t.id === 'ord-ale') { S.musica.ordem = 'aleatoria'; mudou(); return; }
+    if (t.id === 'anim-on') { S.anim = true; mudou(); return; }
+    if (t.id === 'anim-off') { S.anim = false; mudou(); return; }
+    if (t.id === 'reset') {
+      if (t.dataset.confirma) { delete t.dataset.confirma; t.textContent = 'Voltar ao padrão'; S = padrao(); mudou(); }
+      else { t.dataset.confirma = '1'; t.textContent = 'Clique de novo para confirmar'; setTimeout(function () { delete t.dataset.confirma; t.textContent = 'Voltar ao padrão'; }, 4000); }
+    }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.dataset && e.target.dataset.hdia && e.target.value) { var hs = S.despertar.horas || (S.despertar.horas = {}), kd = e.target.dataset.hdia; if (e.target.value === S.despertar.hora) delete hs[kd]; else hs[kd] = e.target.value; mudou(); return; }
+    if (e.target.id === 'clip-url') { var v = e.target.value.trim(), m = v.match(/list=([\w-]+)/); if (v && !m) { $('clip-url').setCustomValidity('Cole o link da playlist (com list=)'); $('clip-url').reportValidity(); return; } $('clip-url').setCustomValidity(''); S.clipes.lista = m ? m[1] : ''; mudou(); return; }
+    if (e.target.id === 'cel-aba1' || e.target.id === 'cel-aba2') { S.celular.abas[e.target.id === 'cel-aba1' ? 0 : 1] = e.target.value; mudou(); return; }
+    if (e.target.dataset && e.target.dataset.dmus !== undefined) {
+      var nm = e.target.dataset.dmus, L = S.discreto.musicas, ix2 = L.indexOf(nm);
+      if (e.target.checked && ix2 < 0) L.push(nm); if (!e.target.checked && ix2 >= 0) L.splice(ix2, 1);
+      mudouDisc();
+    }
+  });
+  document.addEventListener('input', function (e) {
+    if (e.target.id === 'nome') { S.nome = e.target.value; mudou(); }
+    if (e.target.id === 'escuro') { S.escuro = +e.target.value; mudou(); }
+    if (e.target.id === 'vol') { S.musica.vol = +e.target.value; mudou(); }
+    if (e.target.id === 'desp-hora' && e.target.value) { S.despertar.hora = e.target.value; mudou(); }
+    if (e.target.id === 'desp-mus') { S.despertar.musica = e.target.value; mudou(); }
+    if (e.target.id === 'desp-vi') { S.despertar.volIni = +e.target.value; if (S.despertar.volFim < S.despertar.volIni) S.despertar.volFim = S.despertar.volIni; mudou(); }
+    if (e.target.id === 'desp-vf') { S.despertar.volFim = +e.target.value; if (S.despertar.volIni > S.despertar.volFim) S.despertar.volIni = S.despertar.volFim; mudou(); }
+    if (e.target.id === 'desp-min') { S.despertar.min = +e.target.value; mudou(); }
+    if (e.target.id === 'cor-livre') { S.cor = e.target.value; mudou(); }
+    if (e.target.id === 'clip-vol') { S.clipes.vol = +e.target.value; mudou(); }
+  });
+  window.addEventListener('resize', escala);
+  try { new ResizeObserver(escala).observe($('tv')); } catch (e) {}
+
+  function carregar() {
+    renderCon(); renderModo();
+    if (!ghTok()) { render(); status('Conecte a chave para começar.', false); return; }
+    status('Carregando da TV…', false);
+    ghTestar(); lerModo();
+    ghGet('config.json').then(function (c) {
+      var d = c ? JSON.parse(ghDec(c.content)) : {}, v = d.editor || {};
+      S = Object.assign(padrao(), JSON.parse(JSON.stringify(v)));
+      S.fundos = Object.assign(padrao().fundos, v.fundos || {});
+      S.despertar = Object.assign(padrao().despertar, v.despertar || {});
+      S.discreto = Object.assign({ fundo: '', musicas: [] }, d.discreto || v.discreto || {});
+      S.celular = Object.assign(padrao().celular, d.celular || v.celular || {}); S.celular.inicio = Object.assign(padrao().celular.inicio, S.celular.inicio || {});
+      S.clipes = { lista: (d.clipes || {}).lista || '', vol: (d.clipes || {}).vol || 100 };
+      render(); status('Pronto · cada mudança vai sozinha para a TV', true);
+    }).catch(function (e) { render(); status('Não consegui carregar (' + e.message + ').', false); });
+  }
+  render();
+  carregar();
+  setInterval(lerModo, 60000);
+})();
+</script>
+
+</body></html>

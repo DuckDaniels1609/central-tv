@@ -21,27 +21,30 @@
   var cfg = ler('cfg', null) || {};
   Object.keys(PADRAO).forEach(function (k) { if (cfg[k] === undefined) cfg[k] = JSON.parse(JSON.stringify(PADRAO[k])); });
   /* configuração vinda do Editor da Central TV (tvconfig.js): vale quando é mais nova que a da TV */
-  var T = window.TVCFG;
-  if (T && T.versao) {
+  /* aplica o que veio do Editor (antigo tvconfig.js ou, agora, config.json → tv, escrito pelo app do PC) */
+  function aplicarEditor(T, aoVivo) {
+    if (!T || !T.versao) return false;
     if (T.nome) D.nome = T.nome;
     if (T.apps && T.apps.length) {
       var ordem = T.apps.map(function (x) { return x.nome; });
       D.apps.sort(function (a, b) { var ia = ordem.indexOf(a.nome), ib = ordem.indexOf(b.nome); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
     }
-    if (cfg.versaoEditor !== T.versao) {
-      cfg.versaoEditor = T.versao;
-      gravar('desp-feito', '');
-      if (T.cor) cfg.cor = T.cor;
-      if (T.fundos) Object.keys(T.fundos).forEach(function (p) { cfg.fundo[p] = T.fundos[p]; });
-      if (typeof T.escuro === 'number') cfg.escuro = T.escuro;
-      if (typeof T.anim === 'boolean') cfg.anim = T.anim;
-      if (T.modo) cfg.modo = T.modo;
-      if (T.despertar) cfg.despertar = Object.assign({}, cfg.despertar, T.despertar);
-      if (T.musica) cfg.musica = { on: T.musica.on !== false, vol: +T.musica.vol || 40, ordem: T.musica.ordem === 'aleatoria' ? 'aleatoria' : 'seq' };
-      if (T.apps) { cfg.ocultos = {}; T.apps.forEach(function (x) { if (!x.visivel) cfg.ocultos[x.nome] = true; }); }
-      gravar('cfg', cfg);
-    }
+    if (cfg.versaoEditor === T.versao) return false;
+    if (cfg.versaoEditor && T.versao < cfg.versaoEditor) return false;
+    cfg.versaoEditor = T.versao;
+    gravar('desp-feito', '');
+    if (T.cor) cfg.cor = T.cor;
+    if (T.fundos) Object.keys(T.fundos).forEach(function (p) { cfg.fundo[p] = T.fundos[p]; });
+    if (typeof T.escuro === 'number') cfg.escuro = T.escuro;
+    if (typeof T.anim === 'boolean') cfg.anim = T.anim;
+    if (T.modo && !aoVivo) cfg.modo = T.modo;
+    if (T.despertar) cfg.despertar = Object.assign({}, cfg.despertar, T.despertar);
+    if (T.musica) cfg.musica = { on: T.musica.on !== false, vol: +T.musica.vol || 40, ordem: T.musica.ordem === 'aleatoria' ? 'aleatoria' : 'seq' };
+    if (T.apps) { cfg.ocultos = {}; T.apps.forEach(function (x) { if (!x.visivel) cfg.ocultos[x.nome] = true; }); }
+    gravar('cfg', cfg);
+    return true;
   }
+  aplicarEditor(window.TVCFG, false);
   var cenaSVG = {}, imgOk = {};
   function guardarCenas() {
     var mapa = { 'p-projetos': 'noite', 'p-inicio': 'entardecer', 'p-treino': 'dia', 'p-exercicios': 'praia' };
@@ -452,6 +455,10 @@
     var exAntes = JSON.stringify(cfg.despertar.extras || {}), exNovo = d.despertarExtra || {};
     var hj = isoD(new Date()); Object.keys(exNovo).forEach(function (k) { if (k < hj) delete exNovo[k]; });
     if (JSON.stringify(exNovo) !== exAntes) { cfg.despertar.extras = exNovo; gravar('cfg', cfg); agendarAlarmeSistema(); registrar('Despertar extra: ' + (Object.keys(exNovo).map(function (k) { return k.split('-').reverse().slice(0, 2).join('/') + ' ' + exNovo[k]; }).join(', ') || 'nenhum')); }
+    if (d.tv && d.tv.versao && aplicarEditor(d.tv, true)) {
+      try { aplicarCfg(); renderApps(); if (foco && !document.body.contains(foco)) { foco = null; focar(focoPadrao()); } agendarAlarmeSistema(); tocarMusica(); } catch (e) { diagAdd('editor: ' + e.message); }
+      registrar('Ajustes do app do PC aplicados'); try { stSync('editor'); } catch (e2) {}
+    }
     var cl = d.clipes || {}; if (JSON.stringify(cl) !== JSON.stringify(cfg.clipes || {})) { cfg.clipes = cl; clipeFalhou = false; gravar('cfg', cfg); clipeAtualizar(); clipeCmd('vol'); if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: 'vol', v: cl.vol || 100 }), '*'); registrar(cl.lista ? 'Clipes do YouTube ligados' : 'Clipes do YouTube desligados'); }
     var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
     cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
