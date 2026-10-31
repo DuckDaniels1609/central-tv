@@ -332,6 +332,8 @@ header { align-items: center; }
 .sep { width: 1px; height: 26px; background: rgba(255,255,255,.15); margin: 0 6px; }
 .lv-tx .sub2 { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nota { font-size: 13px; font-weight: 800; color: #FFD36E; }
+.temp-chip[aria-pressed="true"] { background: linear-gradient(90deg, #FFD36E, #FF9F6E) !important; color: #1C1838 !important; }
+.temp-nome { font-size: 14px; padding: 0 4px; white-space: nowrap; }
 .le-det h3 { margin: 0; font-size: 18px; color: var(--fg); text-transform: none; letter-spacing: 0; }
 .le-det { display: flex; flex-direction: column; gap: 10px; }
 .le-det .desc { margin: 0; font-size: 14px; line-height: 1.55; color: #E2DEF7; white-space: pre-line; max-height: 300px; overflow-y: auto; padding-right: 6px; }
@@ -1666,6 +1668,78 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     var f = []; if ('st' in campos) f.push('status=' + campos.st); if ('ep' in campos) f.push('num_watched_episodes=' + campos.ep); if ('score' in campos) f.push('score=' + campos.score);
     malApi('PATCH', '/v2/anime/' + id + '/my_list_status', f.join('&')).then(function () { $('an-msg').textContent = 'Salvo no MyAnimeList.'; }).catch(function (e) { $('an-msg').textContent = 'Não salvou no MAL (' + e.message + ').'; });
   }
+  /* ---- Temporada: lançamentos da season pelo MAL, com nota e botão para pôr na sua lista ---- */
+  var TEMP_N = ['winter', 'spring', 'summer', 'fall'], TEMP_PT = { winter: 'Inverno', spring: 'Primavera', summer: 'Verão', fall: 'Outono' };
+  var tempDesl = 0, tempSoNovos = true, tempSel = null, tempCarr = {};
+  MAL.temp = {};
+  function tempChave(d) { var h = new Date(), i = h.getFullYear() * 4 + Math.floor(h.getMonth() / 3) + d; return { ano: Math.floor(i / 4), s: TEMP_N[i % 4] }; }
+  function abaTemp() { return '<button class="chip temp-chip" data-a="anSt" data-v="season" aria-pressed="' + (anSt === 'season') + '">✨ Temporada</button><span class="sep"></span>'; }
+  var DIA_EN = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'], DIA_PT = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  /* horário do Japão (JST) para o de Brasília: 12 h a menos */
+  function quandoSai(b) {
+    if (!b || !b.day_of_the_week) return ''; var d = DIA_EN.indexOf(b.day_of_the_week); if (d < 0) return '';
+    if (!b.start_time) return DIA_PT[d];
+    var p = b.start_time.split(':'), m = (+p[0]) * 60 + (+p[1]) - 12 * 60; if (m < 0) { m += 1440; d = (d + 6) % 7; }
+    return DIA_PT[d] + ' ' + ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2);
+  }
+  function carregarTemporada(c) {
+    var k = c.ano + '-' + c.s; if (tempCarr[k]) return; 
+    try { var cc = JSON.parse(localStorage.getItem('mal-temp-' + k) || 'null'); if (cc && Date.now() - cc.em < 12 * 36e5) { MAL.temp[k] = cc.l; return; } } catch (e) {}
+    if (!MAL.ok) return; tempCarr[k] = true;
+    malTudo('/v2/anime/season/' + c.ano + '/' + c.s + '?sort=anime_num_list_users&limit=500&nsfw=true&fields=mean,num_episodes,genres,main_picture,synopsis,alternative_titles,media_type,start_season,num_list_users,broadcast,status,studios').then(function (R) {
+      MAL.temp[k] = R.map(function (x) { var n = x.node; return { id: n.id, t: n.title, en: (n.alternative_titles || {}).en || '', img: (n.main_picture || {}).medium || '', eps: n.num_episodes || 0, sin: n.synopsis || '', gen: (n.genres || []).map(function (g) { return g.name; }), nota: n.mean || null, tipo: n.media_type || '', novo: !!(n.start_season && n.start_season.year === c.ano && n.start_season.season === c.s), users: n.num_list_users || 0, sai: quandoSai(n.broadcast), est: (n.studios || []).map(function (e) { return e.name; }).join(', ') }; });
+      try { localStorage.setItem('mal-temp-' + k, JSON.stringify({ em: Date.now(), l: MAL.temp[k] })); } catch (e) {}
+      tempCarr[k] = false; if (anSt === 'season') desenharAnime();
+    }).catch(function (e) { tempCarr[k] = false; $('an-grid').innerHTML = '<p class="note">Não consegui ler a temporada (' + esc(e.message) + ').</p>'; });
+  }
+  function desenharTemporada(L) {
+    var c = tempChave(tempDesl), k = c.ano + '-' + c.s, T = MAL.temp[k], minha = {}; L.forEach(function (x) { minha[x.id] = x; });
+    $('an-resumo').textContent = 'Temporada de ' + TEMP_PT[c.s] + ' (Japão) ' + c.ano + ' · nota do MyAnimeList';
+    var gens = {}; (T || []).forEach(function (x) { (x.gen || []).forEach(function (g) { gens[g] = 1; }); });
+    $('an-filtros').innerHTML = abaTemp() + AN_ST.map(function (s2) { return '<button class="chip" data-a="anSt" data-v="' + s2[0] + '" aria-pressed="false">' + s2[1] + '</button>'; }).join('') +
+      '<span class="sep"></span><button class="chip" data-a="tempDesl" data-v="-1" aria-label="Temporada anterior">◀</button><b class="temp-nome">' + TEMP_PT[c.s] + ' ' + c.ano + (tempDesl === 0 ? ' · agora' : '') + '</b><button class="chip" data-a="tempDesl" data-v="1" aria-label="Próxima temporada">▶</button>' +
+      '<button class="chip" data-a="tempNovos" aria-pressed="' + tempSoNovos + '">Só estreias</button>' +
+      '<label class="gen-sel"><span>Gênero</span><select class="sel" id="an-gen" aria-label="Filtrar por gênero"><option value="">Todos</option>' + Object.keys(gens).sort().map(function (g) { return '<option' + (anGen === g ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('') + '</select></label>';
+    var el = $('an-grid');
+    if (!T) { el.innerHTML = '<p class="note">' + (MAL.ok ? 'Buscando os lançamentos no MyAnimeList…' : 'Conecte o MyAnimeList em Personalizar para ver a temporada.') + '</p>'; carregarTemporada(c); desenharTempDet(null, minha); return; }
+    var q = norm(anQ), vis = T.filter(function (x) { return (!tempSoNovos || x.novo) && (!anGen || x.gen.indexOf(anGen) >= 0) && (!q || norm(x.t + ' ' + x.en).indexOf(q) >= 0) && x.tipo !== 'music' && x.tipo !== 'pv' && x.tipo !== 'cm'; })
+      .sort(function (a, b) { return (b.nota || 0) - (a.nota || 0) || b.users - a.users; });
+    el.innerHTML = vis.map(function (x) {
+      var m = minha[x.id], st = m ? (AN_ST.filter(function (s2) { return s2[0] === m.st; })[0] || [, ''])[1] : '';
+      return '<div class="lv' + (tempSel === x.id ? ' sel' : '') + '"><button class="lv-capa tem" data-a="tempSel" data-v="' + x.id + '" style="background-image:url(&quot;' + esc(x.img) + '&quot;)" aria-label="Detalhes de ' + esc(x.t) + '"><i class="tp">' + esc((x.tipo || '').toUpperCase()) + '</i></button>' +
+        '<div class="lv-tx"><b title="' + esc(x.t) + '">' + esc(x.en || x.t) + '</b>' + (x.en && x.en !== x.t ? '<small class="sub2">' + esc(x.t) + '</small>' : '') +
+        '<span class="cap">' + (x.nota ? '<span class="nota">★ ' + (+x.nota).toFixed(2) + '</span>' : '<span class="note">sem nota ainda</span>') + (x.sai ? ' <small>· ' + esc(x.sai) + '</small>' : '') + '</span>' +
+        '<div class="lv-bt">' + (m ? '<span class="ok-pill">' + esc(st) + '</span>' : '<button class="btn mais1" data-a="tempAdd" data-v="' + x.id + '" data-st="plan_to_watch">+ Lista</button>') + '<a class="btn ler" href="https://myanimelist.net/anime/' + x.id + '" target="_blank" rel="noopener">MAL</a></div></div></div>';
+    }).join('') || '<p class="note">Nada aqui.</p>';
+    desenharTempDet(T.filter(function (x) { return x.id === tempSel; })[0], minha);
+  }
+  function desenharTempDet(a, minha) {
+    var d = $('an-det'); if (!d) return;
+    if (!a) { d.innerHTML = '<p class="note" style="margin:0">Clique na capa para ver a descrição. <b>+ Lista</b> põe em "Planejo ver" no seu MyAnimeList; aqui dá para escolher outro status.</p><p class="note" style="margin:0">Horários já em Brasília (o Japão está 12 h à frente).</p>'; return; }
+    var m = minha[a.id];
+    d.innerHTML = '<h3>' + esc(a.en || a.t) + '</h3><span class="note">' + esc([a.t !== a.en ? a.t : '', a.est, a.eps ? a.eps + ' episódios' : '', a.sai ? 'sai ' + a.sai : '', a.nota ? 'MAL ' + a.nota : '', a.users ? a.users.toLocaleString('pt-BR') + ' pessoas acompanham' : ''].filter(Boolean).join(' · ')) + '</span>' +
+      '<div class="row" style="gap:6px">' + (a.gen || []).slice(0, 6).map(function (g) { return '<span class="gen">' + esc(g) + '</span>'; }).join('') + '</div>' +
+      '<p class="desc">' + esc(a.sin || 'Sem descrição.') + '</p>' +
+      (m ? '<span class="ok-pill">Já está na sua lista: ' + esc((AN_ST.filter(function (s2) { return s2[0] === m.st; })[0] || [, ''])[1]) + '</span>'
+         : '<div class="row">' + [['plan_to_watch', '+ Planejo ver'], ['watching', '+ Assistindo']].map(function (o) { return '<button class="btn' + (o[0] === 'plan_to_watch' ? ' prim' : '') + '" data-a="tempAdd" data-v="' + a.id + '" data-st="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>') +
+      '<div class="row"><a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a></div><span class="note" id="an-msg"></span>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a;
+    if (a === 'tempDesl') { tempDesl = Math.max(-4, Math.min(2, tempDesl + (+b.dataset.v))); tempSel = null; desenharAnime(); }
+    else if (a === 'tempNovos') { tempSoNovos = !tempSoNovos; desenharAnime(); }
+    else if (a === 'tempSel') { tempSel = +b.dataset.v; desenharAnime(); }
+    else if (a === 'tempAdd') {
+      var id = +b.dataset.v, st = b.dataset.st, k = tempChave(tempDesl), x = (MAL.temp[k.ano + '-' + k.s] || []).filter(function (y) { return y.id === id; })[0]; if (!x) return;
+      b.disabled = true; b.textContent = 'Salvando…';
+      malApi('PATCH', '/v2/anime/' + id + '/my_list_status', 'status=' + st).then(function () {
+        MAL.anime = MAL.anime || []; MAL.anime.unshift({ id: x.id, t: x.t, en: x.en, img: x.img, eps: x.eps, sin: x.sin, gen: x.gen, nota: x.nota, tipo: x.tipo, ano: k.ano, st: st, ep: 0, score: 0, em: new Date().toISOString() });
+        try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e2) {}
+        mudar('an', function (d) { d.itens = d.itens || []; if (!d.itens.some(function (y) { return y.id === x.id; })) d.itens.unshift({ id: x.id, t: x.t, en: x.en, img: x.img, eps: x.eps, st: st, ep: 0, score: 0, em: new Date().toISOString() }); });
+        desenharAnime();
+      }).catch(function (e2) { b.disabled = false; b.textContent = 'Tentar de novo'; var m2 = $('an-msg'); if (m2) m2.textContent = 'Não salvou no MAL (' + e2.message + ').'; });
+    }
+  });
   function desenharAnime() {
     var el = $('an-grid'); if (!el) return;
     var L = MAL.anime || [];
@@ -1674,7 +1748,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     $('an-resumo').textContent = L.length + ' animes na sua lista' + (MAL.usuario ? ' · ' + MAL.usuario : '');
     var gens = {}; L.forEach(function (x) { (x.gen || []).forEach(function (g) { gens[g] = (gens[g] || 0) + 1; }); });
     var gl = Object.keys(gens).sort(function (a, b) { return genPt(a).localeCompare(genPt(b), 'pt'); });
-    $('an-filtros').innerHTML = AN_ST.map(function (s2) { return '<button class="chip" data-a="anSt" data-v="' + s2[0] + '" aria-pressed="' + (anSt === s2[0]) + '">' + s2[1] + ' <small>' + cont[s2[0]] + '</small></button>'; }).join('') +
+    if (anSt === 'season') { desenharTemporada(L); return; }
+    $('an-filtros').innerHTML = abaTemp() + AN_ST.map(function (s2) { return '<button class="chip" data-a="anSt" data-v="' + s2[0] + '" aria-pressed="' + (anSt === s2[0]) + '">' + s2[1] + ' <small>' + cont[s2[0]] + '</small></button>'; }).join('') +
       '<span class="sep"></span><label class="gen-sel"><span>Gênero</span><select class="sel" id="an-gen" aria-label="Filtrar por gênero"><option value="">Todos</option>' + gl.map(function (g) { return '<option value="' + esc(g) + '"' + (anGen === g ? ' selected' : '') + '>' + esc(genPt(g)) + ' (' + gens[g] + ')</option>'; }).join('') + '</select></label>' +
       (anGen ? '<button class="chip" data-a="anGenX" aria-pressed="true">' + esc(genPt(anGen)) + ' ×</button>' : '') +
       '<label class="gen-sel"><span>Ordenar</span><select class="sel" id="an-ord" aria-label="Ordenar">' + [['recente', 'Mexidos por último'], ['mal', 'Nota do MAL'], ['minha', 'Minha nota'], ['nome', 'Nome'], ['ano', 'Ano']].map(function (o) { return '<option value="' + o[0] + '"' + (anOrd === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
@@ -1696,7 +1771,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a, v = +b.dataset.v;
     var x = (MAL.anime || []).filter(function (y) { return y.id === v; })[0];
-    if (a === 'anSt') { anSt = b.dataset.v; anQ = ''; $('an-busca').value = ''; desenharAnime(); }
+    if (a === 'anSt') { anSt = b.dataset.v; anQ = ''; anGen = ''; $('an-busca').value = ''; desenharAnime(); }
     else if (a === 'anSel') { anSel = v; desenharAnime(); }
     else if (a === 'anGenX') { anGen = ''; desenharAnime(); }
     else if (a === 'anGenSet') { anGen = b.dataset.g; desenharAnime(); }
