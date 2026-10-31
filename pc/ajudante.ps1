@@ -240,18 +240,15 @@ $gravAtualF = Join-Path $GRAV ('Arte da stream\overlays\gravacao_atual.json')
 function ProcRodando($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
 function ProcParar($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $f -Force -ErrorAction SilentlyContinue } }
 function AcharPython($janela) {
-  $n = if ($janela) { 'pythonw' } else { 'python' }
-  $c = (Get-Command $n -ErrorAction SilentlyContinue).Source; if ($c -and $c -notlike '*WindowsApps*') { return $c }
-  foreach ($b in @("$env:LOCALAPPDATA\Programs\Python", "$env:ProgramFiles", "${env:ProgramFiles(x86)}")) {
-    $a = Get-ChildItem -Path (Join-Path $b ('Python3*\' + $n + '.exe')) -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
-    if ($a) { return $a.FullName }
-  }
-  $l = (Get-Command ($(if ($janela) { 'pyw' } else { 'py' })) -ErrorAction SilentlyContinue).Source; if ($l) { return $l }
+  $n = 'python.exe'; if ($janela) { $n = 'pythonw.exe' }
+  $c = Get-Command $n -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($c -and $c.Source -notlike '*WindowsApps*') { return $c.Source }
+  foreach ($v in @('Python313', 'Python312', 'Python311')) { $f = Join-Path $env:LOCALAPPDATA ('Programs\Python\' + $v + '\' + $n); if (Test-Path $f) { return $f } }
   return $null
 }
 function ProcIniciar($sc, $f) {
   $py = AcharPython $true
-  if (-not $py -or -not (Test-Path $sc)) { Set-Content -Path (Join-Path $aqui 'atalho_erro.txt') -Value ("$(Get-Date -f 'HH:mm:ss') nao iniciei " + $sc + ' (python: ' + $py + ')'); return }
+  if (-not $py -or -not (Test-Path $sc)) { Set-Content -Path (Join-Path $aqui 'atalho_erro.txt') -Value ('sem python para ' + $sc); return }
   $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru; Set-Content -Path $f -Value $pr.Id
 }
 function JogoAtual {
@@ -662,7 +659,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 26 } }
+      default  { Json $ctx @{ ok = $true; versao = 27 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
