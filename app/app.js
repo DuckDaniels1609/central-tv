@@ -600,12 +600,14 @@
   function fundosRemotos(mapa) {
     Object.keys(mapa).forEach(function (p) {
       var v = mapa[p]; if (FR[p] && FR[p].v === v) return;
-      if (!v) { if (FR[p] && FR[p].url) URL.revokeObjectURL(FR[p].url); delete FR[p]; return; }
+      if (!v) { if (FR[p] && FR[p].url && FR[p].url.indexOf('blob:') === 0) URL.revokeObjectURL(FR[p].url); delete FR[p]; try { localStorage.removeItem('fundoR-' + p); } catch (e) {} return; }
       FR[p] = { v: v };
       var h = ghHdr(); h.Accept = 'application/vnd.github.raw';
       fetch(GH_BASE + 'fundos/' + p + '.jpg?v=' + v, { headers: h, cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); }).then(function (b) {
         if (!FR[p] || FR[p].v !== v) return;
         FR[p].url = URL.createObjectURL(b);
+        /* guarda uma cópia na TV: na próxima vez a Central já abre com este fundo (sem piscar o fundo antigo) */
+        try { var fr = new FileReader(); fr.onload = function () { try { localStorage.setItem('fundoR-' + p, JSON.stringify({ v: v, d: fr.result })); } catch (e2) { diagAdd('fundo ' + p + ': sem espaço para guardar'); } }; fr.readAsDataURL(b); } catch (e) {}
         if (p === 'despertar') { imgDesp = FR[p].url; cfg.fundo.despertar = 'img'; } else { imgOk[p] = FR[p].url; if (p === 'discreto') { if (cfg.discreto) cfg.discreto.fundo = 'img'; } else cfg.fundo[p] = 'img'; }
         gravar('cfg', cfg); aplicarCfg(); if (despAtivo) fundoDesp();
         registrar('Fundo novo do PC: ' + p);
@@ -1564,6 +1566,12 @@
   setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(entradaTV, 7000); setInterval(entradaTV, 30000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
   renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV(); try { renderSugestao(); renderContinuar(); } catch (e) { diagAdd('sugestão: ' + e.message); }
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
+  /* fundos do PC guardados na TV: entram já na abertura */
+  ['inicio', 'projetos', 'treino', 'exercicios', 'agenda', 'discreto', 'despertar'].forEach(function (p) {
+    var g = ler('fundoR-' + p, null); if (!g || !g.d) return;
+    FR[p] = { v: g.v, url: g.d };
+    if (p === 'despertar') imgDesp = g.d; else imgOk[p] = g.d;
+  });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();
   setInterval(carregarAgenda, 15 * 60000);
