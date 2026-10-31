@@ -246,10 +246,10 @@ body.discreto .hoje2.fds > .card:not(.sug) { display: flex; }
 body.discreto .hoje2.fds > .trab, body.discreto .sug { display: none !important; }
 
 /* barra de baixo do Início: só as bolinhas e as setas; Modo/Personalizar/Menu Samsung aparecem quando o foco desce até ela */
-#p-inicio .pnav .modobtn, #p-inicio .pnav .cfgbtn, #p-inicio .pnav .smbtn { opacity: 0; transform: translateY(14px); transition: opacity .25s, transform .25s; }
-body.nav-on #p-inicio .pnav .modobtn, body.nav-on #p-inicio .pnav .cfgbtn, body.nav-on #p-inicio .pnav .smbtn { opacity: 1; transform: none; }
+#p-inicio .pnav .modobtn, #p-inicio .pnav .cfgbtn, #p-inicio .pnav .smbtn { visibility: hidden; }
+body.nav-on #p-inicio .pnav .modobtn, body.nav-on #p-inicio .pnav .cfgbtn, body.nav-on #p-inicio .pnav .smbtn { visibility: visible; }
 #p-inicio .pnav [data-go] { font-size: 24px; padding: 10px 24px; background: rgba(16,16,48,.55); }
-body.discreto #p-inicio .pnav .modobtn { opacity: 1; transform: none; }
+body.discreto #p-inicio .pnav .modobtn { visibility: visible; }
 
 /* apps mais baixos, com o ícone oficial do app */
 #p-inicio .app { height: 112px; flex-direction: row; gap: 14px; padding: 0 16px; border-radius: 22px; font-size: 22px; justify-content: flex-start; }
