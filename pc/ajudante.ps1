@@ -533,6 +533,16 @@ while ($http.IsListening) {
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/obs/foto-fonte' {
+        # imagem de uma fonte do OBS (ex.: "Jogo: Street Fighter 6") em JPEG, para os leitores ao vivo lerem o jogo e não o monitor
+        try {
+          $w = 1280; if ($q['w']) { $w = [int]$q['w'] }
+          $r = ObsWs @(@{ t = 'GetSourceScreenshot'; d = @{ sourceName = [string]$q['nome']; imageFormat = 'jpg'; imageWidth = $w; imageCompressionQuality = 85 } })
+          $b64 = [string]$r[0].responseData.imageData
+          if (-not $b64) { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes([string]$r[0].requestStatus.comment)); continue }
+          Responder $ctx 200 'image/jpeg' ([Convert]::FromBase64String($b64.Substring($b64.IndexOf(',') + 1)))
+        } catch { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) }
+      }
       '/obs/cena' {
         try { $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = [string]$q['nome'] } }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment } }
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
@@ -558,7 +568,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 20 } }
+      default  { Json $ctx @{ ok = $true; versao = 21 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
