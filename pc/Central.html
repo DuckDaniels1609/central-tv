@@ -119,6 +119,18 @@ html, body { height: 100%; margin: 0; }
 .tv { width: 100%; max-width: calc((100vh - 330px) * 16 / 9); align-self: center; flex: none; }
 @media (max-width: 1100px) { .grid { grid-template-columns: 160px minmax(0, 1fr) 380px; } }
 @media (max-width: 900px) { .wrap { height: auto; } .grid { grid-template-columns: minmax(0, 1fr); } .tv { max-width: 100%; } }
+.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; overflow-y: auto; align-content: start; padding: 4px; }
+.pc-app { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid transparent; border-radius: 20px; height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; padding: 10px; }
+.pc-app:hover { border-color: var(--acc); transform: translateY(-2px); }
+.pc-app:focus-visible { outline: 3px solid #FFF; outline-offset: 2px; }
+.pc-app img, .pc-app .ini { width: 56px; height: 56px; border-radius: 14px; object-fit: contain; }
+.pc-app .ini { display: flex; align-items: center; justify-content: center; background: var(--acc); color: #1C1838; font-size: 26px; font-weight: 800; }
+.pc-app span { font-size: 15px; font-weight: 700; text-align: center; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pc-pastas { display: flex; flex-direction: column; gap: 6px; }
+.pc-pasta { font: inherit; color: var(--fg); text-align: left; background: var(--panel2); border: 0; border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 700; display: flex; gap: 10px; align-items: center; }
+.pc-pasta:hover { background: #2E2870; }
+.pc-pasta small { color: var(--muted); font-weight: 500; margin-left: auto; }
+#meio-pc[hidden], #meio-tv[hidden] { display: none !important; }
 </style>
 
 <div class="wrap">
@@ -142,7 +154,8 @@ html, body { height: 100%; margin: 0; }
 
   <div class="grid">
     <nav class="card menu" aria-label="Seções">
-      <button class="mi" data-sec="clip" aria-pressed="true">Clipes</button>
+      <button class="mi" data-sec="pc" aria-pressed="true">Meus programas</button>
+      <button class="mi" data-sec="clip">Clipes</button>
       <button class="mi" data-sec="visual">Aparência</button>
       <button class="mi" data-sec="apps">Apps</button>
       <button class="mi" data-sec="desp">Despertador</button>
@@ -150,7 +163,11 @@ html, body { height: 100%; margin: 0; }
       <button class="mi" data-sec="disc">Modo discreto</button>
       <button class="mi" data-sec="cel">App do celular</button>
     </nav>
-    <div class="col card">
+    <div class="col card" id="meio-pc" hidden>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0;font-size:26px">Meus programas</h2><span class="note" id="pc-st"></span></div>
+      <div class="pc-grid" id="pc-apps"></div>
+    </div>
+    <div class="col card" id="meio-tv">
       <div class="tabs" role="group" aria-label="Tela da TV">
         <button class="tab" data-pg="projetos">Projetos</button>
         <button class="tab" data-pg="inicio" aria-pressed="true">Início</button>
@@ -165,6 +182,12 @@ html, body { height: 100%; margin: 0; }
     </div>
 
     <div class="card" id="painel">
+      <section data-s="pc" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Pastas e arquivos</h3>
+        <div class="pc-pastas" id="pc-pastas"></div>
+        <div class="row"><button class="btn" id="pc-abrir-pasta">Abrir a pasta</button></div>
+        <p class="note" style="margin:0">Tudo que estava na sua Área de Trabalho está na pasta <b>Área de trabalho antiga</b>. Para pôr um programa novo aqui, arraste o atalho dele para a pasta <b>Atalhos</b> dentro dela.</p>
+      </section>
       <section data-s="clip" class="sec card clip" style="display:flex;flex-direction:column;gap:10px;padding:14px">
         <h3>Clipes do Início · オープニング</h3>
         <label class="f" for="clip-url">Link da playlist do YouTube (não listada)<input type="text" id="clip-url" placeholder="https://youtube.com/playlist?list=..."></label>
@@ -514,6 +537,8 @@ html, body { height: 100%; margin: 0; }
     if (t.dataset.celini) { var ki = t.dataset.celini; S.celular.inicio[ki] = S.celular.inicio[ki] === false; mudou(); return; }
     if (t.dataset.dfundo !== undefined) { S.discreto.fundo = t.dataset.dfundo; mudouDisc(); return; }
     if (t.dataset.sec) { mostrarSec(t.dataset.sec); return; }
+    if (t.dataset.abrir) { pcAbrir(t.dataset.abrir); return; }
+    if (t.id === 'pc-abrir-pasta') { fetch(AJ + '/pasta?k=' + ajK()).catch(function () {}); return; }
     if (t.dataset.modo) { mudarModo(t.dataset.modo); return; }
     if (t.id === 'gh-salvar') { var v = ($('gh-tok').value || '').trim(); if (!/^(github_pat_|ghp_)/.test(v)) { $('gh-msg').textContent = 'A chave começa com github_pat_'; return; } try { localStorage.setItem('gh-token', v); } catch (e2) {} GH.ok = null; renderCon(); carregar(); return; }
     if (t.id === 'gh-esquecer') { try { localStorage.removeItem('gh-token'); } catch (e3) {} GH.ok = null; renderCon(); renderModo(); return; }
@@ -561,11 +586,36 @@ html, body { height: 100%; margin: 0; }
   window.addEventListener('resize', escala);
   try { new ResizeObserver(escala).observe($('tv')); } catch (e) {}
 
-  var SEC = 'clip';
+  /* ---------- meus programas (ajudante no PC) ---------- */
+  var AJ = 'http://localhost:47800';
+  function ajK() { return window.AJUDANTE_CHAVE || ''; }
+  function carregarChave(cb) {
+    var sc = document.createElement('script'); sc.src = 'ajudante_chave.js?t=' + Date.now();
+    sc.onload = sc.onerror = function () { sc.remove(); cb && cb(); }; document.head.appendChild(sc);
+  }
+  function pcCarregar(tent) {
+    tent = tent || 0;
+    carregarChave(function () {
+      fetch(AJ + '/apps?k=' + ajK()).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+        $('pc-st').textContent = d.apps.length + ' programas';
+        $('pc-apps').innerHTML = d.apps.map(function (a) {
+          return '<button class="pc-app" data-abrir="' + esc(a.f) + '" title="' + esc(a.nome) + '"><img alt="" src="' + AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(a.f) + '" onerror="this.outerHTML=\'<b class=ini>' + esc(a.nome.charAt(0).toUpperCase()) + '</b>\'"><span>' + esc(a.nome) + '</span></button>';
+        }).join('') || '<p class="note">Nenhum atalho ainda na pasta Atalhos.</p>';
+        $('pc-pastas').innerHTML = d.pastas.map(function (a) { return '<button class="pc-pasta" data-abrir="' + esc(a.f) + '">' + esc(a.nome) + '<small>' + (a.pasta ? 'pasta' : a.ext.replace('.', '')) + '</small></button>'; }).join('');
+      }).catch(function () {
+        $('pc-st').textContent = 'Ligando o ajudante…';
+        if (tent < 20) setTimeout(function () { pcCarregar(tent + 1); }, 3000);
+        else $('pc-apps').innerHTML = '<p class="note">O ajudante não está rodando. Abra a Central pelo atalho "Central no PC" (ele liga o ajudante junto).</p>';
+      });
+    });
+  }
+  function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
+  var SEC = 'pc';
   function mostrarSec(sx) {
     SEC = sx;
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
+    $('meio-pc').hidden = sx !== 'pc'; $('meio-tv').hidden = sx === 'pc';
     var alvo = sx === 'desp' ? 'despertar' : sx === 'disc' ? 'discreto' : (sx === 'visual' ? pg : 'inicio');
     if (sx === 'visual' && (pg === 'despertar' || pg === 'discreto')) alvo = 'inicio';
     if (alvo !== pg) { pg = alvo; document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pg === pg); }); render(); }
@@ -588,8 +638,10 @@ html, body { height: 100%; margin: 0; }
     }).catch(function (e) { render(); status('Não consegui carregar (' + e.message + ').', false); });
   }
   render();
-  mostrarSec('clip');
+  mostrarSec('pc');
   carregar();
+  pcCarregar();
+  window.addEventListener('focus', function () { if (SEC === 'pc') pcCarregar(18); });
   setInterval(lerModo, 60000);
 })();
 </script>
