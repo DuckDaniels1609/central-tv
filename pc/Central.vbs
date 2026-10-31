@@ -7,4 +7,4 @@ Set t = fs.CreateTextFile(d & "\vbs_ok.txt", True): t.WriteLine Now: t.Close
 On Error GoTo 0
 sh.Run "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & d & "\ajudante.ps1""", 0, False
 WScript.Sleep 2000
-sh.Run "msedge --app=""file:///" & Replace(d, "\", "/") & "/Central.html"" --window-size=1920,1080 --window-position=0,0", 1, False
+sh.Run "msedge --app=""file:///" & Replace(d, "\", "/") & "/Central.html"" --start-maximized --window-size=1920,1080 --window-position=0,0", 1, False

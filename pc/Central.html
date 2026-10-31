@@ -726,6 +726,9 @@ html, body { height: 100%; margin: 0; }
       render(); status('Pronto · cada mudança vai sozinha para a TV', true);
     }).catch(function (e) { render(); status('Não consegui carregar (' + e.message + ').', false); });
   }
+  /* sempre ocupar a tela toda (o Edge às vezes ignora o tamanho pedido no atalho) */
+  function telaCheia() { try { if (window.outerWidth < screen.availWidth - 8 || window.outerHeight < screen.availHeight - 8) { window.moveTo(screen.availLeft || 0, screen.availTop || 0); window.resizeTo(screen.availWidth, screen.availHeight); } } catch (e) {} }
+  telaCheia(); setTimeout(telaCheia, 400); setTimeout(telaCheia, 1500);
   render();
   mostrarSec('hoje');
   carregar();
