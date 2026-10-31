@@ -156,13 +156,13 @@ html, body { height: 100%; margin: 0; }
 .nova input, #hj-txt, #cal-txt, .hora-in { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
 .nova input[hidden] { display: none; }
 .tar-lista { overflow-y: auto; flex: 1; min-height: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(12,10,34,.35); }
-.tab { width: 100%; border-collapse: collapse; font-size: 15px; }
-.tab thead th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 12px 14px; background: rgba(22,19,56,.96); border-bottom: 1px solid rgba(255,255,255,.14); }
-.tab td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: middle; }
-.tab .gh td { padding: 16px 14px 8px; border-bottom: 2px solid var(--c); background: transparent; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tbl thead th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 12px 14px; background: rgba(22,19,56,.96); border-bottom: 1px solid rgba(255,255,255,.14); }
+.tbl td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: middle; }
+.tbl .gh td { padding: 16px 14px 8px; border-bottom: 2px solid var(--c); background: transparent; }
 .gtag { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
 .gn { margin-left: 10px; font-size: 13px; color: var(--muted); }
-.tab .lin:hover td { background: rgba(255,255,255,.04); }
+.tbl .lin:hover td { background: rgba(255,255,255,.04); }
 .c-chk { width: 44px; }
 .c-x { width: 70px; text-align: right; }
 .c-t { font-weight: 700; }
@@ -172,7 +172,7 @@ html, body { height: 100%; margin: 0; }
 .rb { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #2E2870; color: var(--muted); margin-right: 4px; }
 .rb.eu { background: color-mix(in srgb, var(--acc) 30%, transparent); color: #FFF; }
 .vz { color: rgba(183,178,218,.5); }
-.tab .dt-in { margin: 0; font-size: 14px; color: #D9D5F2; }
+.tbl .dt-in { margin: 0; font-size: 14px; color: #D9D5F2; }
 .grupo { display: flex; flex-direction: column; gap: 6px; }
 .tr { align-items: flex-start; padding: 10px 12px; }
 .tc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -320,7 +320,7 @@ header { align-items: center; }
         <button class="tab" data-pg="discreto">Início no modo discreto</button>
       </div>
       <div class="tv" id="tv"><div class="stage" id="stage"></div></div>
-      <p class="note" style="margin:0">Cada mudança vai sozinha para a TV: ela aplica em até 5 minutos, ou na hora quando a Central volta para a tela. Imagens de fundo são as que já estão na TV (pasta <b>CentralTV\fundos</b>).</p>
+      <p class="note" style="margin:0">Cada mudança vai sozinha para a TV: ela aplica em até 5 minutos, ou na hora quando a Central volta para a tela. Para trocar a foto de uma tela, use "Enviar imagem do PC para a TV" em Aparência.</p>
     </div>
 
     <div class="card" id="painel">
@@ -383,6 +383,7 @@ header { align-items: center; }
         <p class="note" style="margin:0">No discreto a TV mostra só o Início, sem despertador, sem tarefas e sem openings. Escolha aqui o fundo e as músicas.</p>
         <div class="f" style="font-size:14px;color:var(--muted)">Fundo do Início</div>
         <div class="row" id="disc-fundo"></div>
+        <div class="row"><label class="btn" for="fundo-disc-in">Enviar imagem do PC…</label><input type="file" id="fundo-disc-in" accept="image/*" hidden></div>
         <div class="f" style="font-size:14px;color:var(--muted)">Músicas <span id="disc-mus-n"></span></div>
         <div class="mus-l" id="disc-mus"></div>
         <p class="note" style="margin:0">Nenhuma marcada: toca a pasta <b>musicas\discreto</b> do PC (ou todas, se ela não existir).</p>
@@ -419,9 +420,8 @@ header { align-items: center; }
       <section data-s="visual" class="sec" style="display:flex;flex-direction:column;gap:8px">
         <h3 id="fundo-tit">Fundo da tela Início</h3>
         <div class="row" id="cenas"></div>
-        <div class="row">
-          <span class="note" id="up-st"></span>
-        </div>
+        <div class="row"><label class="btn prim" for="fundo-in">Enviar imagem do PC para a TV…</label><input type="file" id="fundo-in" accept="image/*" hidden></div>
+        <span class="note" id="up-st">A imagem vai para esta tela da TV (escolha a tela nas abas da prévia). A TV troca sozinha em até 5 minutos.</span>
         <label class="f" for="escuro">Escurecer o fundo: <span id="escuro-v">0%</span><input type="range" id="escuro" min="0" max="70" step="5" value="0"></label>
       </section>
 
@@ -451,6 +451,7 @@ header { align-items: center; }
           <button class="chip" id="desp-off">Desligado</button>
           <label class="f" for="desp-hora" style="flex-direction:row;align-items:center;gap:8px">Horário <input type="time" id="desp-hora" style="font:inherit;color:var(--fg);background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:6px 8px"></label>
         </div>
+        <div class="row"><label class="btn prim" for="fundo-desp-in">Trocar a imagem do despertar…</label><input type="file" id="fundo-desp-in" accept="image/*" hidden><span class="note" id="desp-up-st"></span></div>
         <div class="row" id="desp-dias" role="group" aria-label="Dias"></div>
         <div class="row" id="desp-horas"></div>
         <div class="row">
@@ -512,11 +513,11 @@ header { align-items: center; }
     if (p === 'discreto') {
       var df = (S.discreto || {}).fundo;
       if (!df) return fundoHTML('inicio');
-      if (df === 'img') return '<div class="bgimg" style="background-image:url(../fundos/discreto.jpg)"></div>';
+      if (df === 'img') return '<div class="bgimg" style="background-image:' + (PREV.discreto ? 'url(' + PREV.discreto + '), ' : '') + 'url(../fundos/discreto.jpg)"></div>';
       return CENAS[df] || CENAS.noite;
     }
     var f = S.fundos[p] || {};
-    if (f.tipo === 'img') return '<div class="bgimg" style="background-image:url(../fundos/' + p + '.jpg), url(../fundos/' + p + '.png)"></div>';
+    if (f.tipo === 'img') return '<div class="bgimg" style="background-image:' + (PREV[p] ? 'url(' + PREV[p] + '), ' : '') + 'url(../fundos/' + p + '.jpg), url(../fundos/' + p + '.png)"></div>';
     return CENAS[f.cena] || CENAS.entardecer;
   }
   function render() {
@@ -559,7 +560,7 @@ header { align-items: center; }
     $('fundo-tit').textContent = 'Fundo da tela ' + PAGS[pgF] + (pg === 'discreto' ? ' (modo normal)' : '');
     var f = S.fundos[pgF];
     $('cenas').innerHTML = (pg === 'despertar' ? ['aurora'] : []).concat(Object.keys(NOMES_CENA)).map(function (k) { return '<button class="chip" data-cena="' + k + '" aria-pressed="' + (f.tipo === 'cena' && f.cena === k) + '">' + (NOMES_CENA[k] || 'Aurora') + '</button>'; }).join('') +
-      (pg !== 'despertar' && pg !== 'agenda' ? '<button class="chip" data-minha="1" aria-pressed="' + (f.tipo === 'img') + '">Imagem da TV</button>' : '');
+      ((pg !== 'despertar' && pg !== 'agenda') || PREV[pg] ? '<button class="chip" data-minha="1" aria-pressed="' + (f.tipo === 'img') + '">Imagem da TV</button>' : '');
     $('escuro').value = S.escuro; $('escuro-v').textContent = S.escuro + '%';
     $('anim-on').setAttribute('aria-pressed', S.anim); $('anim-off').setAttribute('aria-pressed', !S.anim);
     if (!S.musica) S.musica = { on: true, vol: 40 };
@@ -609,6 +610,45 @@ header { align-items: center; }
     var dz = JSON.parse(JSON.stringify(S.despertar)); dz.musica = 'musicas/' + dz.musica + '.mp3';
     return { versao: S.atualizado, nome: S.nome, apps: S.apps, cor: S.cor, escuro: S.escuro, anim: S.anim, musica: S.musica, fundos: f, despertar: dz };
   }
+  /* ---------- fundos enviados para a TV (repositório privado, pasta fundos/) ---------- */
+  var PREV = {};
+  try { PREV = JSON.parse(localStorage.getItem('prev-fundos') || '{}'); } catch (e) {}
+  function enviarFundo(pf, file, stEl) {
+    stEl = stEl || $('up-st'); stEl.textContent = 'Preparando a imagem…';
+    var im = new Image();
+    im.onload = function () {
+      var W = 1920, H = 1080, c = document.createElement('canvas'); c.width = W; c.height = H;
+      var g = c.getContext('2d'), esc2 = Math.max(W / im.width, H / im.height), w = im.width * esc2, h = im.height * esc2;
+      g.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+      var dataUrl = c.toDataURL('image/jpeg', 0.85), b64 = dataUrl.split(',')[1];
+      /* miniatura para a prévia (fica neste PC) */
+      var t = document.createElement('canvas'); t.width = 640; t.height = 360; t.getContext('2d').drawImage(c, 0, 0, 640, 360);
+      PREV[pf] = t.toDataURL('image/jpeg', 0.8); try { localStorage.setItem('prev-fundos', JSON.stringify(PREV)); } catch (e) {}
+      stEl.textContent = 'Enviando para a TV…';
+      var arq = 'fundos/' + pf + '.jpg';
+      fetch(GH.base + arq + '?t=' + Date.now(), { headers: ghH(), cache: 'no-store' }).then(function (r) { return r.status === 404 ? null : r.json(); }).then(function (j) {
+        var corpo = { message: 'Central no PC: fundo ' + pf, content: b64 }; if (j && j.sha) corpo.sha = j.sha;
+        var hh = ghH(); hh['Content-Type'] = 'application/json';
+        return fetch(GH.base + arq, { method: 'PUT', headers: hh, body: JSON.stringify(corpo) });
+      }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (pf === 'discreto') S.discreto.fundo = 'img'; else S.fundos[pf] = { tipo: 'img', cena: (S.fundos[pf] || {}).cena || 'noite' };
+        FR_NOVO[pf] = Date.now(); mudou();
+        stEl.textContent = 'Imagem enviada. A TV troca em até 5 minutos (ou na hora, quando a Central voltar para a tela).';
+      }).catch(function (e) { stEl.textContent = 'Não consegui enviar (' + e.message + ').'; });
+    };
+    im.onerror = function () { stEl.textContent = 'Não consegui abrir essa imagem. Tente JPG ou PNG.'; };
+    im.src = URL.createObjectURL(file);
+  }
+  var FR_NOVO = {};
+  document.addEventListener('change', function (e) {
+    var t = e.target, f = t.files && t.files[0]; if (!f) return;
+    if (t.id === 'fundo-in') enviarFundo(pg === 'discreto' ? 'discreto' : pg, f);
+    else if (t.id === 'fundo-disc-in') enviarFundo('discreto', f, $('up-st'));
+    else if (t.id === 'fundo-desp-in') enviarFundo('despertar', f, $('desp-up-st'));
+    else return;
+    t.value = '';
+  });
   function ghPut(arq, d, msg, sha) {
     var corpo = { message: msg, content: ghEnc(JSON.stringify(d, null, 1)) }; if (sha) corpo.sha = sha;
     var h = ghH(); h['Content-Type'] = 'application/json';
@@ -622,6 +662,7 @@ header { align-items: center; }
       d.editor = JSON.parse(JSON.stringify(S)); d.tv = paraTV();
       d.discreto = { fundo: S.discreto.fundo || '', musicas: S.discreto.musicas.slice() };
       d.celular = JSON.parse(JSON.stringify(S.celular));
+      d.fundosRemotos = d.fundosRemotos || {}; Object.keys(FR_NOVO).forEach(function (k) { d.fundosRemotos[k] = FR_NOVO[k]; }); FR_NOVO = {};
       var cl = d.clipes || {}; cl.lista = S.clipes.lista || ''; cl.vol = S.clipes.vol || 100; d.clipes = cl;
       return ghPut('config.json', d, 'Central no PC', c && c.sha).then(function (r) {
         if (r.status === 409 && tent < 3) return ghSalvar(tent + 1);
@@ -976,7 +1017,7 @@ header { align-items: center; }
           '<td class="c-x"><button class="x" data-a="tarApaga" data-id="' + t.id + '" aria-label="Excluir">×</button></td></tr>';
       }).join('') : '<tr class="lin vazia"><td></td><td colspan="5" class="vz">Nenhuma tarefa aqui.</td></tr>') + '</tbody>';
     }).join('');
-    el.innerHTML = '<table class="tab"><thead><tr><th class="c-chk"></th><th>Tarefa</th><th>Cliente</th><th>Resp.</th><th>Prazo</th><th class="c-x"></th></tr></thead>' + corpo + '</table>';
+    el.innerHTML = '<table class="tbl"><thead><tr><th class="c-chk"></th><th>Tarefa</th><th>Cliente</th><th>Resp.</th><th>Prazo</th><th class="c-x"></th></tr></thead>' + corpo + '</table>';
     $('tar-filtros').innerHTML = [['todas', 'Todas']].concat(CATS).map(function (c) { return '<button class="chip" data-a="filtro" data-v="' + c[0] + '" aria-pressed="' + (filtro === c[0]) + '">' + c[1] + '</button>'; }).join('') +
       '<button class="chip" data-a="soDBA" aria-pressed="' + soDBA + '">Só as minhas (DBA)</button>';
     var feitas = L.filter(function (t) { return t.ok; }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });

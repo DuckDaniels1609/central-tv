@@ -57,7 +57,7 @@
       (function prox(i) {
         if (i >= tenta.length) { imgOk[p[0]] = null; if (--faltam === 0 && cb) cb(); return; }
         var im = new Image();
-        im.onload = function () { imgOk[p[0]] = tenta[i]; if (--faltam === 0 && cb) cb(); };
+        im.onload = function () { if (!(FR[p[0]] && FR[p[0]].url)) imgOk[p[0]] = tenta[i]; if (--faltam === 0 && cb) cb(); };
         im.onerror = function () { prox(i + 1); };
         im.src = tenta[i];
       })(0);
@@ -459,6 +459,7 @@
       try { aplicarCfg(); renderApps(); if (foco && !document.body.contains(foco)) { foco = null; focar(focoPadrao()); } agendarAlarmeSistema(); tocarMusica(); } catch (e) { diagAdd('editor: ' + e.message); }
       registrar('Ajustes do app do PC aplicados'); try { stSync('editor'); } catch (e2) {}
     }
+    fundosRemotos(d.fundosRemotos || {});
     var cl = d.clipes || {}; if (JSON.stringify(cl) !== JSON.stringify(cfg.clipes || {})) { cfg.clipes = cl; clipeFalhou = false; gravar('cfg', cfg); clipeAtualizar(); clipeCmd('vol'); if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: 'vol', v: cl.vol || 100 }), '*'); registrar(cl.lista ? 'Clipes do YouTube ligados' : 'Clipes do YouTube desligados'); }
     var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
     cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
@@ -470,6 +471,23 @@
       if (cfg.modo === 'discreto') { trocarLista(); srcAtual = null; tocarMusica(); }
       if (d.versao) registrar('Modo discreto atualizado pelo Editor');
     }
+  }
+  /* fundos enviados pelo app do PC (ficam no repositório privado, pasta fundos/) */
+  var FR = {};
+  function fundosRemotos(mapa) {
+    Object.keys(mapa).forEach(function (p) {
+      var v = mapa[p]; if (FR[p] && FR[p].v === v) return;
+      if (!v) { if (FR[p] && FR[p].url) URL.revokeObjectURL(FR[p].url); delete FR[p]; return; }
+      FR[p] = { v: v };
+      var h = ghHdr(); h.Accept = 'application/vnd.github.raw';
+      fetch(GH_BASE + 'fundos/' + p + '.jpg?v=' + v, { headers: h, cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); }).then(function (b) {
+        if (!FR[p] || FR[p].v !== v) return;
+        FR[p].url = URL.createObjectURL(b);
+        if (p === 'despertar') { imgDesp = FR[p].url; cfg.fundo.despertar = 'img'; } else { imgOk[p] = FR[p].url; if (p === 'discreto') { if (cfg.discreto) cfg.discreto.fundo = 'img'; } else cfg.fundo[p] = 'img'; }
+        gravar('cfg', cfg); aplicarCfg(); if (despAtivo) fundoDesp();
+        registrar('Fundo novo do PC: ' + p);
+      }).catch(function (e) { delete FR[p]; diagAdd('fundo ' + p + ': ' + e.message); });
+    });
   }
   function agendaEnviar() {
     if (!window.DADOS_GH) return;
@@ -1005,7 +1023,7 @@
     return ler('desp-feito', '') !== hojeISO();
   }
   var imgDesp = null;
-  (function () { var tenta = ['fundos/despertar.jpg', 'fundos/despertar.png']; (function prox(i) { if (i >= tenta.length) return; var im = new Image(); im.onload = function () { imgDesp = tenta[i]; }; im.onerror = function () { prox(i + 1); }; im.src = tenta[i]; })(0); })();
+  (function () { var tenta = ['fundos/despertar.jpg', 'fundos/despertar.png']; (function prox(i) { if (i >= tenta.length) return; var im = new Image(); im.onload = function () { if (!(FR.despertar && FR.despertar.url)) imgDesp = tenta[i]; }; im.onerror = function () { prox(i + 1); }; im.src = tenta[i]; })(0); })();
   function fundoDesp() {
     var el = $('desp'), velho = el.querySelector('.bg-desp'); if (velho) el.removeChild(velho);
     var f = cfg.fundo.despertar || 'aurora';
