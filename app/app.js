@@ -211,7 +211,7 @@
     {
       clipeFr = document.createElement('iframe');
       clipeFr.setAttribute('allow', 'autoplay; encrypted-media'); clipeFr.setAttribute('frameborder', '0'); clipeFr.setAttribute('tabindex', '-1');
-      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista()) + '&vol=' + ((cfg.musica && cfg.musica.vol) || 40) + '&v=' + (ids || []).join(',');
+      clipeFr.src = 'https://duckdaniels1609.github.io/central-tv/app/clipe.html#list=' + encodeURIComponent(clipeLista()) + '&vol=' + ((cfg.clipes && cfg.clipes.vol) || 100) + '&v=' + (ids || []).join(',');
       box.querySelector('.clipe-v').appendChild(clipeFr); clipeTocando = true; tocarMusica(); diagAdd('clipe: abrindo player com ' + (ids || []).length + ' videos');
     }
   }
@@ -452,7 +452,7 @@
     var exAntes = JSON.stringify(cfg.despertar.extras || {}), exNovo = d.despertarExtra || {};
     var hj = isoD(new Date()); Object.keys(exNovo).forEach(function (k) { if (k < hj) delete exNovo[k]; });
     if (JSON.stringify(exNovo) !== exAntes) { cfg.despertar.extras = exNovo; gravar('cfg', cfg); agendarAlarmeSistema(); registrar('Despertar extra: ' + (Object.keys(exNovo).map(function (k) { return k.split('-').reverse().slice(0, 2).join('/') + ' ' + exNovo[k]; }).join(', ') || 'nenhum')); }
-    var cl = d.clipes || {}; if (JSON.stringify(cl) !== JSON.stringify(cfg.clipes || {})) { cfg.clipes = cl; clipeFalhou = false; gravar('cfg', cfg); clipeAtualizar(); registrar(cl.lista ? 'Clipes do YouTube ligados' : 'Clipes do YouTube desligados'); }
+    var cl = d.clipes || {}; if (JSON.stringify(cl) !== JSON.stringify(cfg.clipes || {})) { cfg.clipes = cl; clipeFalhou = false; gravar('cfg', cfg); clipeAtualizar(); clipeCmd('vol'); if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: 'vol', v: cl.vol || 100 }), '*'); registrar(cl.lista ? 'Clipes do YouTube ligados' : 'Clipes do YouTube desligados'); }
     var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
     cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
     var nomes = cfg.discreto.musicas;
