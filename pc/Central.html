@@ -225,6 +225,7 @@ header { align-items: center; }
 .mg-bt[aria-expanded="true"] svg { transform: rotate(180deg); }
 .sub-tv { display: flex; flex-direction: column; gap: 4px; padding-left: 6px; border-left: 2px solid rgba(255,255,255,.08); margin-left: 12px; }
 .sub-tv[hidden] { display: none; }
+#sub-an { margin-bottom: 4px; }
 .sub-tv .mi { min-height: 40px; font-size: 14px; padding: 8px 12px; }
 .menu { overflow-y: auto; }
 .banner.slim { min-height: 96px; padding: 16px 22px; }
@@ -329,6 +330,9 @@ header { align-items: center; }
 .lv-bt .ler { text-decoration: none; border-radius: 10px; padding: 8px 14px; margin-left: auto; }
 .chip small { opacity: .7; font-weight: 500; }
 .sep { width: 1px; height: 26px; background: rgba(255,255,255,.15); margin: 0 6px; }
+.lv-tx .sub2 { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nota { font-size: 13px; font-weight: 800; color: #FFD36E; }
+.le-det h3 { margin: 0; font-size: 18px; color: var(--fg); text-transform: none; letter-spacing: 0; }
 .le-det { display: flex; flex-direction: column; gap: 10px; }
 .le-det .desc { margin: 0; font-size: 14px; line-height: 1.55; color: #E2DEF7; white-space: pre-line; max-height: 300px; overflow-y: auto; padding-right: 6px; }
 .gen { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--acc) 22%, transparent); }
@@ -363,7 +367,11 @@ header { align-items: center; }
       <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
       <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Projetos</button>
       <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Estante</button>
-      <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>Leitura</button>
+      <button class="mg mg-bt" id="mg-an" aria-expanded="false">Animes e mangás <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="sub-tv" id="sub-an" hidden>
+      <button class="mi" data-sec="anime"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 2l-5 5-5-5M10 11l5 3-5 3z"/></svg>Animes</button>
+      <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>Mangás e manhwas</button>
+      </div>
       <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>Lançamentos</button>
       <button class="mi" data-sec="tvc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Controle da TV</button>
       <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
@@ -409,8 +417,13 @@ header { align-items: center; }
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Estante de Platinas</h2><span id="es-resumo"></span></div><div class="row" id="es-filtros" style="position:relative"></div></div>
       <div class="jg-grid" id="es-grid"><p class="note">Carregando…</p></div>
     </div>
+    <div class="col card meio" id="meio-anime" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Animes</h2><span id="an-resumo"></span></div><input type="search" id="an-busca" class="in-txt" placeholder="Procurar anime…" aria-label="Procurar anime" style="width:260px;position:relative"></div>
+      <div class="row" id="an-filtros"></div>
+      <div class="le-grid" id="an-grid"><p class="note">Carregando…</p></div>
+    </div>
     <div class="col card meio" id="meio-leit" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Leitura</h2><span id="le-resumo"></span></div><div class="row" style="position:relative"><input type="search" id="le-busca" class="in-txt" placeholder="Procurar título…" aria-label="Procurar título" style="width:260px"><button class="btn prim" data-a="leNovo">+ Novo</button></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Mangás e manhwas</h2><span id="le-resumo"></span></div><div class="row" style="position:relative"><input type="search" id="le-busca" class="in-txt" placeholder="Procurar título…" aria-label="Procurar título" style="width:260px"><button class="btn prim" data-a="leNovo">+ Novo</button></div></div>
       <div class="row" id="le-filtros"></div>
       <div class="le-grid" id="le-grid"><p class="note">Carregando…</p></div>
     </div>
@@ -459,6 +472,9 @@ header { align-items: center; }
         <label class="f" for="lk-escuro">Escurecer o fundo: <span id="lk-escuro-v"></span><input type="range" id="lk-escuro" min="0" max="85" step="5"></label>
         <label class="f" for="lk-vidro">Painéis transparentes: <span id="lk-vidro-v"></span><input type="range" id="lk-vidro" min="0" max="80" step="5"></label>
         <div class="row"><button class="chip" id="lk-blur">Desfocar atrás dos painéis</button></div>
+        <h3>MyAnimeList</h3>
+        <div class="row" style="flex-wrap:nowrap"><input type="password" id="mal-cid" class="in-txt" placeholder="Cole aqui o Client ID do MAL" aria-label="Client ID do MyAnimeList" autocomplete="off" style="flex:1"><button class="btn prim" type="button" id="mal-salvar">Conectar</button></div>
+        <div id="mal-st"></div>
         <h3>Ícone do app (área de trabalho)</h3>
         <div class="row"><label class="btn" for="lk-icone-in">Usar uma imagem minha…</label><input type="file" id="lk-icone-in" accept="image/*" hidden><button class="btn" id="lk-icone-x">Ícone da Central</button></div>
         <span class="note" id="lk-icone-st"></span>
@@ -471,6 +487,9 @@ header { align-items: center; }
         <p class="note" id="es-info" style="margin:0"></p>
         <div class="row" id="es-status"></div>
         <div class="col" style="gap:6px" id="es-trof"></div>
+      </section>
+      <section data-s="anime" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <div id="an-det" class="le-det"></div>
       </section>
       <section data-s="leit" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <p class="note" id="le-vazio" style="margin:0">Clique na capa de um título para editar. O <b>+1</b> soma um capítulo e o <b>Ler</b> abre o site onde você lê.</p>
@@ -1024,20 +1043,21 @@ header { align-items: center; }
     var b = e.target.closest('[data-pccat]'), mn = $('pc-menu');
     if (b) { var m = catsPC(); m[b.dataset.f] = b.dataset.pccat; try { localStorage.setItem('pc-cats', JSON.stringify(m)); } catch (x) {} desenharApps(); }
     if (mn && !e.target.closest('#pc-menu .x0')) mn.remove();
-    var g = e.target.closest('#mg-tv'); if (g) { var ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-tv').hidden = !ab; try { localStorage.setItem('menu-tv', ab ? '1' : ''); } catch (x) {} }
+    var g = e.target.closest('#mg-tv, #mg-an'); if (g) { var gs = g.id.slice(3), ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; try { localStorage.setItem('menu-' + gs, ab ? '1' : ''); } catch (x) {} }
   });
-  try { if (localStorage.getItem('menu-tv')) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; } } catch (e) {}
+  try { ['tv', 'an'].forEach(function (gs) { if (localStorage.getItem('menu-' + gs)) { $('mg-' + gs).setAttribute('aria-expanded', 'true'); $('sub-' + gs).hidden = false; } }); } catch (e) {}
   window.PC_LISTA = function () { return PC_APPS; };
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 5 && !sessionStorage.getItem('aj-reiniciou')) { sessionStorage.setItem('aj-reiniciou', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 6 && !sessionStorage.getItem('aj-reiniciou-6')) { sessionStorage.setItem('aj-reiniciou-6', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
+    if (['anime', 'leit'].indexOf(sx) >= 0) { $('mg-an').setAttribute('aria-expanded', 'true'); $('sub-an').hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
@@ -1079,7 +1099,7 @@ header { align-items: center; }
 (function () {
   'use strict';
   var BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
-  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json' };
+  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json', an: 'animes.json' };
   var S = {}, SHA = {};
   var $ = function (id) { return document.getElementById(id); };
   function tok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
@@ -1384,6 +1404,7 @@ header { align-items: center; }
     ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (!t.ok) out.push({ tipo: 'Tarefa', t: (t.cli ? t.cli + ': ' : '') + t.t, ir: function () { document.querySelector('.mi[data-sec="tar"]').click(); } }); });
     var P = (S.pj && S.pj.projetos) || {}; Object.keys(P).forEach(function (k) { out.push({ tipo: 'Projeto', t: P[k].nome, ir: function () { pjSel = k; document.querySelector('.mi[data-sec="proj"]').click(); desenharProj(); } }); });
     jogosEst().forEach(function (j) { out.push({ tipo: 'Estante', t: j.name, ir: function () { esSel = j.id; document.querySelector('.mi[data-sec="est"]').click(); desenharEst(); } }); });
+    (MAL.anime || []).forEach(function (x) { out.push({ tipo: 'Anime · ' + ({ watching: 'assistindo', plan_to_watch: 'planejo ver', on_hold: 'em espera', completed: 'completo', dropped: 'dropado' }[x.st] || ''), t: x.en || x.t, ir: function () { anSel = x.id; anQ = x.en || x.t; document.querySelector('.mi[data-sec="anime"]').click(); $('an-busca').value = anQ; desenharAnime(); } }); });
     ((S.le && S.le.itens) || []).forEach(function (x) { out.push({ tipo: x.tipo + (x.cap != null ? ' · cap. ' + x.cap : ''), t: x.nome, ir: function () { leSel = x.id; leQ = x.nome; document.querySelector('.mi[data-sec="leit"]').click(); $('le-busca').value = x.nome; desenharLeit(); } }); });
     ((S.ln && S.ln.jogos) || []).forEach(function (j) { out.push({ tipo: 'Lançamento ' + dmy(j.d), t: j.nome, ir: function () { document.querySelector('.mi[data-sec="lanc"]').click(); } }); });
     ((S.ev && S.ev.eventos) || []).concat(((S.ag && S.ag.reunioes) || [])).forEach(function (e) { out.push({ tipo: dmy(e.d), t: e.t, ir: function () { dia = e.d; mes = e.d.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); });
@@ -1500,8 +1521,8 @@ header { align-items: center; }
     if (a === 'leSt') { leSt = v; leQ = ''; $('le-busca').value = ''; desenharLeit(); }
     else if (a === 'leTipo') { leTipo = v; desenharLeit(); }
     else if (a === 'leSel') { leSel = v; desenharLeit(); }
-    else if (a === 'leMais' || a === 'leMenos') { var dlt = a === 'leMais' ? 1 : -1; leMuda(v, function (x) { var c = Math.floor(+x.cap || 0) + dlt; x.cap = Math.max(0, c); if (x.status === 'quero') x.status = 'lendo'; x.lido = Date.now(); }); }
-    else if (a === 'leStatus') { leMuda(leSel, function (x) { x.status = v; }); }
+    else if (a === 'leMais' || a === 'leMenos') { var dlt = a === 'leMais' ? 1 : -1; leMuda(v, function (x) { var c = Math.floor(+x.cap || 0) + dlt; x.cap = Math.max(0, c); if (x.status === 'quero') x.status = 'lendo'; x.lido = Date.now(); if (window.LE_PARA_MAL) LE_PARA_MAL(x); }); }
+    else if (a === 'leStatus') { leMuda(leSel, function (x) { x.status = v; if (window.LE_PARA_MAL) LE_PARA_MAL(x); }); }
     else if (a === 'leNovo') { var id = 'le' + Date.now().toString(36); mudar('le', function (d) { d.itens = d.itens || []; d.itens.unshift({ id: id, nome: 'Novo título', tipo: 'Manhwa', status: 'lendo', cap: 0 }); }); leSel = id; leSt = 'lendo'; setTimeout(function () { $('le-nome').focus(); $('le-nome').select(); }, 300); }
     else if (a === 'leApaga') { if (!b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'Clique de novo para apagar'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = 'Apagar'; } }, 3000); return; } var idA = leSel; leSel = null; mudar('le', function (d) { d.itens = (d.itens || []).filter(function (x) { return x.id !== idA; }); }); }
   });
@@ -1513,7 +1534,126 @@ header { align-items: center; }
   });
   document.addEventListener('input', function (e) { if (e.target.id === 'le-busca') { leQ = e.target.value; desenharLeit(); } });
 
-  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
+  /* ========== MYANIMELIST (pelo ajudante do PC; a senha fica só no site do MAL) ========== */
+  var MAL = { ok: false, usuario: '', anime: null, carregando: false };
+  function ajBase() { return location.protocol === 'http:' ? location.origin : 'http://localhost:47803'; }
+  function malApi(metodo, caminho, corpo) {
+    return fetch(ajBase() + '/mal/api?k=' + (window.AJUDANTE_CHAVE || '') + '&metodo=' + metodo + '&caminho=' + encodeURIComponent(caminho) + (corpo ? '&corpo=' + encodeURIComponent(corpo) : ''))
+      .then(function (r) { if (!r.ok) return r.text().then(function (t) { throw new Error(t || ('HTTP ' + r.status)); }); return r.json(); });
+  }
+  function malTudo(caminho) {
+    var itens = [];
+    function pag(c) { return malApi('GET', c).then(function (j) { itens = itens.concat(j.data || []); var nx = j.paging && j.paging.next; if (nx) return pag(nx.replace('https://api.myanimelist.net', '')); return itens; }); }
+    return pag(caminho);
+  }
+  function malStatus() {
+    return fetch(ajBase() + '/mal/status?k=' + (window.AJUDANTE_CHAVE || '')).then(function (r) { return r.json(); }).then(function (j) {
+      MAL.ok = !!j.conectado; MAL.usuario = j.usuario || ''; MAL.cid = !!j.cid; desenharMalCfg(); return MAL.ok;
+    }).catch(function () { MAL.ok = false; desenharMalCfg(); return false; });
+  }
+  function desenharMalCfg() {
+    var el = $('mal-st'); if (!el) return;
+    el.innerHTML = MAL.ok ? '<span class="ok-pill">Conectado como ' + esc(MAL.usuario) + '</span> <button class="btn" type="button" id="mal-sair" style="padding:4px 10px;font-size:12px">Desconectar</button>' : MAL.cid ? '<span class="ok-pill off">Client ID salvo · falta autorizar</span> <button class="btn prim" type="button" id="mal-login">Entrar no MyAnimeList</button>' : '<span class="note">Ainda não conectado.</span>';
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.id === 'mal-salvar') {
+      var v = ($('mal-cid').value || '').trim().toLowerCase();
+      if (!/^[0-9a-f]{20,64}$/.test(v)) { $('mal-st').innerHTML = '<span class="ok-pill off">Esse não parece um Client ID (são letras a-f e números)</span>'; return; }
+      fetch(ajBase() + '/mal/config?k=' + (window.AJUDANTE_CHAVE || '') + '&id=' + v).then(function (r) { if (!r.ok) throw new Error(); $('mal-cid').value = ''; MAL.cid = true; window.open(ajBase() + '/mal/login?k=' + (window.AJUDANTE_CHAVE || ''), '_blank'); desenharMalCfg(); })
+        .catch(function () { $('mal-st').innerHTML = '<span class="ok-pill off">O ajudante não respondeu</span>'; });
+    }
+    if (e.target.id === 'mal-login') window.open(ajBase() + '/mal/login?k=' + (window.AJUDANTE_CHAVE || ''), '_blank');
+    if (e.target.id === 'mal-sair') fetch(ajBase() + '/mal/sair?k=' + (window.AJUDANTE_CHAVE || '')).then(malStatus);
+  });
+  window.addEventListener('focus', function () { if (!MAL.ok && MAL.cid) malStatus().then(function (ok) { if (ok) { carregarAnimes(); sincManga(); } }); });
+
+  /* ---- animes ---- */
+  var AN_ST = [['watching', 'Assistindo'], ['plan_to_watch', 'Planejo ver'], ['on_hold', 'Em espera'], ['completed', 'Completo'], ['dropped', 'Dropado']];
+  var anSt = 'watching', anQ = '', anSel = null;
+  try { MAL.anime = JSON.parse(localStorage.getItem('mal-anime') || 'null'); } catch (e) {}
+  function carregarAnimes() {
+    if (!MAL.ok || MAL.carregando) return; MAL.carregando = true;
+    malTudo('/v2/users/@me/animelist?fields=list_status,num_episodes,synopsis,main_picture,genres,mean,alternative_titles,media_type,start_season,status&limit=500&nsfw=true').then(function (L) {
+      MAL.anime = L.map(function (x) { var n = x.node, ls = x.list_status || {}; return { id: n.id, t: n.title, en: (n.alternative_titles || {}).en || '', img: (n.main_picture || {}).medium || '', eps: n.num_episodes || 0, sin: n.synopsis || '', gen: (n.genres || []).map(function (g) { return g.name; }), nota: n.mean || null, tipo: n.media_type || '', ano: (n.start_season || {}).year || '', st: ls.status, ep: ls.num_episodes_watched || 0, score: ls.score || 0, em: ls.updated_at || '' }; });
+      try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e) {}
+      /* cópia leve no repositório para o celular, a TV e a skill */
+      mudar('an', function (d) { d.fonte = 'MyAnimeList · ' + MAL.usuario; d.itens = MAL.anime.map(function (a) { return { id: a.id, t: a.t, en: a.en, img: a.img, eps: a.eps, st: a.st, ep: a.ep, score: a.score }; }); });
+      MAL.carregando = false; desenharAnime();
+    }).catch(function (e) { MAL.carregando = false; $('an-resumo').textContent = 'Não consegui ler o MAL (' + e.message + ')'; });
+  }
+  function anMuda(id, campos) {
+    var a = (MAL.anime || []).filter(function (x) { return x.id === id; })[0]; if (!a) return;
+    Object.keys(campos).forEach(function (k) { a[k] = campos[k]; });
+    try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e) {}
+    desenharAnime();
+    var f = []; if ('st' in campos) f.push('status=' + campos.st); if ('ep' in campos) f.push('num_watched_episodes=' + campos.ep); if ('score' in campos) f.push('score=' + campos.score);
+    malApi('PATCH', '/v2/anime/' + id + '/my_list_status', f.join('&')).then(function () { $('an-msg').textContent = 'Salvo no MyAnimeList.'; }).catch(function (e) { $('an-msg').textContent = 'Não salvou no MAL (' + e.message + ').'; });
+  }
+  function desenharAnime() {
+    var el = $('an-grid'); if (!el) return;
+    var L = MAL.anime || [];
+    if (!MAL.ok && !L.length) { el.innerHTML = '<p class="note">Conecte o seu MyAnimeList em <b>Personalizar → MyAnimeList</b> para ver seus animes aqui.</p>'; $('an-resumo').textContent = ''; $('an-filtros').innerHTML = ''; $('an-det').innerHTML = '<p class="note" style="margin:0">Depois de conectar, clique na capa de um anime para ver a descrição, mudar o status e dar nota.</p>'; return; }
+    var cont = {}; AN_ST.forEach(function (s2) { cont[s2[0]] = L.filter(function (x) { return x.st === s2[0]; }).length; });
+    $('an-resumo').textContent = L.length + ' animes na sua lista' + (MAL.usuario ? ' · ' + MAL.usuario : '');
+    $('an-filtros').innerHTML = AN_ST.map(function (s2) { return '<button class="chip" data-a="anSt" data-v="' + s2[0] + '" aria-pressed="' + (anSt === s2[0]) + '">' + s2[1] + ' <small>' + cont[s2[0]] + '</small></button>'; }).join('');
+    var q = norm(anQ), vis = L.filter(function (x) { return q ? norm(x.t + ' ' + x.en).indexOf(q) >= 0 : x.st === anSt; }).sort(function (a, b) { return (b.em || '') < (a.em || '') ? -1 : 1; });
+    el.innerHTML = vis.map(function (x) {
+      return '<div class="lv' + (anSel === x.id ? ' sel' : '') + '"><button class="lv-capa tem" data-a="anSel" data-v="' + x.id + '" style="background-image:url(&quot;' + esc(x.img) + '&quot;)" aria-label="Detalhes de ' + esc(x.t) + '"><i class="tp">' + esc((x.tipo || '').toUpperCase()) + '</i></button>' +
+        '<div class="lv-tx"><b title="' + esc(x.t) + '">' + esc(x.en || x.t) + '</b>' + (x.en && x.en !== x.t ? '<small class="sub2">' + esc(x.t) + '</small>' : '') + '<span class="cap">' + (x.st === 'completed' ? 'Completo ✓' : 'Ep. ' + x.ep + (x.eps ? ' <small>/ ' + x.eps + '</small>' : '')) + '</span>' +
+        '<div class="lv-bt">' + (x.st !== 'completed' ? '<button class="mini" data-a="anMenos" data-v="' + x.id + '" aria-label="Voltar um episódio">−</button><button class="btn mais1" data-a="anMais" data-v="' + x.id + '">+1</button>' : '') + (x.score ? '<span class="nota">★ ' + x.score + '</span>' : '') + '<a class="btn ler" href="https://myanimelist.net/anime/' + x.id + '" target="_blank" rel="noopener">MAL</a></div></div></div>';
+    }).join('') || '<p class="note">Nada aqui.</p>';
+    var a = L.filter(function (x) { return x.id === anSel; })[0], d = $('an-det');
+    if (!a) { d.innerHTML = '<p class="note" style="margin:0">Clique na capa de um anime para ver a descrição, mudar o status e dar nota. Tudo vai direto para o seu MyAnimeList.</p>'; return; }
+    d.innerHTML = '<h3>' + esc(a.en || a.t) + '</h3><span class="note">' + esc([a.t !== a.en ? a.t : '', a.ano, a.eps ? a.eps + ' episódios' : '', a.nota ? 'MAL ' + a.nota : ''].filter(Boolean).join(' · ')) + '</span>' +
+      '<div class="row" style="gap:6px">' + (a.gen || []).slice(0, 5).map(function (g) { return '<span class="gen">' + esc(g) + '</span>'; }).join('') + '</div>' +
+      '<p class="desc">' + esc(a.sin || 'Sem descrição.') + '</p>' +
+      '<div class="row">' + AN_ST.map(function (s3) { return '<button class="chip" data-a="anStatus" data-v="' + s3[0] + '" aria-pressed="' + (a.st === s3[0]) + '">' + s3[1] + '</button>'; }).join('') + '</div>' +
+      '<label class="f" for="an-score">Minha nota<select class="sel" id="an-score">' + ['—', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (n, i) { return '<option value="' + i + '"' + (a.score === i ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
+      '<div class="row"><a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a><button class="btn" data-a="anTirar" data-v="' + a.id + '">Tirar da lista</button></div><span class="note" id="an-msg"></span>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a, v = +b.dataset.v;
+    var x = (MAL.anime || []).filter(function (y) { return y.id === v; })[0];
+    if (a === 'anSt') { anSt = b.dataset.v; anQ = ''; $('an-busca').value = ''; desenharAnime(); }
+    else if (a === 'anSel') { anSel = v; desenharAnime(); }
+    else if (a === 'anMais' && x) { var ep = x.ep + 1, c = { ep: ep }; if (x.st === 'plan_to_watch' || x.st === 'on_hold') c.st = 'watching'; if (x.eps && ep >= x.eps) c.st = 'completed'; anMuda(v, c); }
+    else if (a === 'anMenos' && x) anMuda(v, { ep: Math.max(0, x.ep - 1) });
+    else if (a === 'anStatus' && anSel) anMuda(anSel, { st: b.dataset.v });
+    else if (a === 'anTirar') {
+      if (!b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'Clique de novo para tirar'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = 'Tirar da lista'; } }, 3000); return; }
+      malApi('DELETE', '/v2/anime/' + v + '/my_list_status').then(function () { MAL.anime = MAL.anime.filter(function (y) { return y.id !== v; }); anSel = null; try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e2) {} desenharAnime(); }).catch(function (e2) { $('an-msg').textContent = 'Não consegui (' + e2.message + ').'; });
+    }
+  });
+  document.addEventListener('change', function (e) { if (e.target.id === 'an-score' && anSel) anMuda(anSel, { score: +e.target.value }); });
+  document.addEventListener('input', function (e) { if (e.target.id === 'an-busca') { anQ = e.target.value; desenharAnime(); } });
+
+  /* ---- mangás do MAL entram na Leitura, e o +1 da Leitura vai para o MAL ---- */
+  var MAL_LE = { reading: 'lendo', plan_to_read: 'quero', on_hold: 'pausa', completed: 'acabou', dropped: 'acabou' }, LE_MAL = { lendo: 'reading', quero: 'plan_to_read', pausa: 'on_hold', acabou: 'completed' };
+  function sincManga() {
+    if (!MAL.ok) return;
+    malTudo('/v2/users/@me/mangalist?fields=list_status,num_chapters,alternative_titles,media_type&limit=500&nsfw=true').then(function (L) {
+      if (!L.length) return;
+      mudar('le', function (d) {
+        d.itens = d.itens || [];
+        L.forEach(function (x) {
+          var n = x.node, ls = x.list_status || {}, nomes = [n.title, (n.alternative_titles || {}).en].concat((n.alternative_titles || {}).synonyms || []).filter(Boolean).map(norm);
+          var it = d.itens.filter(function (y) { return y.mal === n.id; })[0] || d.itens.filter(function (y) { return nomes.indexOf(norm(y.nome)) >= 0; })[0];
+          var tipo = { manhwa: 'Manhwa', light_novel: 'Light Novel', novel: 'Light Novel' }[n.media_type] || 'Mangá';
+          if (!it) { it = { id: 'mal' + n.id, nome: (n.alternative_titles || {}).en || n.title, tipo: tipo, status: MAL_LE[ls.status] || 'lendo' }; d.itens.push(it); }
+          it.mal = n.id; if (n.num_chapters && !it.total) it.total = n.num_chapters;
+          if ((ls.num_chapters_read || 0) > Math.floor(+it.cap || 0)) it.cap = ls.num_chapters_read;
+        });
+      });
+    }).catch(function () {});
+  }
+  window.LE_PARA_MAL = function (it) {
+    if (!MAL.ok || !it || !it.mal) return;
+    var f = []; if (it.cap != null) f.push('num_chapters_read=' + Math.floor(+it.cap)); if (LE_MAL[it.status]) f.push('status=' + LE_MAL[it.status]);
+    malApi('PATCH', '/v2/manga/' + it.mal + '/my_list_status', f.join('&')).catch(function () {});
+  };
+  setTimeout(function () { malStatus().then(function (ok) { if (ok) { carregarAnimes(); sincManga(); } else desenharAnime(); }); }, 2500);
+
+  function desenhar() { desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }

@@ -75,6 +75,36 @@ function TrocarIcone([byte[]]$png) {
   try { & ie4uinit.exe -show } catch {}
 }
 
+# ---------- MyAnimeList (OAuth oficial; a senha fica só no site do MAL) ----------
+$malArq = Join-Path $aqui 'mal.dat'
+$malRedirect = "http://localhost:$porta/mal/retorno"
+function MalLer() {
+  if (-not (Test-Path $malArq)) { return @{} }
+  try { $sec = Get-Content $malArq -Raw | ConvertTo-SecureString; $txt = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)); $o = $txt | ConvertFrom-Json; $h = @{}; $o.PSObject.Properties | ForEach-Object { $h[$_.Name] = $_.Value }; return $h } catch { return @{} }
+}
+function MalGravar($h) { ($h | ConvertTo-Json -Compress) | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString | Set-Content $malArq }
+function MalToken($h, $form) {
+  $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8; $wc.Headers['Content-Type'] = 'application/x-www-form-urlencoded'
+  $r = $wc.UploadString('https://myanimelist.net/v1/oauth2/token', 'POST', $form) | ConvertFrom-Json
+  $h['access'] = $r.access_token; $h['refresh'] = $r.refresh_token; $h['expira'] = [DateTimeOffset]::UtcNow.AddSeconds([int]$r.expires_in - 120).ToUnixTimeSeconds(); MalGravar $h; return $h
+}
+function MalChamar($metodo, $caminho, $corpo) {
+  $h = MalLer
+  if (-not $h['access']) { throw 'MAL não conectado' }
+  if ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() -gt [long]$h['expira']) { $h = MalToken $h ('client_id=' + $h['cid'] + '&grant_type=refresh_token&refresh_token=' + [Uri]::EscapeDataString($h['refresh'])) }
+  for ($t = 0; $t -lt 2; $t++) {
+    $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8; $wc.Headers['Authorization'] = 'Bearer ' + $h['access']
+    try {
+      if ($metodo -eq 'GET') { return $wc.DownloadString('https://api.myanimelist.net' + $caminho) }
+      $wc.Headers['Content-Type'] = 'application/x-www-form-urlencoded'; return $wc.UploadString('https://api.myanimelist.net' + $caminho, $metodo, [string]$corpo)
+    } catch [System.Net.WebException] {
+      $st = 0; if ($_.Exception.Response) { $st = [int]$_.Exception.Response.StatusCode }
+      if ($st -eq 401 -and $t -eq 0) { $h = MalToken $h ('client_id=' + $h['cid'] + '&grant_type=refresh_token&refresh_token=' + [Uri]::EscapeDataString($h['refresh'])); continue }
+      throw
+    }
+  }
+}
+
 while ($http.IsListening) {
   $ctx = $http.GetContext()
   try {
@@ -92,6 +122,17 @@ while ($http.IsListening) {
       $bytes = [IO.File]::ReadAllBytes($arq)
       if ($nome -eq 'Central.html') { $txt = [Text.Encoding]::UTF8.GetString($bytes).Replace('<head>', "<head><script>window.AJUDANTE_CHAVE='$chave';</script>"); $bytes = [Text.Encoding]::UTF8.GetBytes($txt) }
       $r = $ctx.Response; $r.StatusCode = 200; $r.ContentType = $tipo; $r.Headers['Cache-Control'] = 'no-store'; $r.OutputStream.Write($bytes, 0, $bytes.Length); $r.Close(); continue
+    }
+    if ($cam -eq '/mal/retorno') {
+      $h = MalLer; $msg = ''
+      if (-not $h['estado'] -or $q['state'] -ne $h['estado']) { $msg = 'Pedido inválido. Tente conectar de novo pela Central.' }
+      elseif ($q['error']) { $msg = 'Autorização cancelada no MyAnimeList.' }
+      else {
+        try { $h = MalToken $h ('client_id=' + $h['cid'] + '&grant_type=authorization_code&code=' + [Uri]::EscapeDataString($q['code']) + '&code_verifier=' + $h['verif'] + '&redirect_uri=' + [Uri]::EscapeDataString($malRedirect)); $h.Remove('estado'); $h.Remove('verif'); MalGravar $h; $msg = 'Pronto! A Central está conectada ao seu MyAnimeList. Pode fechar esta janela.' }
+        catch { $msg = 'Não consegui completar a conexão: ' + $_.Exception.Message }
+      }
+      $html = '<!doctype html><meta charset="utf-8"><title>Central</title><body style="font-family:system-ui;background:#100E2B;color:#F3F1FF;display:grid;place-items:center;height:100vh;margin:0"><h2 style="max-width:640px;text-align:center">' + [Net.WebUtility]::HtmlEncode($msg) + '</h2></body>'
+      $b = [Text.Encoding]::UTF8.GetBytes($html); $r = $ctx.Response; $r.ContentType = 'text/html; charset=utf-8'; $r.OutputStream.Write($b, 0, $b.Length); $r.Close(); continue
     }
     if ($q['k'] -ne $chave) { Responder $ctx 403 'text/plain' ([Text.Encoding]::UTF8.GetBytes('chave')); continue }
     switch ($ctx.Request.Url.AbsolutePath) {
@@ -119,6 +160,27 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true }
       }
+      '/mal/config' {
+        $cid = [string]$q['id']
+        if ($cid -notmatch '^[0-9a-f]{20,64}$') { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('client id')); continue }
+        $h = MalLer; $h['cid'] = $cid; MalGravar $h; Json $ctx @{ ok = $true }
+      }
+      '/mal/login' {
+        $h = MalLer
+        if (-not $h['cid']) { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('sem client id')); continue }
+        $abc = [char[]]'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+        $h['verif'] = -join (1..96 | ForEach-Object { $abc[(Get-Random -Maximum $abc.Length)] }); $h['estado'] = -join (1..24 | ForEach-Object { $abc[(Get-Random -Maximum 62)] }); MalGravar $h
+        $url = 'https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id=' + $h['cid'] + '&code_challenge=' + $h['verif'] + '&code_challenge_method=plain&state=' + $h['estado'] + '&redirect_uri=' + [Uri]::EscapeDataString($malRedirect)
+        $r = $ctx.Response; $r.StatusCode = 302; $r.RedirectLocation = $url; $r.Close()
+      }
+      '/mal/status' { $h = MalLer; $nome = ''; if ($h['access']) { try { $nome = (MalChamar 'GET' '/v2/users/@me' '' | ConvertFrom-Json).name } catch { $nome = '' } }; Json $ctx @{ cid = [bool]$h['cid']; conectado = [bool]$nome; usuario = $nome } }
+      '/mal/sair' { $h = MalLer; $h.Remove('access'); $h.Remove('refresh'); MalGravar $h; Json $ctx @{ ok = $true } }
+      '/mal/api' {
+        $c2 = [string]$q['caminho']; $m2 = ([string]$q['metodo']).ToUpper(); if (-not $m2) { $m2 = 'GET' }
+        if (-not $c2.StartsWith('/v2/') -or $m2 -notin 'GET', 'PATCH', 'DELETE') { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('caminho')); continue }
+        try { $txt = MalChamar $m2 $c2 ([string]$q['corpo']); if (-not $txt) { $txt = '{}' }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes($txt)) }
+        catch { Responder $ctx 502 'text/plain' ([Text.Encoding]::UTF8.GetBytes('mal: ' + $_.Exception.Message)) }
+      }
       '/sair'  { Json $ctx @{ ok = $true }; $http.Stop(); break }
       '/reiniciar' { Json $ctx @{ ok = $true }; $http.Stop(); Start-Process powershell -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $PSCommandPath + '"'); break }
       '/icone-app' {
@@ -129,7 +191,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 5 } }
+      default  { Json $ctx @{ ok = $true; versao = 6 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
