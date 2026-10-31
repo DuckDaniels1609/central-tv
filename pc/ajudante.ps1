@@ -98,6 +98,27 @@ while ($http.IsListening) {
       '/apps'  { Json $ctx @{ apps = @(Lista $atalhos $true); pastas = @(Lista $base $false) } }
       '/icone' { $it = Achar $q['f']; $png = if ($it) { IconeDe $it } else { $null }; if ($png) { Responder $ctx 200 'image/png' $png } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
       '/abrir' { $it = Achar $q['f']; if ($it) { (New-Object -ComObject Shell.Application).ShellExecute($it.FullName); Json $ctx @{ ok = $true } } else { Responder $ctx 404 'text/plain' ([byte[]]@()) } }
+      '/ps5' {
+        # só lê a pasta de troféus do PS5 da casa (web file manager do jailbreak)
+        $pp = [string]$q['path']
+        if (-not $pp.StartsWith('/user/home/13b5b6f1/trophy2/') -or $pp.Contains('..')) { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('caminho')); continue }
+        $wc = New-Object System.Net.WebClient
+        try {
+          if ($q['tipo'] -eq 'fs') { $b = $wc.DownloadData('http://192.168.7.5:8888/fs?path=' + [Uri]::EscapeDataString($pp)); Responder $ctx 200 'application/octet-stream' $b }
+          else { $b = $wc.DownloadData('http://192.168.7.5:8888/api/list?path=' + [Uri]::EscapeDataString($pp)); Responder $ctx 200 'application/json; charset=utf-8' $b }
+        } catch { Responder $ctx 502 'text/plain' ([Text.Encoding]::UTF8.GetBytes('ps5: ' + $_.Exception.Message)) }
+      }
+      '/pc' {
+        switch ($q['acao']) {
+          'desligar'  { Start-Process shutdown.exe -ArgumentList '/s /t 5' -WindowStyle Hidden }
+          'reiniciar' { Start-Process shutdown.exe -ArgumentList '/r /t 5' -WindowStyle Hidden }
+          'travar'    { Start-Process rundll32.exe -ArgumentList 'user32.dll,LockWorkStation' }
+          'dormir'    { Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.Application]::SetSuspendState('Suspend', $false, $false) }
+          'agendar'   { $m = [int]$q['min']; if ($m -ge 1 -and $m -le 600) { Start-Process shutdown.exe -ArgumentList ('/s /t ' + ($m * 60)) -WindowStyle Hidden } }
+          'cancelar'  { Start-Process shutdown.exe -ArgumentList '/a' -WindowStyle Hidden }
+        }
+        Json $ctx @{ ok = $true }
+      }
       '/sair'  { Json $ctx @{ ok = $true }; $http.Stop(); break }
       '/reiniciar' { Json $ctx @{ ok = $true }; $http.Stop(); Start-Process powershell -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $PSCommandPath + '"'); break }
       '/icone-app' {
@@ -108,7 +129,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 4 } }
+      default  { Json $ctx @{ ok = $true; versao = 5 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

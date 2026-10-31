@@ -297,7 +297,7 @@ button.cli { all: unset; display: inline; font-size: 12px; font-weight: 800; col
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-31.01';
+  var V = '2026-10-31.02';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;

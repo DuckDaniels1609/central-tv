@@ -1190,7 +1190,7 @@
     var txt = JSON.stringify(est);
     if (!forcar && txt === estadoUltimo) return;
     estadoUltimo = txt;
-    try { tvStatus({ desp: est.desp, despIso: a && a.data ? isoD(a.data) : null, modo: est.modo }); } catch (e) {}
+    try { tvStatus({ desp: est.desp, despIso: a && a.data ? isoD(a.data) : null, modo: est.modo, musica: est.musica, codigo: codigoCelular() }); } catch (e) {}
     try { var x = new XMLHttpRequest(); x.open('POST', CEL_URL + '-estado', true); x.setRequestHeader('Cache', 'yes'); x.send(JSON.stringify({ tipo: 'estado', em: Date.now(), estado: est })); } catch (e) {}
   }
   function celComando(m) {
@@ -1203,6 +1203,8 @@
       else if (v === 'proxima' && LISTA.length) { if (!cfg.musica.on) { cfg.musica.on = true; gravar('cfg', cfg); } proximaFaixa(); toast('Próxima música'); }
     }
     else if (c === 'despertador' && v === 'testar') iniciarDespertador(true);
+    else if (c === 'clipe' && v === 'proximo') { clipeCmd('prox'); toast('Próximo clipe'); }
+    else if (c === 'pagina' && /^\d$/.test(String(v))) { if (+v < NPAG) irPara(+v); }
     else if (c === 'ping') toast('Celular conectado à Central');
     setTimeout(function () { celEstado(true); }, 1500);
   }

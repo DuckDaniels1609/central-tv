@@ -268,12 +268,57 @@ header { align-items: center; }
 .tvl b { font-size: 16px; text-align: right; }
 .tvl.okv b { color: var(--ok); }
 .tvl.alerta b { color: var(--acc); }
+
+.busca-bt { font: inherit; display: flex; align-items: center; gap: 10px; color: var(--muted); background: rgba(27,24,66,.6); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 10px 16px; min-width: 460px; cursor: pointer; font-size: 15px; }
+.busca-bt svg, .busca-box svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+.busca-bt kbd { margin-left: auto; font: inherit; font-size: 12px; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.08); }
+.busca-bt kbd + kbd { margin-left: 4px; }
+#busca { position: fixed; inset: 0; z-index: 80; background: rgba(5,4,18,.55); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; }
+#busca[hidden] { display: none; }
+.busca-box { width: 720px; background: #1B1842; border: 1px solid rgba(255,255,255,.15); border-radius: 20px; box-shadow: 0 30px 80px rgba(0,0,0,.6); overflow: hidden; }
+#busca-in { width: 100%; font: inherit; font-size: 22px; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid rgba(255,255,255,.1); padding: 20px 24px; outline: none; }
+#busca-res { max-height: 56vh; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.br { font: inherit; color: var(--fg); background: transparent; border: 0; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; gap: 16px; cursor: pointer; text-align: left; font-size: 16px; font-weight: 700; }
+.br small { color: var(--muted); font-weight: 500; flex: none; }
+.br.sel, .br:hover { background: color-mix(in srgb, var(--acc) 22%, transparent); }
+.jg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; overflow-y: auto; align-content: start; }
+.jg { font: inherit; color: var(--fg); text-align: left; display: flex; gap: 14px; padding: 12px; border-radius: 18px; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.08); cursor: pointer; }
+.jg[aria-pressed="true"] { border-color: var(--acc); }
+.capa { flex: none; width: 84px; height: 112px; border-radius: 12px; background: linear-gradient(160deg, #3A2A7A, #1B1A4A) center/cover; display: grid; place-items: center; }
+.capa.tem b { display: none; }
+.capa b { font-size: 22px; opacity: .6; }
+.jt { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.jt b { font-size: 16px; line-height: 1.25; }
+.jt small { font-size: 12px; color: var(--muted); }
+.jt .bar, .pj .bar { height: 7px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; display: block; margin-top: auto; }
+.jt .bar i { display: block; height: 100%; background: var(--acc); }
+.grau { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.et .t small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.ln-lista { overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+.ln-mes h3 { margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, var(--acc) 45%, var(--muted)); }
+.ln-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ln { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 16px; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.06); }
+.ln.meu { border-color: color-mix(in srgb, var(--acc) 70%, transparent); }
+.ln.saiu { opacity: .55; }
+.ln .capa { width: 60px; height: 80px; border-radius: 10px; }
+.lt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.lt b { font-size: 15px; }
+.lt small { font-size: 12px; color: var(--muted); }
+.estrela { font: inherit; font-size: 24px; background: transparent; border: 0; color: rgba(255,255,255,.25); cursor: pointer; width: 44px; height: 44px; border-radius: 12px; }
+.estrela.on { color: #FFD36E; }
+.estrela:hover { background: rgba(255,255,255,.06); }
+.tvc-grid { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.btn.big { font-size: 16px; padding: 14px 22px; border-radius: 14px; min-height: 52px; }
+.btn.big:hover { background: color-mix(in srgb, var(--acc) 30%, var(--panel2)); }
+.pc-acoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pc-acoes .btn { border-radius: 12px; min-height: 48px; }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
 <div class="wrap">
   <header>
     <div class="marca"><span class="relogio" id="relogio">--:--</span><div class="col" style="gap:2px"><b>Central</b><small id="hdata">&nbsp;</small></div></div>
+    <button class="busca-bt" id="busca-abrir" aria-label="Buscar (Ctrl+Espaço)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Buscar programa, tarefa, dia… <kbd>Ctrl</kbd><kbd>Espaço</kbd></button>
     <div class="status" role="status"><span class="dot" id="dot"></span><span id="st">Carregando…</span></div>
   </header>
 
@@ -297,6 +342,9 @@ header { align-items: center; }
       <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Tarefas</button>
       <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
       <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Projetos</button>
+      <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Estante</button>
+      <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>Lançamentos</button>
+      <button class="mi" data-sec="tvc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Controle da TV</button>
       <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
       <button class="mg mg-bt" id="mg-tv" aria-expanded="false">Ajustes da TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="sub-tv" id="sub-tv" hidden>
@@ -336,6 +384,23 @@ header { align-items: center; }
       <div class="banner slim"><div class="banner-tx"><h2>Projetos</h2><span id="pj-resumo"></span></div></div>
       <div class="pj-grid" id="pj-grid"><p class="note">Carregando…</p></div>
     </div>
+    <div class="col card meio" id="meio-est" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Estante de Platinas</h2><span id="es-resumo"></span></div><div class="row" id="es-filtros" style="position:relative"></div></div>
+      <div class="jg-grid" id="es-grid"><p class="note">Carregando…</p></div>
+    </div>
+    <div class="col card meio" id="meio-lanc" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Lançamentos</h2><span id="ln-resumo"></span></div><button class="chip" id="ln-so" data-a="lnSo" style="position:relative">Só a minha lista ★</button></div>
+      <div class="ln-lista" id="ln-lista"><p class="note">Carregando…</p></div>
+    </div>
+    <div class="col card meio" id="meio-tvc" hidden>
+      <div class="banner slim"><div class="banner-tx"><h2>Controle da TV</h2><span>Funciona com a TV ligada e a Central aberta nela</span></div></div>
+      <div class="tvc-grid">
+        <section class="bloco"><h3>Clipes e música</h3><div class="row"><button class="btn big" data-tvc="clipe" data-v="proximo">Próximo clipe</button><button class="btn big" data-tvc="musica" data-v="tocar">Ligar música</button><button class="btn big" data-tvc="musica" data-v="pausar">Pausar música</button><button class="btn big" data-tvc="musica" data-v="proxima">Próxima música</button></div></section>
+        <section class="bloco"><h3>Ir para a tela</h3><div class="row"><button class="btn big" data-tvc="pagina" data-v="2">Início</button><button class="btn big" data-tvc="pagina" data-v="0">Calendário</button><button class="btn big" data-tvc="pagina" data-v="1">Projetos</button><button class="btn big" data-tvc="pagina" data-v="3">Evo Brazil</button><button class="btn big" data-tvc="pagina" data-v="4">Exercícios</button><button class="btn big" data-tvc="pagina" data-v="5">Lançamentos</button></div></section>
+        <section class="bloco"><h3>Despertador</h3><div class="row"><button class="btn big" data-tvc="despertador" data-v="testar">Testar o despertador agora</button><button class="btn big" data-tvc="ping">Testar conexão</button></div></section>
+      </div>
+      <span class="note" id="tvc-st"></span>
+    </div>
     <div class="col card" id="meio-pc" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Meus programas</h2><span id="pc-st"></span></div><span class="note" style="position:relative">Botão direito num programa: mudar categoria ou fixar</span></div>
       <div class="pc-grid" id="pc-apps"></div>
@@ -373,6 +438,23 @@ header { align-items: center; }
         <span class="note" id="lk-icone-st"></span>
         <p class="note" style="margin:0">Fica salvo só neste PC. As imagens não saem do computador.</p>
       </section>
+      <section data-s="est" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn prim" id="es-ps5">Atualizar troféus do PS5</button>
+        <span class="note" id="es-ps5-st">Lê os troféus direto do PS5 (ligado, no Wi-Fi de casa, com o jailbreak ativo).</span>
+        <h3 id="es-tit" style="margin-top:8px"></h3>
+        <p class="note" id="es-info" style="margin:0"></p>
+        <div class="row" id="es-status"></div>
+        <div class="col" style="gap:6px" id="es-trof"></div>
+      </section>
+      <section data-s="lanc" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Como funciona</h3>
+        <p class="note" style="margin:0">A ★ marca os que você quer jogar (os marcados aparecem no calendário e na TV). A lista é atualizada todo primeiro sábado do mês.</p>
+      </section>
+      <section data-s="tvc" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Status da TV</h3>
+        <div class="tvst" id="tvc-info"></div>
+        <p class="note" style="margin:0">O modo da TV fica nos botões lá em cima.</p>
+      </section>
       <section data-s="proj" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3 id="pj-tit">Escolha um projeto</h3>
         <p class="note" id="pj-obj" style="margin:0"></p>
@@ -406,6 +488,10 @@ header { align-items: center; }
         </form>
       </section>
       <section data-s="pc" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Este PC</h3>
+        <div class="pc-acoes"><button class="btn" data-pc="travar">Travar</button><button class="btn" data-pc="dormir">Dormir</button><button class="btn" data-pc="reiniciar">Reiniciar</button><button class="btn" data-pc="desligar">Desligar</button></div>
+        <div class="row"><span class="lbl">Desligar em</span><button class="chip" data-pc="agendar" data-min="30">30 min</button><button class="chip" data-pc="agendar" data-min="60">1 h</button><button class="chip" data-pc="agendar" data-min="120">2 h</button><button class="chip" data-pc="cancelar">Cancelar</button></div>
+        <span class="note" id="pc-acao-st"></span>
         <h3>Pastas e arquivos</h3>
         <div class="pc-pastas" id="pc-pastas"></div>
         <div class="row"><button class="btn" id="pc-abrir-pasta">Abrir a pasta</button></div>
@@ -902,6 +988,12 @@ header { align-items: center; }
     var g = e.target.closest('#mg-tv'); if (g) { var ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-tv').hidden = !ab; try { localStorage.setItem('menu-tv', ab ? '1' : ''); } catch (x) {} }
   });
   try { if (localStorage.getItem('menu-tv')) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; } } catch (e) {}
+  window.PC_LISTA = function () { return PC_APPS; };
+  window.PC_ABRIR = function (f) { pcAbrir(f); };
+  /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
+  setTimeout(function () {
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 5 && !sessionStorage.getItem('aj-reiniciou')) { sessionStorage.setItem('aj-reiniciou', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+  }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
@@ -948,7 +1040,7 @@ header { align-items: center; }
 (function () {
   'use strict';
   var BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
-  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json' };
+  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json' };
   var S = {}, SHA = {};
   var $ = function (id) { return document.getElementById(id); };
   function tok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
@@ -1020,7 +1112,9 @@ header { align-items: center; }
     var el = $('hj-corpo'); if (!el) return;
     var d = new Date(), hj = hoje(), hora = d.getHours();
     $('hj-tit').textContent = (hora < 5 ? 'Boa noite' : hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite') + ', Daniel';
-    $('hj-sub').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()];
+    var nR = ((S.ag && S.ag.reunioes) || []).filter(function (r) { return r.d === hoje(); }).length, nP = ((S.tar && S.tar.tarefas) || []).filter(function (t) { return !t.ok && t.data && t.data <= hoje(); }).length;
+    var evo = (S.pj && S.pj.projetos && S.pj.projetos.evo && (S.pj.projetos.evo.etapas || []).filter(function (e) { return !e.ok; })[0]) || null;
+    $('hj-sub').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()] + ' · ' + (nR ? nR + (nR > 1 ? ' reuniões' : ' reunião') : 'sem reuniões') + ' · ' + (nP ? nP + (nP > 1 ? ' prazos' : ' prazo') : 'sem prazos') + (evo ? ' · Evo: ' + evo.t.split(' (')[0].split('.')[0] : '');
     var reun = itens(hj).filter(function (x) { return x.k !== 'tarefa'; });
     var tar = ((S.tar && S.tar.tarefas) || []).filter(function (t) { return !t.ok && ((t.data && t.data <= hj) || (t.cat === 'trabalho' && (t.resp || []).indexOf('DBA') >= 0)); })
       .sort(function (a, b) { return (a.data || '9') < (b.data || '9') ? -1 : 1; });
@@ -1132,7 +1226,170 @@ header { align-items: center; }
     h += '<p class="note" style="margin:0">' + (st.em ? 'TV falou com a Central em ' + new Date(st.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '.' : 'A TV ainda não mandou o status (a versão nova manda quando a Central abrir na TV).') + '</p>';
     el.innerHTML = h;
   }
-  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); }
+  /* ========== ESTANTE (troféus) ========== */
+  var esSel = null, esFiltro = 'todos';
+  var GRAU = { platina: ['Platina', '#C8E4FF'], ouro: ['Ouro', '#FFD36E'], prata: ['Prata', '#D7DCE8'], bronze: ['Bronze', '#E0A27A'] };
+  var STATUS = [['jogando', 'Jogando'], ['fila', 'Na fila'], ['zerado', 'Zerado'], ['platinado', 'Platinado']];
+  function jogosEst() { var J = (S.es && S.es.jogos) || {}; return Object.keys(J).map(function (k) { return J[k]; }).sort(function (a, b) { return (a.order || 99) - (b.order || 99); }); }
+  function progDe(id) { return ((S.es && S.es.progresso) || {})[id] || { done: {}, status: 'fila' }; }
+  function desenharEst() {
+    var el = $('es-grid'); if (!el) return;
+    var L = jogosEst(); if (!esSel && L.length) esSel = L[0].id;
+    var tot = 0, fe = 0;
+    L.forEach(function (j) { var p = progDe(j.id); tot += (j.trophies || []).length; fe += Object.keys(p.done || {}).length; });
+    $('es-resumo').textContent = L.length + ' jogos · ' + fe + ' de ' + tot + ' troféus';
+    $('es-filtros').innerHTML = [['todos', 'Todos']].concat(STATUS).map(function (s2) { return '<button class="chip" data-a="esFiltro" data-v="' + s2[0] + '" aria-pressed="' + (esFiltro === s2[0]) + '">' + s2[1] + '</button>'; }).join('');
+    el.innerHTML = L.filter(function (j) { return esFiltro === 'todos' || (progDe(j.id).status || 'fila') === esFiltro; }).map(function (j) {
+      var p = progDe(j.id), T = j.trophies || [], n = T.filter(function (t) { return p.done && p.done[t.id]; }).length, plat = T.some(function (t) { return t.type === 'platina' && p.done && p.done[t.id]; });
+      return '<button class="jg" data-a="esSel" data-v="' + esc(j.id) + '" aria-pressed="' + (esSel === j.id) + '"><span class="capa" data-capa="es-' + esc(j.id) + '"><b>' + esc((j.short || j.name).slice(0, 2)) + '</b></span><span class="jt"><b>' + esc(j.short || j.name) + '</b><small>' + esc((STATUS.filter(function (x) { return x[0] === (p.status || 'fila'); })[0] || [, ''])[1]) + (j.tbd ? ' · ainda não saiu' : '') + '</small>' +
+        (T.length ? '<span class="bar"><i style="width:' + Math.round(n / T.length * 100) + '%"></i></span><small>' + n + ' de ' + T.length + (plat ? ' · platinado ✓' : '') + '</small>' : '') + '</span></button>';
+    }).join('') || '<p class="note">Nenhum jogo aqui.</p>';
+    if (window.CAPAS) CAPAS.aplicar(el, L.map(function (j) { return { id: 'es-' + j.id, nome: j.name, wiki: j.wiki }; }));
+    var j2 = (S.es && S.es.jogos || {})[esSel];
+    if (!j2) return;
+    var p2 = progDe(esSel), T2 = j2.trophies || [];
+    $('es-tit').textContent = j2.name;
+    $('es-info').textContent = [j2.main && 'História ' + j2.main, j2.full && '100% ' + j2.full, j2.missables && 'Perdíveis: ' + j2.missables].filter(Boolean).join(' · ');
+    $('es-status').innerHTML = STATUS.map(function (s3) { return '<button class="chip" data-a="esStatus" data-v="' + s3[0] + '" aria-pressed="' + ((p2.status || 'fila') === s3[0]) + '">' + s3[1] + '</button>'; }).join('');
+    $('es-trof').innerHTML = T2.map(function (t) {
+      var ok = p2.done && p2.done[t.id], g = GRAU[t.type] || GRAU.bronze;
+      return '<div class="et' + (ok ? ' ok' : '') + '"><button class="chk' + (ok ? ' on' : '') + '" data-a="trof" data-v="' + t.id + '" aria-label="Marcar troféu">' + (ok ? '✓' : '') + '</button><span class="t"><i class="grau" style="background:' + g[1] + '" title="' + g[0] + '"></i>' + esc(t.name) + (t.desc ? '<small>' + esc(t.desc) + '</small>' : '') + '</span></div>';
+    }).join('') || '<p class="note">Lista de troféus ainda não cadastrada.</p>';
+  }
+  /* troféus direto do PS5 (o ajudante do PC busca os arquivos na rede de casa) */
+  function parseTrp(buf) {
+    var b = new Uint8Array(buf);
+    if (b.length < 0x80 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'T2PD') throw new Error('arquivo inválido');
+    var partes = [b.subarray(0, 0x40)];
+    for (var o = 0x40; o < b.length; o += 0x420) partes.push(b.subarray(o, Math.min(o + 0x400, b.length)));
+    var len = 0; partes.forEach(function (x) { len += x.length; });
+    var d = new Uint8Array(len), q = 0; partes.forEach(function (x) { d.set(x, q); q += x.length; });
+    var dv = new DataView(d.buffer), txt = ''; for (var i = 0; i < Math.min(b.length, 4096); i++) txt += String.fromCharCode(b[i]);
+    var m = txt.match(/NPWR\d{5}_\d{2}/);
+    function acha(sig) { var out = []; for (var i = 0; i + 8 <= d.length; i += 4) { var ok = true; for (var k = 0; k < 8; k++) if (d[i + k] !== sig[k]) { ok = false; break; } if (ok) out.push(i); } return out; }
+    var r5 = acha([0, 0, 5, 0, 0, 0, 0, 0xc0]).slice(1), r8 = acha([0, 0, 8, 0, 0, 0, 0, 0x50]).slice(1), abertos = [];
+    r8.forEach(function (o) { if (o + 0x40 <= d.length && (dv.getUint32(o + 0x14) & 0x10)) abertos.push(dv.getUint32(o + 0x10)); });
+    return { npwr: m ? m[0] : null, total: r5.length, abertos: abertos };
+  }
+  function trofeusPS5() {
+    var st = $('es-ps5-st'), AJ2 = location.protocol === 'http:' ? location.origin : 'http://localhost:47803', K = window.AJUDANTE_CHAVE || '', DIR = '/user/home/13b5b6f1/trophy2/nobackup/data/';
+    st.textContent = 'Procurando o PS5 na rede…';
+    fetch(AJ2 + '/ps5?k=' + K + '&path=' + encodeURIComponent(DIR)).then(function (r) { if (!r.ok) throw new Error(r.status === 502 ? 'o PS5 não respondeu (ligado, no Wi-Fi e com o jailbreak ativo?)' : 'ajudante ' + r.status); return r.json(); }).then(function (lst) {
+      var nomes = JSON.stringify(lst).match(/NPWR\d{5}_\d{2}/g) || []; nomes = nomes.filter(function (x, i) { return nomes.indexOf(x) === i; });
+      if (!nomes.length) throw new Error('nenhum jogo com troféus no PS5');
+      st.textContent = 'Lendo ' + nomes.length + ' jogos do PS5…';
+      return Promise.all(nomes.map(function (n) {
+        return fetch(AJ2 + '/ps5?k=' + K + '&tipo=fs&path=' + encodeURIComponent(DIR + n + '/TRPTITLE.DAT')).then(function (r) { if (!r.ok) return null; return r.arrayBuffer(); }).then(function (b) { if (!b) return null; try { var x = parseTrp(b); x.npwr = x.npwr || n; return x; } catch (e) { return null; } });
+      }));
+    }).then(function (itens) {
+      var J = (S.es && S.es.jogos) || {}, planos = [], ign = 0;
+      itens.filter(Boolean).forEach(function (it) {
+        var g = Object.keys(J).filter(function (k) { return J[k].npwr === it.npwr; })[0];
+        if (!g) { var mesmos = Object.keys(J).filter(function (k) { return !J[k].npwr && !J[k].tbd && (J[k].trophies || []).length === it.total; }); if (mesmos.length === 1) g = mesmos[0]; }
+        if (!g) { ign++; return; }
+        var mapa = {}; (J[g].trophies || []).forEach(function (t, i) { mapa[t.psnId != null ? t.psnId : i] = t.id; });
+        var done = progDe(g).done || {}, ids = it.abertos.map(function (n) { return mapa[n]; }).filter(Boolean), novos = ids.filter(function (t) { return !done[t]; });
+        planos.push({ g: g, npwr: it.npwr, ids: ids, novos: novos });
+      });
+      var nov = planos.reduce(function (a, p) { return a + p.novos.length; }, 0);
+      if (!planos.length) { st.textContent = 'Li o PS5, mas nenhum jogo bateu com a Estante.' + (ign ? ' (' + ign + ' jogos de fora)' : ''); return; }
+      mudar('es', function (d) {
+        planos.forEach(function (p) {
+          var g = d.progresso[p.g] || (d.progresso[p.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {};
+          p.ids.forEach(function (t) { g.done[t] = true; });
+          if (p.ids.length && (!g.status || g.status === 'fila')) g.status = 'jogando';
+          if (p.npwr && d.jogos[p.g] && !d.jogos[p.g].npwr) d.jogos[p.g].npwr = p.npwr;
+        });
+      });
+      st.textContent = nov ? nov + ' troféus novos marcados: ' + planos.filter(function (p) { return p.novos.length; }).map(function (p) { return (J[p.g].short || J[p.g].name) + ' (+' + p.novos.length + ')'; }).join(', ') : 'Tudo em dia: nenhum troféu novo.';
+    }).catch(function (e) { st.textContent = 'Não consegui: ' + e.message + '.'; });
+  }
+
+  /* ========== LANÇAMENTOS ========== */
+  var lnSo = false;
+  function desenharLanc() {
+    var el = $('ln-lista'); if (!el) return;
+    var L = ((S.ln && S.ln.jogos) || []).slice().sort(function (a, b) { return a.d < b.d ? -1 : 1; }), hj = hoje();
+    var vis = L.filter(function (j) { return j.d >= hj.slice(0, 7) + '-01' && (!lnSo || j.meu); });
+    $('ln-resumo').textContent = L.filter(function (j) { return j.d >= hj; }).length + ' por vir · ' + L.filter(function (j) { return j.meu; }).length + ' na sua lista ★';
+    var porMes = {}, ordem = [];
+    vis.forEach(function (j) { var m = j.d.slice(0, 7); if (!porMes[m]) { porMes[m] = []; ordem.push(m); } porMes[m].push(j); });
+    el.innerHTML = ordem.map(function (m) {
+      var p = m.split('-');
+      return '<section class="ln-mes"><h3>' + MESES[+p[1] - 1] + ' de ' + p[0] + '</h3><div class="ln-grid">' + porMes[m].map(function (j) {
+        return '<div class="ln' + (j.meu ? ' meu' : '') + (j.d < hj ? ' saiu' : '') + '"><span class="capa" data-capa="' + esc(j.id) + '"><b>' + esc(j.nome.slice(0, 2)) + '</b></span><div class="lt"><b>' + esc(j.nome) + '</b><small>' + dmy(j.d) + ' · ' + esc((j.plat || []).join(', ')) + '</small></div><button class="estrela' + (j.meu ? ' on' : '') + '" data-a="lnMeu" data-v="' + esc(j.id) + '" aria-label="' + (j.meu ? 'Tirar da lista' : 'Quero jogar') + '">★</button></div>';
+      }).join('') + '</div></section>';
+    }).join('') || '<p class="note">Nada para mostrar.</p>';
+    if (window.CAPAS) CAPAS.aplicar(el, L);
+    $('ln-so').setAttribute('aria-pressed', lnSo);
+  }
+
+  /* ========== CONTROLE DA TV (mesmo canal do celular) ========== */
+  function tvCanal() { var c = (S.st && S.st.codigo) || ''; return c ? 'https://ntfy.sh/centraltv-' + c.toLowerCase() : ''; }
+  function tvEnviar(c, v) {
+    var url = tvCanal(), st = $('tvc-st');
+    if (!url) { st.textContent = 'Ligue a TV com a Central aberta uma vez: ela manda o código e o controle passa a funcionar.'; return; }
+    fetch(url, { method: 'POST', body: JSON.stringify({ c: c, v: v || null, em: Date.now() }) }).then(function (r) { st.textContent = r.ok ? 'Enviado. Funciona com a TV ligada e a Central aberta nela.' : 'Não consegui enviar.'; }).catch(function () { st.textContent = 'Sem internet.'; });
+  }
+  function desenharTVC() {
+    var el = $('tvc-info'); if (!el) return;
+    var st = S.st || {};
+    el.innerHTML = '<div class="tvl"><span>Modo</span><b>' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[(S.est && S.est.modo) || st.modo] || '—') + '</b></div><div class="tvl"><span>Próximo despertar</span><b>' + esc(st.desp || '—') + '</b></div><div class="tvl"><span>Última notícia da TV</span><b>' + (st.em ? new Date(st.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ainda não') + '</b></div>';
+  }
+
+  /* ========== BUSCA RÁPIDA (Ctrl+Espaço) ========== */
+  function itensBusca() {
+    var out = [];
+    document.querySelectorAll('.mi').forEach(function (b) { out.push({ tipo: 'Tela', t: b.textContent.trim(), ir: function () { b.click(); } }); });
+    (window.PC_LISTA ? window.PC_LISTA() : []).forEach(function (a) { out.push({ tipo: 'Programa', t: a.nome, ir: function () { window.PC_ABRIR(a.f); } }); });
+    ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (!t.ok) out.push({ tipo: 'Tarefa', t: (t.cli ? t.cli + ': ' : '') + t.t, ir: function () { document.querySelector('.mi[data-sec="tar"]').click(); } }); });
+    var P = (S.pj && S.pj.projetos) || {}; Object.keys(P).forEach(function (k) { out.push({ tipo: 'Projeto', t: P[k].nome, ir: function () { pjSel = k; document.querySelector('.mi[data-sec="proj"]').click(); desenharProj(); } }); });
+    jogosEst().forEach(function (j) { out.push({ tipo: 'Estante', t: j.name, ir: function () { esSel = j.id; document.querySelector('.mi[data-sec="est"]').click(); desenharEst(); } }); });
+    ((S.ln && S.ln.jogos) || []).forEach(function (j) { out.push({ tipo: 'Lançamento ' + dmy(j.d), t: j.nome, ir: function () { document.querySelector('.mi[data-sec="lanc"]').click(); } }); });
+    ((S.ev && S.ev.eventos) || []).concat(((S.ag && S.ag.reunioes) || [])).forEach(function (e) { out.push({ tipo: dmy(e.d), t: e.t, ir: function () { dia = e.d; mes = e.d.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); });
+    return out;
+  }
+  function norm(x) { return String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  var bRes = [], bSel = 0;
+  function buscaAbrir() { $('busca').hidden = false; $('busca-in').value = ''; buscaFiltrar(); setTimeout(function () { $('busca-in').focus(); }, 10); }
+  function buscaFechar() { $('busca').hidden = true; }
+  function buscaFiltrar() {
+    var q = norm($('busca-in').value.trim()), todos = itensBusca();
+    var m = q.match(/^(\d{1,2})\/(\d{1,2})$/);
+    bRes = q ? todos.filter(function (x) { return norm(x.t).indexOf(q) >= 0 || norm(x.tipo).indexOf(q) >= 0; }).sort(function (a, b) { return norm(a.t).indexOf(q) - norm(b.t).indexOf(q); }) : todos.filter(function (x) { return x.tipo === 'Tela' || x.tipo === 'Programa'; });
+    if (m) { var y = new Date().getFullYear(), di = y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); bRes.unshift({ tipo: 'Dia', t: 'Abrir ' + dmy(di) + ' no calendário', ir: function () { dia = di; mes = di.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); }
+    if (q === 'amanha' || q === 'hoje') { var dd = new Date(); if (q === 'amanha') dd.setDate(dd.getDate() + 1); var d2 = iso(dd); bRes.unshift({ tipo: 'Dia', t: 'Abrir ' + (q === 'hoje' ? 'hoje' : 'amanhã') + ' no calendário', ir: function () { dia = d2; mes = d2.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); }
+    bRes = bRes.slice(0, 12); bSel = 0; buscaDesenhar();
+  }
+  function buscaDesenhar() { $('busca-res').innerHTML = bRes.map(function (x, i) { return '<button class="br' + (i === bSel ? ' sel' : '') + '" data-bi="' + i + '"><span>' + esc(x.t) + '</span><small>' + esc(x.tipo) + '</small></button>'; }).join('') || '<p class="note" style="padding:12px">Nada encontrado.</p>'; }
+  function buscaIr(i) { var x = bRes[i]; if (!x) return; buscaFechar(); x.ir(); }
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey && (e.code === 'Space' || e.key === 'k' || e.key === 'K'))) { e.preventDefault(); if ($('busca').hidden) buscaAbrir(); else buscaFechar(); return; }
+    if ($('busca').hidden) return;
+    if (e.key === 'Escape') { buscaFechar(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); bSel = Math.min(bRes.length - 1, bSel + 1); buscaDesenhar(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); bSel = Math.max(0, bSel - 1); buscaDesenhar(); }
+    else if (e.key === 'Enter') { e.preventDefault(); buscaIr(bSel); }
+  });
+  document.addEventListener('input', function (e) { if (e.target.id === 'busca-in') buscaFiltrar(); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-bi]'); if (b) { buscaIr(+b.dataset.bi); return; }
+    if (e.target.id === 'busca') buscaFechar();
+    if (e.target.closest('#busca-abrir')) buscaAbrir();
+  });
+
+  /* ========== ESTE PC (desligar etc.) ========== */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pc]'); if (!b) return;
+    var ac = b.dataset.pc, perigo = ac === 'desligar' || ac === 'reiniciar';
+    if (perigo && !b.dataset.conf) { b.dataset.conf = '1'; var t0 = b.textContent; b.textContent = 'Clique de novo'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = t0; } }, 3000); return; }
+    var AJ3 = location.protocol === 'http:' ? location.origin : 'http://localhost:47803';
+    fetch(AJ3 + '/pc?k=' + (window.AJUDANTE_CHAVE || '') + '&acao=' + ac + (b.dataset.min ? '&min=' + b.dataset.min : '')).then(function (r) {
+      $('pc-acao-st').textContent = !r.ok ? 'O ajudante não respondeu.' : ac === 'agendar' ? 'O PC desliga em ' + b.dataset.min + ' min. (Dá para cancelar.)' : ac === 'cancelar' ? 'Desligamento cancelado.' : ac === 'travar' ? '' : 'Feito.';
+    }).catch(function () { $('pc-acao-st').textContent = 'O ajudante não está ligado.'; });
+  });
+
+  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }
@@ -1150,8 +1407,18 @@ header { align-items: center; }
     else if (a === 'mes') { var y = +mes.slice(0, 4), m = +mes.slice(5, 7) - 1 + (+b.dataset.v); if (b.dataset.v === '0') { mes = hoje().slice(0, 7); dia = hoje(); } else { var nd = new Date(y, m, 1); mes = iso(nd).slice(0, 7); } desenharCal(); }
     else if (a === 'tipoNovo') { tipoNovo = b.dataset.v; desenharCal(); }
     else if (a === 'pj') { pjSel = b.dataset.v; desenharProj(); }
+    else if (a === 'esSel') { esSel = b.dataset.v; desenharEst(); }
+    else if (a === 'esFiltro') { esFiltro = b.dataset.v; desenharEst(); }
+    else if (a === 'esStatus') { var gS = esSel, vS = b.dataset.v; mudar('es', function (d) { var g = d.progresso[gS] || (d.progresso[gS] = { custom: [], done: {}, notes: '', status: 'fila' }); g.status = vS; }); }
+    else if (a === 'trof') { var gT = esSel, tT = b.dataset.v, okT = !(progDe(gT).done || {})[tT]; mudar('es', function (d) { var g = d.progresso[gT] || (d.progresso[gT] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {}; if (okT) g.done[tT] = true; else delete g.done[tT]; }); }
+    else if (a === 'lnSo') { lnSo = !lnSo; desenharLanc(); }
+    else if (a === 'lnMeu') { var idL = b.dataset.v, jL = ((S.ln && S.ln.jogos) || []).filter(function (x) { return x.id === idL; })[0], vL = !(jL && jL.meu); mudar('ln', function (d) { (d.jogos || []).forEach(function (j) { if (j.id === idL) j.meu = vL; }); }); }
     else if (a === 'etOk') { var i1 = +b.dataset.i, P1 = S.pj.projetos[pjSel], e1 = P1.etapas[i1], v1 = !e1.ok, k1 = pjSel, t1 = e1.t; mudar('pj', function (d) { var pp = d.projetos[k1]; if (pp && pp.etapas[i1] && pp.etapas[i1].t === t1) pp.etapas[i1].ok = v1; }); }
     else if (a === 'etApaga') { if (!b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'apagar?'; b.classList.add('conf'); setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = '×'; b.classList.remove('conf'); } }, 3000); return; } var i2 = +b.dataset.i, k2 = pjSel, t2 = S.pj.projetos[k2].etapas[i2].t; mudar('pj', function (d) { var pp = d.projetos[k2]; if (pp && pp.etapas[i2] && pp.etapas[i2].t === t2) pp.etapas.splice(i2, 1); }); }
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tvc]'); if (b) tvEnviar(b.dataset.tvc, b.dataset.v);
+    if (e.target.closest('#es-ps5')) trofeusPS5();
   });
   document.addEventListener('change', function (e) {
     var t = e.target; if (t.dataset.a !== 'data') return;
@@ -1285,5 +1552,49 @@ header { align-items: center; }
   relogio(); setInterval(relogio, 10000);
   aplicar();
 })();
+</script>
+<div id="busca" hidden><div class="busca-box" role="dialog" aria-label="Busca rápida"><input id="busca-in" type="text" placeholder="Digite um programa, tarefa, projeto, jogo ou um dia (ex.: 12/11)…" autocomplete="off"><div id="busca-res"></div></div></div>
+<script>
+/* Capas dos jogos: imagem principal do artigo do jogo na Wikipedia (carregada na hora, guardada por 7 dias).
+   Só aceita a página se ela for de um jogo, para não pegar a foto de outra coisa com o mesmo nome. */
+var CAPAS = (function () {
+  function ler(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function gravar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  var fila = [], ativos = 0;
+  function proximo() {
+    if (ativos >= 3 || !fila.length) return;
+    var t = fila.shift(); ativos++;
+    t(function () { ativos--; proximo(); });
+    proximo();
+  }
+  function buscar(j, cb) {
+    var k = 'capa2-' + j.id, c = ler(k);
+    if (c && Date.now() - c.em < (c.u ? 7 : 1) * 864e5) { cb(c.u); return; }
+    fila.push(function (fim) {
+      var base = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages|description&piprop=thumbnail&pithumbsize=480&pilicense=any&';
+      var url = base + (j.wiki ? 'titles=' + encodeURIComponent(j.wiki) : 'generator=search&gsrlimit=3&gsrsearch=' + encodeURIComponent('"' + j.nome + '" video game'));
+      fetch(url).then(function (r) { return r.json(); }).then(function (r) {
+        var pages = r && r.query && r.query.pages ? Object.keys(r.query.pages).map(function (x) { return r.query.pages[x]; }) : [];
+        pages.sort(function (a, b) { return (a.index || 0) - (b.index || 0); });
+        var palavra = j.nome.toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length > 3; })[0] || j.nome.toLowerCase();
+        var ok = pages.filter(function (p) { return p.thumbnail && (j.wiki || (/game/i.test(p.description || '') && p.title.toLowerCase().indexOf(palavra) >= 0)); })[0];
+        var u = ok ? ok.thumbnail.source : '';
+        gravar(k, { u: u, em: Date.now() }); cb(u); fim();
+      }).catch(function () { cb(''); fim(); });
+    });
+    proximo();
+  }
+  /* coloca a capa em todos os elementos com data-capa="id" */
+  function aplicar(raiz, jogos) {
+    var por = {}; (jogos || []).forEach(function (j) { por[j.id] = j; });
+    Array.prototype.forEach.call((raiz || document).querySelectorAll('[data-capa]'), function (el) {
+      var j = por[el.getAttribute('data-capa')]; if (!j || el.getAttribute('data-ok')) return;
+      el.setAttribute('data-ok', '1');
+      buscar(j, function (u) { if (u) { el.style.backgroundImage = 'url("' + u + '")'; el.classList.add('tem'); } });
+    });
+  }
+  return { buscar: buscar, aplicar: aplicar };
+})();
+
 </script>
 </body></html>
