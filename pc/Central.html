@@ -211,6 +211,7 @@ header { align-items: center; }
 .mi[aria-pressed="true"] { box-shadow: 0 6px 18px color-mix(in srgb, var(--acc) 35%, transparent); }
 .banner { position: relative; min-height: 150px; border-radius: 20px; overflow: hidden; display: flex; align-items: flex-end; padding: 22px 26px; background: var(--banner, linear-gradient(120deg, color-mix(in srgb, var(--acc) 55%, #1B1842), #24205A 70%)); background-size: cover; background-position: center; flex: none; }
 .banner::before { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(8,6,26,.75), rgba(8,6,26,0) 70%); }
+.banner > * { position: relative; }   /* o degradê de cima não pode cobrir botões e campos */
 .banner-tx { position: relative; display: flex; flex-direction: column; gap: 4px; }
 .banner h2 { margin: 0; font-size: 38px; font-weight: 800; text-shadow: 0 3px 10px rgba(0,0,0,.4); }
 .banner span { font-size: 16px; color: #E6E3FA; }
@@ -547,7 +548,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       <span class="note" id="tvc-st"></span>
     </div>
     <div class="col card meio" id="meio-stream" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-audio" title="O Yeti Mic e o PC apontavam para aparelhos do computador antigo">Consertar áudio</button><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="obs-audio" title="O Yeti Mic e o PC apontavam para aparelhos do computador antigo">Consertar áudio</button><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
       <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
       <div class="row obs-grav" id="obs-grav"></div>
       <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
