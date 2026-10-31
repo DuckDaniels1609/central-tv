@@ -77,8 +77,22 @@ button.b:active, a.b:active { transform: scale(.97); }
 button.b.sel { background: var(--acc); color: #2A0E1C; border-color: var(--acc); }
 button.b:disabled { opacity: .4; }
 input.cod { width: 100%; font: inherit; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-align: center; text-transform: uppercase; padding: 12px; border-radius: 14px; border: 1px solid var(--linha); background: rgba(0,0,0,.25); color: var(--ouro); }
+.filtros.lz-f { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lz-lista { display: flex; flex-direction: column; gap: 12px; }
+.lz-it { display: flex; align-items: center; gap: 12px; }
+.lz-capa { width: 46px; height: 64px; border-radius: 10px; background: rgba(255,255,255,.08) center/cover no-repeat; flex: none; }
+.lz-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.lz-info b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lz-info small { font-size: 12px; color: var(--suave); }
+.lz-pend { color: var(--acc); }
+.lz-barra { height: 4px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+.lz-barra span { display: block; height: 100%; background: var(--acc); }
+.lz-bt { display: flex; gap: 6px; flex: none; }
+.lz-bt button { font: inherit; border: 0; border-radius: 12px; cursor: pointer; font-weight: 800; }
+.lz-menos { width: 34px; height: 40px; background: rgba(255,255,255,.08); color: var(--tinta); font-size: 18px; }
+.lz-mais { min-width: 52px; height: 40px; background: var(--acc); color: #1C1838; font-size: 15px; }
 .aviso { font-size: 12px; color: var(--suave); line-height: 1.45; }
-nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, minmax(0, 120px)); justify-content: center; gap: 4px;
+nav.abas { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, minmax(0, 100px)); justify-content: center; gap: 4px;
   padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 8px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(11, 15, 51, .88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--linha); }
 nav.abas button { font: inherit; background: none; border: 0; color: var(--suave); display: grid; justify-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 4px 0; cursor: pointer; }
@@ -232,6 +246,12 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
     <div id="cal-dados"></div>
   </section>
 
+  <section class="pag" id="p-lazer" hidden>
+    <header class="top"><div><span class="tag">趣味 · Lazer</span><h1>Lazer</h1><div class="data">Toque em +1 a cada episódio ou capítulo</div></div></header>
+    <div class="subt"><span class="cd-sync"></span></div>
+    <div id="lz-dados"></div>
+  </section>
+
   <section class="pag" id="p-lanc" hidden>
     <header class="top"><div><span class="tag">発売 · Lançamentos</span><h1>Lançamentos</h1><div class="data">Jogos que saem nos próximos meses</div></div></header>
     <div id="lanc-dados"></div>
@@ -295,6 +315,7 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
   <button data-p="inicio" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg> Início</button>
   <button data-p="tar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg> Tarefas</button>
   <button data-p="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg> Calendário</button>
+  <button data-p="lazer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM8 3l4 4 4-4M10 11l5 2.5-5 2.5z"/></svg> Lazer</button>
   <button id="mais-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg> Mais</button>
 </nav>
 <div class="gaveta" id="gaveta" hidden>
@@ -316,7 +337,7 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-31.11';
+  var V = '2026-10-31.12';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;
@@ -346,7 +367,7 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
 })();
 </script>
 <script src="capas.js?v=2"></script>
-<script src="dados.js?v=20"></script>
+<script src="dados.js?v=21"></script>
 
 <script>
 (function () {
@@ -530,6 +551,15 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
     if (!k || !t.files || !t.files[0]) return;
     reduz(t.files[0]).then(function (b) { return put(k, b); }).then(aplicar); t.value = '';
   });
+  /* imagens escolhidas no PC (Central → App do celular): vêm do repositório e substituem as daqui */
+  window.CEL_IMG = function (img, baixar) {
+    ['fundo', 'banner'].forEach(function (k) {
+      var v = (img && img[k]) || 0, tinha = +(localStorage.getItem('cel-img-v-' + k) || 0);
+      if (v === tinha) return;
+      if (!v) { localStorage.setItem('cel-img-v-' + k, '0'); if (tinha) put(k, null).then(aplicar); return; }
+      baixar('fundos/cel-' + k + '.jpg').then(function (b) { if (!b) return; return put(k, b).then(function () { localStorage.setItem('cel-img-v-' + k, String(v)); aplicar(); }); }).catch(function () {});
+    });
+  };
   document.addEventListener('input', function (e) { if (e.target.id === 'img-escuro') { try { localStorage.setItem('cel-escuro', e.target.value); } catch (x) {} aplicar(); } });
   document.addEventListener('click', function (e) {
     var x = e.target.closest('[data-img-x]'); if (x) { put(x.dataset.imgX, null).then(aplicar); return; }

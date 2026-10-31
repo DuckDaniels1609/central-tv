@@ -409,6 +409,11 @@ header { align-items: center; }
 .cl-it .btn.sm { flex: 1; justify-content: center; }
 .cl-it .btn.apaga:hover { background: rgba(235,42,73,.35); }
 body.cl-on #meio-stream > :not(.banner):not(#cl-painel) { display: none !important; }
+.cel-imgs { display: flex; flex-direction: column; gap: 8px; }
+.cel-img { display: flex; align-items: center; gap: 10px; }
+.cel-img i { width: 36px; height: 64px; border-radius: 8px; background: rgba(255,255,255,.08) center/cover no-repeat; flex: none; }
+.cel-img i.larga { width: 64px; height: 36px; margin: 14px 0; }
+.cel-img span { flex: 1; font-size: 14px; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -786,6 +791,12 @@ body.menu-mini .sub[hidden] { display: flex !important; }
         <div class="row" id="cel-inicio"></div>
         <div class="f" style="font-size:14px;color:var(--muted)">Abas na barra de baixo (além do Início e do Mais)</div>
         <div class="row"><select class="sel" id="cel-aba1" aria-label="Primeira aba"></select><select class="sel" id="cel-aba2" aria-label="Segunda aba"></select></div>
+        <div class="f" style="font-size:14px;color:var(--muted)">Imagens do app</div>
+        <div class="cel-imgs">
+          <div class="cel-img"><i id="celimg-fundo-pv"></i><span>Fundo do app</span><label class="btn sm" for="celimg-fundo">Escolher</label><input type="file" id="celimg-fundo" accept="image/*" hidden><button class="btn sm" data-celimgx="fundo">Tirar</button></div>
+          <div class="cel-img"><i id="celimg-banner-pv" class="larga"></i><span>Banner do topo</span><label class="btn sm" for="celimg-banner">Escolher</label><input type="file" id="celimg-banner" accept="image/*" hidden><button class="btn sm" data-celimgx="banner">Tirar</button></div>
+        </div>
+        <span class="note" id="celimg-st"></span>
         <p class="note" style="margin:0">O app do celular muda sozinho na próxima vez que você abrir.</p>
       </section>
 
@@ -1121,9 +1132,44 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     $('cel-cores').innerHTML = CORES.map(function (k) { return '<button class="sw" style="background:' + k + '" aria-label="Cor ' + k + '" aria-pressed="' + (c.cor.toLowerCase() === k.toLowerCase()) + '" data-celcor="' + k + '"></button>'; }).join('');
     $('cel-temas').innerHTML = Object.keys(TEMAS_CEL).map(function (k) { var x = TEMAS_CEL[k]; return '<button class="tema-sw" title="' + x[0] + '" aria-label="Fundo ' + x[0] + '" aria-pressed="' + (c.tema === k) + '" data-celtema="' + k + '" style="background:linear-gradient(160deg,' + x[1] + ',' + x[3] + ')"></button>'; }).join('');
     $('cel-inicio').innerHTML = CARTOES_CEL.map(function (x) { return '<button class="chip" data-celini="' + x[0] + '" aria-pressed="' + (c.inicio[x[0]] !== false) + '">' + x[1] + '</button>'; }).join('');
+    var PV = {}; try { PV = JSON.parse(localStorage.getItem('prev-cel') || '{}'); } catch (e) {}
+    ['fundo', 'banner'].forEach(function (k) { var on = c.img && c.img[k]; $('celimg-' + k + '-pv').style.backgroundImage = on && PV[k] ? 'url(' + PV[k] + ')' : ''; });
+    if (c.img && c.img.fundo && PV.fundo) pv.style.background = 'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)), url(' + PV.fundo + ') center/cover';
     ['cel-aba1', 'cel-aba2'].forEach(function (id, i) { $(id).innerHTML = ABAS_CEL.map(function (a) { return '<option value="' + a[0] + '"' + (c.abas[i] === a[0] ? ' selected' : '') + (c.abas[1 - i] === a[0] ? ' disabled' : '') + '>' + a[1] + '</option>'; }).join(''); });
   }
 
+  /* imagens do app do celular escolhidas aqui: vão para o repositório (fundos/cel-*.jpg) e o celular baixa */
+  document.addEventListener('change', function (e) {
+    var t = e.target, k = t.id === 'celimg-fundo' ? 'fundo' : t.id === 'celimg-banner' ? 'banner' : null;
+    if (!k || !t.files || !t.files[0]) return;
+    var st = $('celimg-st'), f = t.files[0]; t.value = '';
+    if (!ghTok()) { st.textContent = 'Conecte a chave do GitHub primeiro.'; return; }
+    st.textContent = 'Preparando a imagem…';
+    var im = new Image();
+    im.onload = function () {
+      var W = k === 'fundo' ? 1170 : 1600, H = k === 'fundo' ? 2532 : Math.round(1600 * im.height / im.width);
+      if (k === 'banner') H = Math.min(H, 900);
+      var c = document.createElement('canvas'); c.width = W; c.height = H;
+      var g = c.getContext('2d'), e2 = Math.max(W / im.width, H / im.height), w = im.width * e2, h = im.height * e2;
+      g.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+      var b64 = c.toDataURL('image/jpeg', 0.82).split(',')[1];
+      var tp = document.createElement('canvas'), tw = k === 'fundo' ? 180 : 320; tp.width = tw; tp.height = Math.round(tw * H / W); tp.getContext('2d').drawImage(c, 0, 0, tp.width, tp.height);
+      var PV = {}; try { PV = JSON.parse(localStorage.getItem('prev-cel') || '{}'); } catch (x) {} PV[k] = tp.toDataURL('image/jpeg', 0.75); try { localStorage.setItem('prev-cel', JSON.stringify(PV)); } catch (x) {}
+      st.textContent = 'Enviando para o celular…';
+      var arq = 'fundos/cel-' + k + '.jpg';
+      fetch(GH.base + arq + '?t=' + Date.now(), { headers: ghH(), cache: 'no-store' }).then(function (r) { return r.status === 404 ? null : r.json(); }).then(function (j) {
+        var corpo = { message: 'Central no PC: imagem do celular (' + k + ')', content: b64 }; if (j && j.sha) corpo.sha = j.sha;
+        var hh = ghH(); hh['Content-Type'] = 'application/json';
+        return fetch(GH.base + arq, { method: 'PUT', headers: hh, body: JSON.stringify(corpo) });
+      }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        S.celular.img = S.celular.img || {}; S.celular.img[k] = Date.now(); mudou();
+        st.textContent = 'Pronto. O celular troca a imagem na próxima vez que abrir o app.';
+      }).catch(function (x) { st.textContent = 'Não consegui enviar (' + x.message + ').'; });
+    };
+    im.onerror = function () { st.textContent = 'Não consegui abrir essa imagem.'; };
+    im.src = URL.createObjectURL(f);
+  });
   /* ---------- salvar ---------- */
   function mudou() {
     render();
@@ -1140,6 +1186,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     if (t.dataset.cena) { var pc = pg === 'discreto' ? 'inicio' : pg; S.fundos[pc] = { tipo: 'cena', cena: t.dataset.cena, id: S.fundos[pc].id }; mudou(); return; }
     if (t.dataset.minha) { S.fundos[pg === 'discreto' ? 'inicio' : pg].tipo = 'img'; mudou(); return; }
     if (t.dataset.celcor) { S.celular.cor = t.dataset.celcor; mudou(); return; }
+    if (t.dataset.celimgx) { S.celular.img = S.celular.img || {}; S.celular.img[t.dataset.celimgx] = 0; $('celimg-st').textContent = 'Tirei. O celular volta ao fundo normal quando abrir.'; mudou(); return; }
     if (t.dataset.celtema) { S.celular.tema = t.dataset.celtema; mudou(); return; }
     if (t.dataset.celini) { var ki = t.dataset.celini; S.celular.inicio[ki] = S.celular.inicio[ki] === false; mudou(); return; }
     if (t.dataset.dfundo !== undefined) { S.discreto.fundo = t.dataset.dfundo; mudouDisc(); return; }
@@ -2163,7 +2210,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
       MAL.anime = L.map(function (x) { var n = x.node, ls = x.list_status || {}; return { id: n.id, t: n.title, en: (n.alternative_titles || {}).en || '', img: (n.main_picture || {}).medium || '', eps: n.num_episodes || 0, sin: n.synopsis || '', gen: (n.genres || []).map(function (g) { return g.name; }), nota: n.mean || null, tipo: n.media_type || '', ano: (n.start_season || {}).year || '', st: ls.status, ep: ls.num_episodes_watched || 0, score: ls.score || 0, em: ls.updated_at || '' }; });
       try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e) {}
       /* cópia leve no repositório para o celular, a TV e a skill */
-      mudar('an', function (d) { d.fonte = 'MyAnimeList · ' + MAL.usuario; d.itens = MAL.anime.map(function (a) { return { id: a.id, t: a.t, en: a.en, img: a.img, eps: a.eps, st: a.st, ep: a.ep, score: a.score, em: a.em }; }); });
+      mudar('an', function (d) { var P = {}; (d.itens || []).forEach(function (z) { if (z.pend) P[z.id] = z; }); d.fonte = 'MyAnimeList · ' + MAL.usuario; d.itens = MAL.anime.map(function (a) { var z = P[a.id]; return z ? { id: a.id, t: a.t, en: a.en, img: a.img, eps: a.eps, st: z.st, ep: z.ep, score: a.score, em: z.em, pend: 1 } : { id: a.id, t: a.t, en: a.en, img: a.img, eps: a.eps, st: a.st, ep: a.ep, score: a.score, em: a.em }; }); });
       MAL.carregando = false; desenharAnime();
     }).catch(function (e) { MAL.carregando = false; $('an-resumo').textContent = 'Não consegui ler o MAL (' + e.message + ')'; });
   }
@@ -2322,6 +2369,25 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     malApi('PATCH', '/v2/manga/' + it.mal + '/my_list_status', f.join('&')).catch(function () {});
   };
   setTimeout(function () { malStatus().then(function (ok) { if (ok) { carregarAnimes(); sincManga(); } else desenharAnime(); }); }, 2500);
+  /* +1 feito no celular: o celular marca "pend" no repositório e o PC manda para o MyAnimeList */
+  var PEND_ON = {}, pendT;
+  function pendentesCelular() {
+    if (!MAL.ok) return;
+    ((S.an && S.an.itens) || []).forEach(function (y) {
+      if (!y.pend || PEND_ON['an' + y.id]) return; PEND_ON['an' + y.id] = 1;
+      malApi('PATCH', '/v2/anime/' + y.id + '/my_list_status', 'status=' + y.st + '&num_watched_episodes=' + y.ep).then(function () {
+        var a = (MAL.anime || []).filter(function (x) { return x.id === y.id; })[0]; if (a) { a.ep = y.ep; a.st = y.st; a.em = y.em || a.em; try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e) {} }
+        return mudar('an', function (d) { (d.itens || []).forEach(function (z) { if (z.id === y.id && z.ep === y.ep) delete z.pend; }); });
+      }).catch(function () {}).then(function () { delete PEND_ON['an' + y.id]; });
+    });
+    ((S.le && S.le.itens) || []).forEach(function (it) {
+      if (!it.pend || PEND_ON['le' + it.id]) return; PEND_ON['le' + it.id] = 1;
+      var f = []; if (it.cap != null) f.push('num_chapters_read=' + Math.floor(+it.cap)); if (LE_MAL[it.status]) f.push('status=' + LE_MAL[it.status]);
+      (it.mal ? malApi('PATCH', '/v2/manga/' + it.mal + '/my_list_status', f.join('&')) : Promise.resolve()).then(function () {
+        return mudar('le', function (d) { (d.itens || []).forEach(function (z) { if (z.id === it.id && z.cap === it.cap) delete z.pend; }); });
+      }).catch(function () {}).then(function () { delete PEND_ON['le' + it.id]; });
+    });
+  }
 
   function bdg(k, n, suave) { var el = $('bdg-' + k); if (!el) return; el.textContent = n > 99 ? '99+' : n; el.className = 'bdg' + (n ? ' on' : '') + (suave ? ' suave' : ''); }
   function badges() {
@@ -2380,7 +2446,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     else if (a === 'fsLe') { var it = ((S.le && S.le.itens) || []).filter(function (y) { return y.id === leSel; })[0]; if (!it) return; if (fsTem('le' + it.id)) { fsAlterna({ k: 'le' + it.id }); return; } capaLeitura(it, function (u) { fsAlterna({ k: 'le' + it.id, tipo: it.tipo || 'Mangá', nome: it.nome, capa: u || '', info: it.cap != null ? 'parou no cap. ' + Math.floor(+it.cap) : '' }); }); }
     else if (a === 'fsEs') { var j = (S.es && S.es.jogos || {})[esSel]; if (!j) return; if (fsTem('es' + esSel)) { fsAlterna({ k: 'es' + esSel }); return; } var idJ = esSel, fim = function (u) { fsAlterna({ k: 'es' + idJ, tipo: 'Jogo', nome: j.name, capa: u || '' }); }; if (window.CAPAS) CAPAS.buscar({ id: 'es-' + idJ, nome: j.name, wiki: j.wiki }, fim); else fim(''); }
   });
-  function desenhar() { badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
+  function desenhar() { clearTimeout(pendT); pendT = setTimeout(pendentesCelular, 1500); badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }

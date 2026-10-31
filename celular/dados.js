@@ -29,7 +29,7 @@
   }
 
   /* estado local + fila de operações por arquivo */
-  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json', res: 'resumo.json', cfg: 'config.json' };
+  var ARQ = { proj: 'projetos.json', est: 'estante.json', estado: 'estado.json', marc: 'marcacoes.json', tar: 'tarefas.json', cli: 'clientes.json', ev: 'eventos.json', ag: 'agenda.json', lanc: 'lancamentos.json', res: 'resumo.json', cfg: 'config.json', an: 'animes.json', le: 'leitura.json' };
   var S = {}, FILA = {};
   Object.keys(ARQ).forEach(function (q) { S[q] = ler('cd-' + q, null); FILA[q] = ler('cd-fila-' + q, []); });
   var timer = {}, gravando = {};
@@ -71,6 +71,8 @@
     tarOk: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) { t.ok = a.ok; if (a.ok) t.feita = a.em; else delete t.feita; } }); },
     tarTexto: function (d, a) { (d.tarefas || []).forEach(function (t) { if (t.id === a.id) t.t = a.t; }); },
     tarApaga: function (d, a) { d.tarefas = (d.tarefas || []).filter(function (t) { return t.id !== a.id; }); },
+    anEp: function (d, a) { (d.itens || []).forEach(function (y) { if (y.id === a.id) { y.ep = a.ep; y.st = a.st; y.em = a.em; y.pend = 1; } }); },
+    leCap: function (d, a) { (d.itens || []).forEach(function (y) { if (y.id === a.id) { y.cap = a.cap; y.status = a.status; y.lido = a.lido; y.pend = 1; } }); },
     jogoStatus: function (d, a) { var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.status = a.v; }
   };
 
@@ -492,6 +494,8 @@
     var r = document.documentElement.style;
     if (c.cor) r.setProperty('--acc', c.cor);
     var t = TEMAS[c.tema] || TEMAS.noite; r.setProperty('--ceu1', t[0]); r.setProperty('--ceu2', t[1]); r.setProperty('--ceu3', t[2]); r.setProperty('--ceu4', t[3]);
+    var baixaImg = function (arq) { return fetch(REPO + arq + '?t=' + Date.now(), { headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github.raw' }, cache: 'no-store' }).then(function (r) { return r.ok ? r.blob() : null; }).then(function (b) { return b ? new Blob([b], { type: 'image/jpeg' }) : null; }); };
+    (function tentaImg(n) { if (window.CEL_IMG) CEL_IMG(c.img || {}, baixaImg); else if (n < 20) setTimeout(function () { tentaImg(n + 1); }, 300); })(0);
     var ini = c.inicio || {};
     var mostra = function (el, v) { if (el) el.style.display = v === false ? 'none' : ''; };
     mostra($('tvcard'), ini.tv); mostra(document.querySelector('.hoje3'), ini.treino);
@@ -521,13 +525,77 @@
     document.querySelectorAll('#modos button').forEach(function (b) { b.classList.toggle('sel', b.dataset.v === m); if (token()) b.disabled = false; });
     var av = $('modo-repo'); if (av) av.textContent = 'Modo escolhido: ' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[m] || m) + '. Se a TV estiver desligada, ela entra nesse modo quando ligar.';
   }
-  function render() { aplicarCelular(); renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); resumoAtualizar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
+  /* ---- Lazer: animes e mangás com +1 (o PC manda para o MyAnimeList) ---- */
+  var lzAba = ler('lz-aba', 'an'), lzTodos = false;
+  var capaFila = [], capaAtivos = 0;
+  function capaManga(it) {
+    var k = 'capa-le-' + it.id, c = ler(k, null);
+    if (c && Date.now() - c.em < (c.u ? 30 : 3) * 864e5) return c.u || '';
+    if (capaFila.indexOf(it) < 0) { capaFila.push(it); capaProx(); }
+    return '';
+  }
+  function capaProx() {
+    if (capaAtivos >= 2 || !capaFila.length) return; var it = capaFila.shift(); capaAtivos++;
+    var q = it.mal ? 'query($m:Int){Media(idMal:$m,type:MANGA){coverImage{large}}}' : 'query($s:String){Media(search:$s,type:MANGA){coverImage{large}}}';
+    fetch('https://graphql.anilist.co', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ query: q, variables: it.mal ? { m: it.mal } : { s: it.nome } }) })
+      .then(function (r) { return r.json(); }).then(function (j) { var u = j && j.data && j.data.Media && j.data.Media.coverImage ? j.data.Media.coverImage.large : ''; gravar('capa-le-' + it.id, { u: u, em: Date.now() }); if (u) document.querySelectorAll('[data-lzcapa="' + it.id + '"]').forEach(function (el) { el.style.backgroundImage = 'url("' + u + '")'; }); })
+      .catch(function () {}).then(function () { capaAtivos--; capaProx(); });
+  }
+  function renderLazer() {
+    var el = $('lz-dados'); if (!el) return;
+    if (!token()) { el.innerHTML = semChave(); return; }
+    var h = '<div class="filtros lz-f"><button class="b' + (lzAba === 'an' ? ' sel' : '') + '" data-cd="lzAba" data-v="an"><span>📺</span>Animes</button><button class="b' + (lzAba === 'le' ? ' sel' : '') + '" data-cd="lzAba" data-v="le"><span>📖</span>Mangás</button></div>';
+    var L, linha;
+    if (lzAba === 'an') {
+      if (!S.an) { el.innerHTML = h + '<div class="card aviso">Carregando animes…</div>'; return; }
+      var A = (S.an.itens || []), ass = A.filter(function (x) { return x.st === 'watching'; }).sort(function (a, b) { return (b.em || '') < (a.em || '') ? -1 : 1; });
+      L = lzTodos ? ass.concat(A.filter(function (x) { return x.st === 'plan_to_watch' || x.st === 'on_hold'; })) : ass;
+      linha = function (x) {
+        var tot = x.eps ? '/' + x.eps : '', pct = x.eps ? Math.min(100, Math.round(x.ep / x.eps * 100)) : 0;
+        return '<div class="lz-it"><i class="lz-capa" style="background-image:url(&quot;' + esc((x.img || '').replace('/r/50x70', '')) + '&quot;)"></i><div class="lz-info"><b>' + esc(x.en || x.t) + '</b><small>' + (x.st === 'watching' ? 'Episódio ' + x.ep + tot : x.st === 'on_hold' ? 'Em espera · ep. ' + x.ep : 'Planejo ver') + (x.pend ? ' · <span class="lz-pend">vai para o MAL quando o PC abrir</span>' : '') + '</small>' + (x.eps ? '<div class="lz-barra"><span style="width:' + pct + '%"></span></div>' : '') + '</div>' +
+          '<div class="lz-bt"><button class="lz-menos" data-cd="anMenos" data-id="' + x.id + '" aria-label="Voltar um episódio">−</button><button class="lz-mais" data-cd="anMais" data-id="' + x.id + '">+1</button></div></div>';
+      };
+    } else {
+      if (!S.le) { el.innerHTML = h + '<div class="card aviso">Carregando mangás…</div>'; return; }
+      var M = (S.le.itens || []), lendo = M.filter(function (x) { return x.status === 'lendo'; }).sort(function (a, b) { return (b.lido || 0) - (a.lido || 0) || (a.ordem || 99) - (b.ordem || 99); });
+      L = lzTodos ? lendo.concat(M.filter(function (x) { return x.status === 'quero' || x.status === 'pausa'; })) : lendo;
+      linha = function (x) {
+        var c = capaManga(x), cap = Math.floor(+x.cap || 0), tot = x.total ? '/' + x.total : '';
+        return '<div class="lz-it"><i class="lz-capa" data-lzcapa="' + esc(x.id) + '" style="background-image:url(&quot;' + esc(c) + '&quot;)"></i><div class="lz-info"><b>' + esc(x.nome) + '</b><small>' + esc(x.tipo || 'Mangá') + ' · ' + (x.status === 'lendo' ? 'cap. ' + cap + tot : x.status === 'pausa' ? 'Pausado · cap. ' + cap : 'Quero ler') + (x.pend && x.mal ? ' · <span class="lz-pend">vai para o MAL quando o PC abrir</span>' : '') + '</small></div>' +
+          '<div class="lz-bt"><button class="lz-menos" data-cd="leMenos" data-id="' + esc(x.id) + '" aria-label="Voltar um capítulo">−</button><button class="lz-mais" data-cd="leMais" data-id="' + esc(x.id) + '">+1</button></div></div>';
+      };
+    }
+    h += '<div class="card lz-lista">' + (L.length ? L.map(linha).join('') : '<div class="aviso">Nada aqui por enquanto.</div>') + '</div>';
+    h += '<button class="b" data-cd="lzTodos" style="width:100%;margin-top:10px">' + (lzTodos ? 'Mostrar só ' + (lzAba === 'an' ? 'os que estou assistindo' : 'os que estou lendo') : 'Mostrar também ' + (lzAba === 'an' ? 'Planejo ver e Em espera' : 'Quero ler e Pausados')) + '</button>';
+    el.innerHTML = h;
+  }
+  function lzClique(a, b) {
+    if (a === 'lzAba') { lzAba = b.dataset.v; gravar('lz-aba', lzAba); renderLazer(); return true; }
+    if (a === 'lzTodos') { lzTodos = !lzTodos; renderLazer(); return true; }
+    if (a === 'anMais' || a === 'anMenos') {
+      var x = ((S.an && S.an.itens) || []).filter(function (y) { return String(y.id) === b.dataset.id; })[0]; if (!x) return true;
+      var ep = Math.max(0, x.ep + (a === 'anMais' ? 1 : -1)), st = x.st;
+      if (a === 'anMais' && (st === 'plan_to_watch' || st === 'on_hold')) st = 'watching';
+      if (x.eps && ep >= x.eps) st = 'completed'; else if (st === 'completed') st = 'watching';
+      op('an', 'anEp', { id: x.id, ep: ep, st: st, em: new Date().toISOString() });
+      toast(st === 'completed' ? 'Completo! 🎉' : 'Episódio ' + ep); return true;
+    }
+    if (a === 'leMais' || a === 'leMenos') {
+      var it = ((S.le && S.le.itens) || []).filter(function (y) { return y.id === b.dataset.id; })[0]; if (!it) return true;
+      var cap = Math.max(0, Math.floor(+it.cap || 0) + (a === 'leMais' ? 1 : -1)), stt = it.status === 'quero' && a === 'leMais' ? 'lendo' : it.status;
+      op('le', 'leCap', { id: it.id, cap: cap, status: stt, lido: Date.now() });
+      toast('Capítulo ' + cap); return true;
+    }
+    return false;
+  }
+  function render() { aplicarCelular(); renderProj(); renderEst(); renderTar(); renderCal(); renderLanc(); renderLazer(); resumoAtualizar(); renderInicio(); renderConfig(); espelhaMarc(); renderModo(); mostraStatus(status); }
 
   function novoId(nome) { var b = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'projeto', id = b, n = 2; while (S.proj.projetos[id]) id = b + '-' + n++; return id; }
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-cd]'); if (!b) return;
     var a = b.dataset.cd, P = S.proj && S.proj.projetos, pid = b.dataset.p, i = +b.dataset.i;
+    if (lzClique(a, b)) return;
     if (a === 'salvaTok') {
       var v = (b.closest('.card').querySelector('.cd-tok').value || '').trim();
       if (!/^(github_pat_|ghp_)/.test(v)) { toast('A chave começa com github_pat_'); return; }
