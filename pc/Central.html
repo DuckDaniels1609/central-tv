@@ -332,6 +332,25 @@ header { align-items: center; }
 .sep { width: 1px; height: 26px; background: rgba(255,255,255,.15); margin: 0 6px; }
 .lv-tx .sub2 { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nota { font-size: 13px; font-weight: 800; color: #FFD36E; }
+.obs-palco-wrap { position: relative; margin: 0 auto; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,.4); flex: none; }
+.obs-palco { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; background: #0B0A1E; }
+.obs-it { position: absolute; overflow: hidden; transform-origin: 0 0; }
+.obs-it > img, .obs-it > video { position: absolute; display: block; max-width: none; }
+.obs-it.oculto { opacity: .35; outline: 3px dashed rgba(255,255,255,.4); }
+.obs-it.sel { outline: 6px solid var(--acc); outline-offset: -3px; z-index: 999; }
+.obs-ph { display: grid; place-items: center; font-weight: 800; color: rgba(255,255,255,.75); text-align: center; }
+.obs-ph span { font-size: 48px; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.obs-ph.jogo { background: repeating-linear-gradient(135deg, #1D2350 0 60px, #222A5E 60px 120px); }
+.obs-ph.cam { background: linear-gradient(160deg, #3A2A7A, #1B1A4A); }
+.obs-ph.web { outline: 4px dashed rgba(255,211,110,.8); outline-offset: -4px; background: rgba(255,211,110,.08); }
+.obs-palco.sem-contornos .obs-ph span, .obs-palco.sem-contornos .obs-ph.web { visibility: hidden; }
+.obs-camadas { display: flex; flex-direction: column; gap: 4px; }
+.obs-ly { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; background: rgba(20,18,52,calc(var(--vidro) + .05)); font-size: 13px; cursor: pointer; border: 0; color: var(--fg); font-family: inherit; text-align: left; width: 100%; }
+.obs-ly:hover, .obs-ly.sel { background: rgba(255,127,168,.18); }
+.obs-ly small { color: var(--muted); margin-left: auto; white-space: nowrap; }
+.obs-ly.off { opacity: .5; }
+.obs-ly .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.obs-ly.sub2 { margin-left: 16px; width: calc(100% - 16px); }
 .temp-chip[aria-pressed="true"] { background: linear-gradient(90deg, #FFD36E, #FF9F6E) !important; color: #1C1838 !important; }
 .temp-nome { font-size: 14px; padding: 0 4px; white-space: nowrap; }
 .le-det h3 { margin: 0; font-size: 18px; color: var(--fg); text-transform: none; letter-spacing: 0; }
@@ -415,6 +434,10 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
         <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg><span>Mangás</span><i class="bdg" id="bdg-leit"></i></button>
         <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
       </div>
+      <button class="mg mg-bt" id="mg-stream" aria-expanded="true">Stream <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="sub" id="sub-stream">
+        <button class="mi" data-sec="stream"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></svg><span>Cenas da stream</span><i class="bdg" id="bdg-stream"></i></button>
+      </div>
       <button class="mg mg-bt" id="mg-casa" aria-expanded="true">PC e TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="sub" id="sub-casa">
         <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Meus programas</span><i class="bdg" id="bdg-pc"></i></button>
@@ -486,6 +509,12 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       </div>
       <span class="note" id="tvc-st"></span>
     </div>
+    <div class="col card meio" id="meio-stream" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
+      <div class="row" id="obs-cenas"></div>
+      <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div></div>
+      <span class="note" id="obs-nota"></span>
+    </div>
     <div class="col card" id="meio-pc" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Meus programas</h2><span id="pc-st"></span></div><span class="note" style="position:relative">Botão direito num programa: mudar categoria ou fixar</span></div>
       <div class="pc-grid" id="pc-apps"></div>
@@ -556,6 +585,14 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       <section data-s="lanc" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Como funciona</h3>
         <p class="note" style="margin:0">A ★ marca os que você quer jogar (os marcados aparecem no calendário e na TV). A lista é atualizada todo primeiro sábado do mês.</p>
+      </section>
+      <section data-s="stream" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3 id="obs-cena-tit">Camadas</h3>
+        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-ocultos"> Mostrar as camadas ocultas</label>
+        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-contornos" checked> Mostrar contornos (alertas, câmera, jogo)</label>
+        <div class="obs-camadas" id="obs-camadas"></div>
+        <h3 style="margin-top:8px">Como mudar</h3>
+        <p class="note" style="margin:0">Me peça no chat (ex.: "aumenta a câmera no Jogos de Luta"). Eu faço uma cópia de segurança e edito com o OBS fechado; depois é só abrir o OBS de novo. A prévia lê o arquivo de cenas que o OBS salva, então mostra a última versão salva.</p>
       </section>
       <section data-s="tvc" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Status da TV</h3>
@@ -1099,7 +1136,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     if (mn && !e.target.closest('#pc-menu .x0')) mn.remove();
     var g = e.target.closest('.mg-bt'); if (g) { var gs = g.id.slice(3), ab = g.getAttribute('aria-expanded') !== 'true'; g.setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; try { localStorage.setItem('menu-' + gs, ab ? '1' : ''); } catch (x) {} }
   });
-  try { ['tv', 'lazer', 'casa'].forEach(function (gs) { var v = localStorage.getItem('menu-' + gs); if (v === null) return; var ab = v === '1'; $('mg-' + gs).setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; }); } catch (e) {}
+  try { ['tv', 'lazer', 'casa', 'stream'].forEach(function (gs) { var v = localStorage.getItem('menu-' + gs); if (v === null) return; var ab = v === '1'; $('mg-' + gs).setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; }); } catch (e) {}
   /* saúde do PC: discos, memória, processador e placa de vídeo */
   function gb(v) { return v >= 1000 ? (v / 1024).toFixed(2).replace('.', ',') + ' TB' : Math.round(v) + ' GB'; }
   function sc(rot, val, al, dica) { return '<span class="sc' + (al ? ' alerta' : '') + '" title="' + esc(dica || '') + '"><small>' + esc(rot) + '</small><b>' + val + '</b></span>'; }
@@ -1118,17 +1155,115 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   setTimeout(saude, 2500); setInterval(saude, 60000);
   document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="hoje"], .mi[data-sec="pc"]')) setTimeout(saude, 50); });
   window.PC_LISTA = function () { return PC_APPS; };
+
+  /* ===== Stream: prévia das cenas do OBS Studio (lê a coleção que o OBS salva no disco) ===== */
+  var OBS = { d: null, meta: null, cena: null, sel: null };
+  var TIPO_OBS = { image_source: 'Imagem', ffmpeg_source: 'Vídeo/som', dshow_input: 'Câmera', monitor_capture: 'Tela', game_capture: 'Jogo', window_capture: 'Janela', browser_source: 'Navegador', wasapi_input_capture: 'Microfone', wasapi_output_capture: 'Som do PC', wasapi_process_output_capture: 'Som de app', text_gdiplus: 'Texto', text_gdiplus_v2: 'Texto', text_gdiplus_v3: 'Texto', color_source: 'Cor', color_source_v3: 'Cor', scene: 'Cena', group: 'Grupo' };
+  function obsCarregar(forcar) {
+    if (OBS.d && !forcar) { obsDesenhar(); return; }
+    $('obs-st').textContent = 'Lendo o OBS…';
+    fetch(AJ + '/obs/cenas?k=' + ajK()).then(function (r) { if (r.status === 404) throw new Error('não achei as cenas do OBS'); if (!r.ok) throw new Error('o ajudante não respondeu'); return r.json(); }).then(function (j) {
+      OBS.d = j.colecao; OBS.meta = j.meta;
+      var nomes = (OBS.d.scene_order || []).map(function (x) { return x.name; });
+      if (!OBS.cena || nomes.indexOf(OBS.cena) < 0) OBS.cena = OBS.d.current_scene || nomes[0];
+      obsDesenhar();
+    }).catch(function (e) { $('obs-st').textContent = 'Não consegui ler (' + e.message + ').'; });
+  }
+  function obsFonte(nome) { var L = (OBS.d.sources || []).concat(OBS.d.groups || []); for (var i = 0; i < L.length; i++) if (L[i].name === nome) return L[i]; return null; }
+  function obsUrl(p) { return AJ + '/obs/arquivo?k=' + ajK() + '&p=' + encodeURIComponent(p); }
+  function corABGR(c) { c = c >>> 0; return 'rgba(' + (c & 255) + ',' + ((c >> 8) & 255) + ',' + ((c >> 16) & 255) + ',' + (((c >>> 24) & 255) / 255).toFixed(2) + ')'; }
+  /* coloca um item no palco seguindo a posição/escala/alinhamento/corte do OBS */
+  function obsPor(el, it, w, h) {
+    var sx = (it.scale || {}).x || 1, sy = (it.scale || {}).y || 1, cl = it.crop_left || 0, ct = it.crop_top || 0, cr = it.crop_right || 0, cb = it.crop_bottom || 0;
+    var vw = Math.max(0, w - cl - cr), vh = Math.max(0, h - ct - cb), W = vw * sx, H = vh * sy, filho = el.firstChild;
+    if (it.bounds_type) {
+      var bx = (it.bounds || {}).x || W, by = (it.bounds || {}).y || H;
+      if (it.bounds_type === 1) { sx = bx / vw; sy = by / vh; } else { var k = Math.min(bx / vw, by / vh); sx = sy = k; }
+      W = vw * sx; H = vh * sy;
+    }
+    var al = it.align == null ? 5 : it.align, px = (it.pos || {}).x || 0, py = (it.pos || {}).y || 0;
+    var left = px - (al & 1 ? 0 : al & 2 ? W : W / 2), top = py - (al & 4 ? 0 : al & 8 ? H : H / 2);
+    el.style.left = left + 'px'; el.style.top = top + 'px'; el.style.width = W + 'px'; el.style.height = H + 'px';
+    if (it.rot) { el.style.transformOrigin = (px - left) + 'px ' + (py - top) + 'px'; el.style.transform = 'rotate(' + it.rot + 'deg)'; }
+    if (filho && filho.tagName && /IMG|VIDEO/.test(filho.tagName)) { filho.style.width = (w * sx) + 'px'; filho.style.height = (h * sy) + 'px'; filho.style.left = (-cl * sx) + 'px'; filho.style.top = (-ct * sy) + 'px'; }
+  }
+  function obsItem(it, pai, ocultos, idx) {
+    var f = obsFonte(it.name); if (!f || it.group_item_backup) return;
+    var vis = it.visible !== false; if (!vis && !ocultos) return;
+    var st = f.settings || {}, id = f.versioned_id || f.id, el = document.createElement('div');
+    el.className = 'obs-it' + (vis ? '' : ' oculto'); el.dataset.nome = it.name; el.dataset.idx = idx;
+    var cx = OBS.meta.cx, cy = OBS.meta.cy;
+    if (/^image_source/.test(id) && st.file) {
+      var img = new Image(); img.onload = function () { obsPor(el, it, img.naturalWidth, img.naturalHeight); }; img.src = obsUrl(st.file); el.appendChild(img); obsPor(el, it, 0, 0);
+    } else if (/^ffmpeg_source/.test(id) && st.local_file && /\.(mp4|webm|mov)$/i.test(st.local_file)) {
+      var v = document.createElement('video'); v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+      v.onloadedmetadata = function () { obsPor(el, it, v.videoWidth, v.videoHeight); }; v.src = obsUrl(st.local_file); el.appendChild(v); obsPor(el, it, cx, cy);
+    } else if (/^ffmpeg_source|^wasapi/.test(id)) { return;
+    } else if (/^dshow_input/.test(id)) {
+      var rs = String(st.resolution || '1920x1080').split('x'); el.classList.add('obs-ph', 'cam'); el.innerHTML = '<span>📷 ' + esc(it.name) + '</span>'; obsPor(el, it, +rs[0] || 1920, +rs[1] || 1080);
+    } else if (/capture$/.test(id)) {
+      el.classList.add('obs-ph', 'jogo'); el.innerHTML = '<span>🎮 ' + esc(it.name) + ' (jogo / tela)</span>'; obsPor(el, it, cx, cy);
+    } else if (/^browser_source/.test(id)) {
+      el.classList.add('obs-ph', 'web'); el.innerHTML = '<span>' + esc(it.name) + '</span>'; obsPor(el, it, st.width || 800, st.height || 600);
+    } else if (/^text_gdiplus/.test(id)) {
+      var fo = st.font || {}; el.style.font = (/Bold/.test(fo.style || '') ? '700 ' : '') + (fo.size || 48) + 'px "' + (fo.face || 'Arial') + '"'; el.style.color = st.color != null ? corABGR(st.color) : '#fff'; el.style.whiteSpace = 'pre'; el.style.overflow = 'visible'; el.textContent = st.text || '';
+      pai.appendChild(el); obsPor(el, it, el.scrollWidth || 200, el.scrollHeight || 60); return;
+    } else if (/^color_source/.test(id)) {
+      el.style.background = corABGR(st.color != null ? st.color : 0xFFFFFFFF); obsPor(el, it, st.width || cx, st.height || cy);
+    } else if (id === 'scene' || id === 'group') {
+      el.style.overflow = 'visible'; obsPor(el, it, id === 'group' ? (st.cx || cx) : cx, id === 'group' ? (st.cy || cy) : cy);
+      var sx = (it.scale || {}).x || 1, sy = (it.scale || {}).y || 1, dentro = document.createElement('div'); dentro.style.cssText = 'position:absolute;left:0;top:0;width:' + (st.cx || cx) + 'px;height:' + (st.cy || cy) + 'px;transform-origin:0 0;transform:scale(' + sx + ',' + sy + ')';
+      (st.items || []).forEach(function (sub, j) { obsItem(sub, dentro, ocultos, idx + '.' + j); }); el.appendChild(dentro);
+    } else return;
+    pai.appendChild(el);
+  }
+  function obsDesenhar() {
+    if (!OBS.d) return;
+    var m = OBS.meta, nomes = (OBS.d.scene_order || []).map(function (x) { return x.name; });
+    $('obs-st').textContent = 'Coleção "' + m.nome + '" · ' + nomes.length + ' cenas · ' + (m.aberto ? 'OBS aberto' : 'OBS fechado') + ' · salvo em ' + new Date(m.mudou).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    $('obs-cenas').innerHTML = nomes.map(function (n) { return '<button class="chip" data-obscena="' + esc(n) + '" aria-pressed="' + (n === OBS.cena) + '">' + esc(n) + (n === OBS.d.current_scene ? ' ●' : '') + '</button>'; }).join('');
+    var cena = obsFonte(OBS.cena), palco = $('obs-palco'), wrap = $('obs-wrap'), ocultos = $('obs-ocultos').checked;
+    palco.innerHTML = ''; palco.style.width = m.cx + 'px'; palco.style.height = m.cy + 'px';
+    palco.classList.toggle('sem-contornos', !$('obs-contornos').checked);
+    var card = $('meio-stream'), cr = card.getBoundingClientRect(), wr0 = wrap.getBoundingClientRect();
+    var k = Math.min((card.clientWidth - 40) / m.cx, Math.max(200, cr.bottom - wr0.top - 48) / m.cy);
+    wrap.style.width = (m.cx * k) + 'px'; wrap.style.height = (m.cy * k) + 'px'; palco.style.transform = 'scale(' + k + ')';
+    var itens = ((cena && cena.settings && cena.settings.items) || []).filter(function (x) { return !x.group_item_backup; });
+    itens.forEach(function (it, i) { obsItem(it, palco, ocultos, String(i)); });
+    $('obs-cena-tit').textContent = 'Camadas · ' + OBS.cena;
+    /* lista de cima para baixo, como no OBS */
+    var linhas = [];
+    itens.slice().reverse().forEach(function (it) {
+      var f = obsFonte(it.name), id = f ? (f.versioned_id || f.id) : '';
+      linhas.push('<button class="obs-ly' + (it.visible === false ? ' off' : '') + (OBS.sel === it.name ? ' sel' : '') + '" data-obsly="' + esc(it.name) + '"><span class="nm">' + (it.visible === false ? '◌ ' : '● ') + esc(it.name) + '</span><small>' + esc(TIPO_OBS[(id || '').replace(/_v\d+$/, '')] || TIPO_OBS[id] || id || '') + '</small></button>');
+      if (f && (id === 'group') && f.settings && f.settings.items) f.settings.items.slice().reverse().forEach(function (s2) { linhas.push('<button class="obs-ly sub2' + (s2.visible === false || it.visible === false ? ' off' : '') + '" data-obsly="' + esc(s2.name) + '"><span class="nm">' + esc(s2.name) + '</span><small>dentro de ' + esc(it.name) + '</small></button>'); });
+    });
+    $('obs-camadas').innerHTML = linhas.join('') || '<p class="note">Cena vazia.</p>';
+    obsMarcar();
+    $('obs-nota').textContent = m.aberto ? 'O OBS está aberto: mudanças feitas nele aparecem aqui depois que ele salvar (ao trocar de cena ou fechar). Clique em Recarregar.' : '';
+  }
+  function obsMarcar() { Array.prototype.forEach.call(document.querySelectorAll('#obs-palco .obs-it'), function (e) { e.classList.toggle('sel', e.dataset.nome === OBS.sel); }); Array.prototype.forEach.call(document.querySelectorAll('.obs-ly'), function (e) { e.classList.toggle('sel', e.dataset.obsly === OBS.sel); }); }
+  document.addEventListener('click', function (e) {
+    var c = e.target.closest('[data-obscena]'); if (c) { OBS.cena = c.dataset.obscena; OBS.sel = null; obsDesenhar(); return; }
+    var l = e.target.closest('[data-obsly]'); if (l) { OBS.sel = OBS.sel === l.dataset.obsly ? null : l.dataset.obsly; obsMarcar(); return; }
+    var p = e.target.closest('#obs-palco .obs-it'); if (p) { OBS.sel = p.dataset.nome; obsMarcar(); return; }
+    if (e.target.id === 'obs-recarregar') obsCarregar(true);
+    if (e.target.id === 'obs-abrir') { var a = (PC_APPS || []).filter(function (x) { return /\bobs\b/i.test(x.nome) && !/streamlabs/i.test(x.nome); })[0]; if (a) pcAbrir(a.f); else $('obs-nota').textContent = 'Não achei o atalho do OBS em Meus programas.'; }
+  });
+  document.addEventListener('change', function (e) { if (e.target.id === 'obs-ocultos' || e.target.id === 'obs-contornos') obsDesenhar(); });
+  window.addEventListener('resize', function () { if (SEC === 'stream') obsDesenhar(); });
+  window.obsCarregar = obsCarregar;
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 9 && !sessionStorage.getItem('aj-reiniciou-9')) { sessionStorage.setItem('aj-reiniciou-9', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 10 && !sessionStorage.getItem('aj-reiniciou-10')) { sessionStorage.setItem('aj-reiniciou-10', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
-    var grp = { est: 'lazer', anime: 'lazer', leit: 'lazer', lanc: 'lazer', pc: 'casa', tvc: 'casa' }[sx]; if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
+    var grp = { est: 'lazer', anime: 'lazer', leit: 'lazer', lanc: 'lazer', pc: 'casa', tvc: 'casa', stream: 'stream' }[sx]; if (sx === 'stream') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });

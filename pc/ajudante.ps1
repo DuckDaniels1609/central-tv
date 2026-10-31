@@ -37,6 +37,19 @@ function Achar($nome) {
   foreach ($d in @($atalhos, $base)) { $p = Join-Path $d $nome; if (Test-Path -LiteralPath $p) { return (Get-Item -LiteralPath $p) } }
   return $null
 }
+# coleção de cenas em uso no OBS Studio (lida do disco; o OBS grava ao trocar de cena ou fechar)
+function ObsColecao {
+  $od = Join-Path $env:APPDATA 'obs-studio'
+  $ini = @(); foreach ($n in 'user.ini', 'global.ini') { $f = Join-Path $od $n; if (Test-Path $f) { $ini += Get-Content -LiteralPath $f -Encoding UTF8 } }
+  $col = ($ini | Where-Object { $_ -like 'SceneCollectionFile=*' } | Select-Object -First 1); $prof = ($ini | Where-Object { $_ -like 'ProfileDir=*' } | Select-Object -First 1)
+  if (-not $col) { return $null }
+  $arq = Join-Path $od ('basic\scenes\' + $col.Substring(20))
+  if (-not (Test-Path -LiteralPath $arq)) { return $null }
+  $cx = 1920; $cy = 1080
+  if ($prof) { $bi = Join-Path $od ('basic\profiles\' + $prof.Substring(11) + '\basic.ini'); if (Test-Path -LiteralPath $bi) { foreach ($l in Get-Content -LiteralPath $bi) { if ($l -like 'BaseCX=*') { $cx = [int]$l.Substring(7) }; if ($l -like 'BaseCY=*') { $cy = [int]$l.Substring(7) } } } }
+  $it = Get-Item -LiteralPath $arq
+  return @{ arquivo = $it.Name; nome = [IO.Path]::GetFileNameWithoutExtension($it.Name); txt = [IO.File]::ReadAllText($arq, [Text.Encoding]::UTF8); cx = $cx; cy = $cy; mudou = $it.LastWriteTime.ToString('s') }
+}
 function Lista($pasta, $soAtalhos) {
   Get-ChildItem -LiteralPath $pasta -Force | Where-Object { $_.Name -ne 'desktop.ini' -and $_.Name -ne 'Atalhos' -and (-not $soAtalhos -or $_.Extension -in '.lnk', '.url', '.exe') } |
     Sort-Object Name | ForEach-Object { @{ f = $_.Name; nome = [IO.Path]::GetFileNameWithoutExtension($_.Name); pasta = $_.PSIsContainer; ext = $_.Extension.ToLower() } }
@@ -198,6 +211,21 @@ while ($http.IsListening) {
         try { $txt = MalChamar $m2 $c2 ([string]$q['corpo']); if (-not $txt) { $txt = '{}' }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes($txt)) }
         catch { Responder $ctx 502 'text/plain' ([Text.Encoding]::UTF8.GetBytes('mal: ' + $_.Exception.Message)) }
       }
+      '/obs/cenas' {
+        $oc = ObsColecao
+        if (-not $oc) { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('obs')); continue }
+        $meta = @{ arquivo = $oc.arquivo; nome = $oc.nome; cx = $oc.cx; cy = $oc.cy; aberto = [bool](Get-Process obs64 -ErrorAction SilentlyContinue); mudou = $oc.mudou } | ConvertTo-Json -Compress
+        Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes('{"meta":' + $meta + ',"colecao":' + $oc.txt + '}'))
+      }
+      '/obs/arquivo' {
+        # só arquivos que a coleção de cenas do OBS usa (imagens e vídeos)
+        $oc = ObsColecao; $p = ([string]$q['p']) -replace '/', '\'
+        $lista = @([regex]::Matches($oc.txt, '"(?:file|local_file)"\s*:\s*"((?:[^"\\]|\\.)*)"') | ForEach-Object { ($_.Groups[1].Value -replace '\\\\', '\') -replace '/', '\' })
+        $ext = [IO.Path]::GetExtension($p).ToLower()
+        $tipos = @{ '.png' = 'image/png'; '.jpg' = 'image/jpeg'; '.jpeg' = 'image/jpeg'; '.gif' = 'image/gif'; '.webp' = 'image/webp'; '.mp4' = 'video/mp4'; '.webm' = 'video/webm'; '.mov' = 'video/quicktime' }
+        if (-not $oc -or -not ($lista -contains $p) -or -not $tipos[$ext] -or -not (Test-Path -LiteralPath $p)) { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('arquivo')); continue }
+        Responder $ctx 200 $tipos[$ext] ([IO.File]::ReadAllBytes($p))
+      }
       '/saude' {
         $discos = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | ForEach-Object { @{ letra = $_.DeviceID; nome = $_.VolumeName; total = [math]::Round($_.Size / 1GB, 1); livre = [math]::Round($_.FreeSpace / 1GB, 1) } })
         $os = Get-CimInstance Win32_OperatingSystem
@@ -219,7 +247,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 9 } }
+      default  { Json $ctx @{ ok = $true; versao = 10 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
