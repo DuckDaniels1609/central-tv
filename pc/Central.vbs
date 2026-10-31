@@ -2,8 +2,6 @@
 Set sh = CreateObject("WScript.Shell")
 Set fs = CreateObject("Scripting.FileSystemObject")
 d = fs.GetParentFolderName(WScript.ScriptFullName)
-' já está aberta? só traz a janela para a frente
-If sh.AppActivate("Central no PC") Then WScript.Quit
 On Error Resume Next
 Set t = fs.CreateTextFile(d & "\vbs_ok.txt", True): t.WriteLine Now: t.Close
 ' o ajudante já está ligado? se for uma versão antiga, reinicia com a nova
@@ -18,7 +16,7 @@ x.Open "GET", "http://localhost:47803/?k=" & k, False
 x.Send
 If Err.Number = 0 Then v = x.responseText
 Err.Clear
-If InStr(v, """versao"":28") > 0 Then
+If InStr(v, """versao"":29") > 0 Then
   ' tudo certo
 ElseIf InStr(v, "versao") > 0 Then
   Set x = CreateObject("MSXML2.XMLHTTP"): x.Open "GET", "http://localhost:47803/reiniciar?k=" & k, False: x.Send
@@ -29,6 +27,10 @@ Else
   WScript.Sleep 2500
 End If
 On Error GoTo 0
+' se a janela da Central ja estava aberta, so traz para a frente e recarrega
+If sh.AppActivate("Central no PC") Then
+  WScript.Sleep 500: sh.SendKeys "{F5}": WScript.Quit
+End If
 ' se a Central foi instalada como app do Edge, abre por ele (ícone próprio na barra de tarefas)
 pwa = sh.ExpandEnvironmentStrings("%APPDATA%") & "\Microsoft\Windows\Start Menu\Programs\Central no PC.lnk"
 If fs.FileExists(pwa) Then

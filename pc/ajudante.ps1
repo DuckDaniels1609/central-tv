@@ -239,16 +239,8 @@ $PASTA_VAL = Join-Path $GRAV ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valoran
 $gravAtualF = Join-Path $GRAV ('Arte da stream\overlays\gravacao_atual.json')
 function ProcRodando($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
 function ProcParar($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $f -Force -ErrorAction SilentlyContinue } }
-function AcharPython($janela) {
-  $n = 'python.exe'; if ($janela) { $n = 'pythonw.exe' }
-  $c = Get-Command $n -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($c -and $c.Source -notlike '*WindowsApps*') { return $c.Source }
-  foreach ($v in @('Python313', 'Python312', 'Python311')) { $f = Join-Path $env:LOCALAPPDATA ('Programs\Python\' + $v + '\' + $n); if (Test-Path $f) { return $f } }
-  return $null
-}
 function ProcIniciar($sc, $f) {
-  $py = AcharPython $true
-  if (-not $py -or -not (Test-Path $sc)) { Set-Content -Path (Join-Path $aqui 'atalho_erro.txt') -Value ('sem python para ' + $sc); return }
+  $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; if (-not $py -or -not (Test-Path $sc)) { return }
   $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru; Set-Content -Path $f -Value $pr.Id
 }
 function JogoAtual {
@@ -260,7 +252,7 @@ function JogoAtual {
 function LeitorRodando { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
 function LeitorParar { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $leitorPid -Force -ErrorAction SilentlyContinue } }
 function LeitorIniciar {
-  $py = AcharPython $true; if (-not $py) { return }
+  $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; if (-not $py) { return }
   $sc = Join-Path $PASTA_SF6 '_analisador\leitor_ao_vivo.py'; if (-not (Test-Path $sc)) { return }
   $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru
   Set-Content -Path $leitorPid -Value $pr.Id
@@ -284,22 +276,18 @@ function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | 
 $script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false; $script:gravAnt = $false
 # Captura do jogo (e não da tela inteira): cria "Jogo: Street Fighter 6", "Jogo: Valorant" e "Jogo (tela cheia)"
 # nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
-$capOkF = Join-Path $aqui 'captura_jogo_ok5.txt'
+$capOkF = Join-Path $aqui 'captura_jogo_ok4.txt'
 function CapturaJogo {
   # de baixo para cima (logo acima da Tela 1): tela cheia, PS5 (4K Capture), Valorant, SF6
   $novos = @(
     @{ n = 'Jogo (tela cheia)'; k = 'game_capture'; s = @{ capture_mode = 'any_fullscreen'; capture_cursor = $false; anti_cheat_hook = $true } },
     @{ n = 'PS5 (4K Capture)'; k = 'window_capture'; s = @{ window = '4K Capture Utility::4KCaptureUtility.exe'; priority = 2; method = 2; cursor = $false; client_area = $true } },
-    @{ n = 'Jogo: Valorant'; k = 'window_capture'; s = @{ window = 'VALORANT:UnrealWindow:VALORANT-Win64-Shipping.exe'; priority = 2; method = 2; cursor = $false; client_area = $true } },
+    @{ n = 'Jogo: Valorant'; k = 'game_capture'; s = @{ capture_mode = 'window'; window = 'VALORANT::VALORANT-Win64-Shipping.exe'; priority = 2; capture_cursor = $false; anti_cheat_hook = $true } },
     @{ n = 'Jogo: Street Fighter 6'; k = 'game_capture'; s = @{ capture_mode = 'window'; window = 'Street Fighter 6::StreetFighter6.exe'; priority = 2; capture_cursor = $false; anti_cheat_hook = $true } }
   )
   $cenas = @('Clean', ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'), 'Main Right', 'Jogos de Luta')
   $log = @()
-  # o Vanguard do Valorant bloqueia a captura de jogo: troca por captura de janela
-  $inps = @((ObsWs @(@{ t = 'GetInputList' }))[0].responseData.inputs)
-  $va = $inps | Where-Object { $_.inputName -eq 'Jogo: Valorant' -and $_.inputKind -eq 'game_capture' } | Select-Object -First 1
-  if ($va) { $null = ObsWs @(@{ t = 'RemoveInput'; d = @{ inputName = 'Jogo: Valorant' } }); $log += 'Valorant: captura de jogo trocada por captura de janela'; $inps = @((ObsWs @(@{ t = 'GetInputList' }))[0].responseData.inputs) }
-  $ex = @($inps | ForEach-Object { $_.inputName })
+  $ex = @((ObsWs @(@{ t = 'GetInputList' }))[0].responseData.inputs | ForEach-Object { $_.inputName })
   foreach ($cena in $cenas) {
     $rl = (ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0]
     $its = @($rl.responseData.sceneItems)
@@ -326,9 +314,8 @@ function CapturaJogo {
       $idx = [int]((ObsWs @(@{ t = 'GetSceneItemIndex'; d = @{ sceneName = $cena; sceneItemId = [int]$tela.sceneItemId } }))[0].responseData.sceneItemIndex)
       $null = ObsWs @(@{ t = 'SetSceneItemIndex'; d = @{ sceneName = $cena; sceneItemId = $ids[$nv.n]; sceneItemIndex = $idx + $n } }); $n++
     }
-    # a Tela 1 fica embaixo, ligada: se nenhuma captura pegar o jogo, grava o monitor em vez de ficar preto
-    $null = ObsWs @(@{ t = 'SetSceneItemEnabled'; d = @{ sceneName = $cena; sceneItemId = [int]$tela.sceneItemId; sceneItemEnabled = $true } })
-    $log += "$cena Tela 1 embaixo, de reserva"
+    $null = ObsWs @(@{ t = 'SetSceneItemEnabled'; d = @{ sceneName = $cena; sceneItemId = [int]$tela.sceneItemId; sceneItemEnabled = $false } })
+    $log += "$cena Tela 1 oculta"
   }
   Set-Content -Path $capOkF -Value ($log -join "`r`n") -Encoding UTF8
   return $log
@@ -340,7 +327,6 @@ function Tique {
   $jogo = JogoAtual; $obs = [bool](Get-Process obs64 -ErrorAction SilentlyContinue)
   $vivo = $false; $grav = $false; $durMs = 0
   if ($obs) { try { $r = ObsWs @(@{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }); $vivo = [bool]$r[0].responseData.outputActive; $grav = [bool]$r[1].responseData.outputActive; $durMs = [double]$r[1].responseData.outputDuration } catch {} }
-  try { Set-Content -Path (Join-Path $aqui 'estado_obs.txt') -Value ("$(Get-Date -f 'HH:mm:ss') obs=$obs gravando=$grav aovivo=$vivo jogo=$jogo f9=" + (ProcRodando $atalhoPid)) } catch {}
   # leitor ao vivo do SF6 (placar): só com o SF6 aberto e com live ou gravação; desliga sozinho fora disso
   $cfgS = CfgStream; $aoVivoOn = [bool]$cfgS.leitoresAoVivo
   if ($aoVivoOn -and $jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
@@ -348,7 +334,7 @@ function Tique {
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
   if ($script:gravAnt -and -not $grav) {
-    $cm = Join-Path $SCR 'cortar_marcas.py'; $py = AcharPython $false
+    $cm = Join-Path $SCR 'cortar_marcas.py'; $py = (Get-Command python -ErrorAction SilentlyContinue).Source
     if ($py -and (Test-Path $cm)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 15 /nobreak >nul & "' + $py + '" "' + $cm + '"') }
   }
   $script:gravAnt = $grav
@@ -396,7 +382,7 @@ function Tique {
       $tl = Join-Path $sess.pasta ('linha-do-tempo ' + (Get-Date -f 'yyyy-MM-dd HH-mm-ss') + '.json')
       [IO.File]::WriteAllText($tl, ($sess | ConvertTo-Json -Depth 5), [Text.Encoding]::UTF8)
       $div = Join-Path $PASTA_LIVES '_dividir\dividir_live.py'
-      $py = AcharPython $false
+      $py = (Get-Command python -ErrorAction SilentlyContinue).Source
       if ($py -and (Test-Path $div)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 20 /nobreak >nul & "' + $py + '" "' + $div + '" "' + $tl + '"') }
     }
     Remove-Item $sessF -Force -ErrorAction SilentlyContinue
@@ -580,7 +566,7 @@ while ($http.IsListening) {
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/obs/marcar' {
-        $py = AcharPython $true; $sc = Join-Path $SCR 'atalho_momento.py'
+        $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; $sc = Join-Path $SCR 'atalho_momento.py'
         if ($py -and (Test-Path $sc)) { Start-Process $py -ArgumentList ('"' + $sc + '" --agora') -WindowStyle Hidden; Json $ctx @{ ok = $true } } else { Json $ctx @{ ok = $false; msg = 'Python ou o script não encontrado' } }
       }
       '/obs/config' {
@@ -659,7 +645,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 28 } }
+      default  { Json $ctx @{ ok = $true; versao = 29 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
