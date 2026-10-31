@@ -544,7 +544,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       <span class="note" id="tvc-st"></span>
     </div>
     <div class="col card meio" id="meio-stream" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-audio" title="O Yeti Mic e o PC apontavam para aparelhos do computador antigo">Consertar áudio</button><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
       <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
       <div class="row obs-grav" id="obs-grav"></div>
       <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
@@ -1288,6 +1288,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     var l = e.target.closest('[data-obsly]'); if (l) { OBS.sel = OBS.sel === l.dataset.obsly ? null : l.dataset.obsly; obsMarcar(); return; }
     var p = e.target.closest('#obs-palco .obs-it'); if (p) { OBS.sel = p.dataset.nome; obsMarcar(); return; }
     if (e.target.id === 'obs-recarregar') obsCarregar(true);
+    if (e.target.id === 'obs-audio') fetch(AJ + '/obs/audio-padrao?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { $('obs-nota').textContent = j.ok ? 'Pronto: o microfone (Yeti Mic) e o som do PC agora usam os aparelhos padrão do Windows.' : 'Não consegui: ' + (j.msg || 'abra o OBS primeiro'); }).catch(function () { $('obs-nota').textContent = 'O ajudante não respondeu.'; });
     if (e.target.id === 'obs-abrir') { var a = (PC_APPS || []).filter(function (x) { return /\bobs\b/i.test(x.nome) && !/streamlabs/i.test(x.nome); })[0]; if (a) pcAbrir(a.f); else $('obs-nota').textContent = 'Não achei o atalho do OBS em Meus programas.'; }
   });
   document.addEventListener('change', function (e) { if (e.target.id === 'obs-ocultos' || e.target.id === 'obs-contornos') obsDesenhar(); });
@@ -1364,7 +1365,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 15 && !sessionStorage.getItem('aj-reiniciou-15')) { sessionStorage.setItem('aj-reiniciou-15', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 16 && !sessionStorage.getItem('aj-reiniciou-16')) { sessionStorage.setItem('aj-reiniciou-16', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

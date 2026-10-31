@@ -91,7 +91,7 @@ function ObsWs($pedidos) {
       $saida += , $r.d
     }
     return , $saida
-  } finally { try { $ws.Dispose() } catch {} }
+  } finally { try { if ($ws.State -eq [System.Net.WebSockets.WebSocketState]::Open) { $ws.CloseAsync([System.Net.WebSockets.WebSocketCloseStatus]::NormalClosure, 'ok', (New-Object System.Threading.CancellationTokenSource 2000).Token).GetAwaiter().GetResult() } } catch {}; try { $ws.Dispose() } catch {} }
 }
 function Lista($pasta, $soAtalhos) {
   Get-ChildItem -LiteralPath $pasta -Force | Where-Object { $_.Name -ne 'desktop.ini' -and $_.Name -ne 'Atalhos' -and (-not $soAtalhos -or $_.Extension -in '.lnk', '.url', '.exe') } |
@@ -392,6 +392,12 @@ while ($http.IsListening) {
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/obs/audio-padrao' {
+        # o "Yeti Mic" e o "PC" apontavam para aparelhos do PC antigo: passam a usar o microfone e o som padrão do Windows
+        try { $r = ObsWs @(@{ t = 'SetInputSettings'; d = @{ inputName = 'Yeti Mic'; inputSettings = @{ device_id = 'default' } } }, @{ t = 'SetInputSettings'; d = @{ inputName = 'PC'; inputSettings = @{ device_id = 'default' } } })
+          Json $ctx @{ ok = ([bool]$r[0].requestStatus.result -and [bool]$r[1].requestStatus.result); msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') } }
+        catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/jogo' { Json $ctx @{ jogo = (JogoAtual); placar = (LeitorRodando); sessao = (Test-Path $sessF) } }
       '/obs/stream' {
         # Stream + gravar: live e gravação juntas (a gravação vai para "Lives" e depois é dividida por jogo)
@@ -431,7 +437,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 15 } }
+      default  { Json $ctx @{ ok = $true; versao = 16 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
