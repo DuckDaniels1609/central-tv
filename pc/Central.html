@@ -370,6 +370,7 @@ header { align-items: center; }
 .obs-tr.grav { border-color: #FF4D6D; color: #FF8FA6; }
 .obs-tr.grav.on { background: #FF4D6D; color: #fff; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
+.obs-tr.cam { border-color: #9CF2A8; } .obs-tr.cam.on { background: #9CF2A8; color: #1C1838; }
 .obs-tr.live { background: #FF4D6D; color: #fff; border-color: #FF4D6D; font-weight: 800; }
 .obs-jogo { font-size: 13px; color: var(--muted); } .obs-jogo b { color: var(--fg); }
 .sep2 { width: 1px; height: 22px; background: rgba(255,255,255,.12); margin: 0 4px; }
@@ -1313,7 +1314,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     if (j.erro) { tx.textContent = 'OBS aberto, mas não consegui falar com ele (' + j.erro + ')'; luz.className = 'obs-luz amarelo'; bt.innerHTML = ''; return; }
     tx.textContent = (j.aoVivo ? 'AO VIVO ' + (j.tempo || '').slice(0, 8) : 'Fora do ar') + (j.gravando ? ' · gravando' : '') + ' · no ar: ' + j.cena;
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
-    bt.innerHTML = nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') +
+    bt.innerHTML = (j.camera === null || j.camera === undefined ? '' : '<button class="btn obs-tr cam' + (j.camera ? ' on' : '') + '" data-obscam="1">' + (j.camera ? '📷 Câmera: ligada' : '📷 Câmera: oculta') + '</button>') +
+      nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') +
       '';
     var gb = $('obs-grav'), jg = obsJogo && obsJogo.jogo ? JOGO_NOME[obsJogo.jogo] : '';
     var info = '<span class="obs-jogo">' + (jg ? 'Jogo aberto: <b>' + esc(jg) + '</b>' + (obsJogo.placar ? ' · placar ao vivo ligado' : '') : 'Nenhum jogo com análise aberto') + '</span>';
@@ -1330,6 +1332,13 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     }).catch(function () { b.disabled = false; });
   });
   setInterval(obsEstado, 3000);
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-obscam]'); if (!b) return; b.disabled = true;
+    fetch(AJ + '/obs/camera?k=' + ajK() + '&acao=alternar').then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) $('obs-nota').textContent = j.msg || 'Não consegui.'; else if (obsEst) obsEst.camera = j.camera;
+      obsDesenharAr(); setTimeout(obsEstado, 500);
+    }).catch(function () { b.disabled = false; });
+  });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obsstream]'); if (!b) return;
     if (b.dataset.obsstream === 'parar' && !b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'Clique de novo para encerrar a live'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; obsDesenharAr(); } }, 4000); return; }
@@ -1365,7 +1374,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 16 && !sessionStorage.getItem('aj-reiniciou-16')) { sessionStorage.setItem('aj-reiniciou-16', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 17 && !sessionStorage.getItem('aj-reiniciou-17')) { sessionStorage.setItem('aj-reiniciou-17', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

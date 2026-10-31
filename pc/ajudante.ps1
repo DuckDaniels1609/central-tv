@@ -349,7 +349,8 @@ while ($http.IsListening) {
         else {
           try {
             $r = ObsWs @(@{ t = 'GetCurrentProgramScene' }, @{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }, @{ t = 'GetSceneList' })
-            Json $ctx @{ aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
+            $cam = $null; try { $ci = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $r[0].responseData.currentProgramSceneName } }))[0].responseData.sceneItems | Where-Object { $_.sourceName -in @('Camera', 'Webcam') }); if ($ci.Count) { $cam = [bool]$ci[0].sceneItemEnabled } } catch {}
+            Json $ctx @{ camera = $cam; aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
           } catch { Json $ctx @{ aberto = $true; erro = $_.Exception.Message } }
         }
       }
@@ -390,6 +391,19 @@ while ($http.IsListening) {
           } elseif ($q['acao'] -eq 'qual') {
             $jg = ''; if (Test-Path $estF) { $jg = (Get-Content $estF -Raw).Trim() }; Json $ctx @{ ok = $true; jogo = $jg }
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
+      '/obs/camera' {
+        # mostra/oculta a câmera (Webcam, Moldura e o grupo Camera) na cena que está no ar
+        try {
+          $cena = [string](ObsWs @(@{ t = 'GetCurrentProgramScene' }))[0].responseData.currentProgramSceneName
+          $its = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0].responseData.sceneItems | Where-Object { $_.sourceName -in @('Camera', 'Webcam', ('Moldura da c' + [char]0x00E2 + 'mera')) })
+          if (-not $its.Count) { Json $ctx @{ ok = $false; msg = 'Esta cena não tem câmera.' } }
+          else {
+            $vis = -not [bool]$its[0].sceneItemEnabled; if ($q['acao'] -eq 'mostrar') { $vis = $true } elseif ($q['acao'] -eq 'ocultar') { $vis = $false }
+            $ped = @($its | ForEach-Object { @{ t = 'SetSceneItemEnabled'; d = @{ sceneName = $cena; sceneItemId = [int]$_.sceneItemId; sceneItemEnabled = $vis } } })
+            $null = ObsWs $ped; Json $ctx @{ ok = $true; camera = $vis; cena = $cena }
+          }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/obs/audio-padrao' {
@@ -437,7 +451,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 16 } }
+      default  { Json $ctx @{ ok = $true; versao = 17 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
