@@ -239,8 +239,17 @@ $PASTA_VAL = Join-Path $GRAV ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valoran
 $gravAtualF = Join-Path $GRAV ('Arte da stream\overlays\gravacao_atual.json')
 function ProcRodando($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
 function ProcParar($f) { if (Test-Path $f) { $id = [int](Get-Content $f -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $f -Force -ErrorAction SilentlyContinue } }
+function PyDe($janela) {
+  # caminho do Python gravado pelo "Instalar ferramentas.bat" (config.json da stream); senão, o do PATH
+  $c = CfgStream; $p = $c.python; if ($janela) { $p = $c.pythonw }
+  if ($c.ffmpeg -and (Test-Path $c.ffmpeg)) { $dirF = Split-Path $c.ffmpeg -Parent; if ($env:Path -notlike "*$dirF*") { $env:Path = $dirF + ';' + $env:Path } }
+  if ($c.tesseract -and (Test-Path $c.tesseract)) { $dirT = Split-Path $c.tesseract -Parent; if ($env:Path -notlike "*$dirT*") { $env:Path = $dirT + ';' + $env:Path } }
+  if ($p -and (Test-Path $p)) { return $p }
+  $n = 'python'; if ($janela) { $n = 'pythonw' }
+  return (Get-Command $n -ErrorAction SilentlyContinue).Source
+}
 function ProcIniciar($sc, $f) {
-  $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; if (-not $py -or -not (Test-Path $sc)) { return }
+  $py = (PyDe $true); if (-not $py -or -not (Test-Path $sc)) { return }
   $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru; Set-Content -Path $f -Value $pr.Id
 }
 function JogoAtual {
@@ -252,7 +261,7 @@ function JogoAtual {
 function LeitorRodando { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
 function LeitorParar { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}; Remove-Item $leitorPid -Force -ErrorAction SilentlyContinue } }
 function LeitorIniciar {
-  $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; if (-not $py) { return }
+  $py = (PyDe $true); if (-not $py) { return }
   $sc = Join-Path $PASTA_SF6 '_analisador\leitor_ao_vivo.py'; if (-not (Test-Path $sc)) { return }
   $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru
   Set-Content -Path $leitorPid -Value $pr.Id
@@ -334,8 +343,9 @@ function Tique {
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
   if ($script:gravAnt -and -not $grav) {
-    $cm = Join-Path $SCR 'cortar_marcas.py'; $py = (Get-Command python -ErrorAction SilentlyContinue).Source
-    if ($py -and (Test-Path $cm)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 15 /nobreak >nul & "' + $py + '" "' + $cm + '"') }
+    $cm = Join-Path $SCR 'cortar_marcas.py'; $py = (PyDe $false)
+    $cv = Join-Path $PASTA_VAL '_analisador\cortar.py'
+    if ($py -and (Test-Path $cm)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 15 /nobreak >nul & "' + $py + '" "' + $cm + '" & timeout /t 50 /nobreak >nul & "' + $py + '" "' + $cv + '"') }
   }
   $script:gravAnt = $grav
   # encerrar a live: depois da contagem, para a stream e a gravação
@@ -382,7 +392,7 @@ function Tique {
       $tl = Join-Path $sess.pasta ('linha-do-tempo ' + (Get-Date -f 'yyyy-MM-dd HH-mm-ss') + '.json')
       [IO.File]::WriteAllText($tl, ($sess | ConvertTo-Json -Depth 5), [Text.Encoding]::UTF8)
       $div = Join-Path $PASTA_LIVES '_dividir\dividir_live.py'
-      $py = (Get-Command python -ErrorAction SilentlyContinue).Source
+      $py = (PyDe $false)
       if ($py -and (Test-Path $div)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 20 /nobreak >nul & "' + $py + '" "' + $div + '" "' + $tl + '"') }
     }
     Remove-Item $sessF -Force -ErrorAction SilentlyContinue
@@ -566,7 +576,7 @@ while ($http.IsListening) {
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/obs/marcar' {
-        $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; $sc = Join-Path $SCR 'atalho_momento.py'
+        $py = (PyDe $true); $sc = Join-Path $SCR 'atalho_momento.py'
         if ($py -and (Test-Path $sc)) { Start-Process $py -ArgumentList ('"' + $sc + '" --agora') -WindowStyle Hidden; Json $ctx @{ ok = $true } } else { Json $ctx @{ ok = $false; msg = 'Python ou o script não encontrado' } }
       }
       '/obs/config' {
@@ -645,7 +655,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 29 } }
+      default  { Json $ctx @{ ok = $true; versao = 30 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
