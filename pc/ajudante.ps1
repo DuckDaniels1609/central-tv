@@ -282,6 +282,22 @@ while ($http.IsListening) {
         try { $r = ObsWs @(@{ t = 'GetSourceScreenshot'; d = @{ sourceName = [string]$q['cena']; imageFormat = 'jpg'; imageWidth = 1280; imageCompressionQuality = 75 } }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; img = [string]$r[0].responseData.imageData; msg = [string]$r[0].requestStatus.comment } }
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/obs/gravar' {
+        # "Só gravação": troca para a cena sem overlays, grava numa pasta própria e não transmite
+        $pastaGrav = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'; $pastaSo = Join-Path $pastaGrav ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o')
+        try {
+          if ($q['acao'] -eq 'so_jogo') {
+            New-Item -ItemType Directory -Force -Path $pastaSo | Out-Null
+            $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o') } }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $pastaSo } }, @{ t = 'StartRecord' })
+            Json $ctx @{ ok = [bool]$r[2].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
+          } elseif ($q['acao'] -eq 'parar') {
+            $r = ObsWs @(@{ t = 'StopRecord' }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $pastaGrav } })
+            Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment }
+          } elseif ($q['acao'] -eq 'gravar') {
+            $r = ObsWs @(@{ t = 'StartRecord' }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment }
+          } else { Json $ctx @{ ok = $false; msg = 'acao' } }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/cena' {
         try { $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = [string]$q['nome'] } }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment } }
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
@@ -307,7 +323,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 12 } }
+      default  { Json $ctx @{ ok = $true; versao = 13 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
