@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $aqui0 = Split-Path -Parent $MyInvocation.MyCommand.Path
 try { Start-Transcript -Path (Join-Path $aqui0 'ajudante_log.txt') -Force | Out-Null } catch {}
 trap { "ERRO: $($_.Exception.Message) (linha $($_.InvocationInfo.ScriptLineNumber))" | Out-File -FilePath (Join-Path $aqui0 'ajudante_erro.txt') -Encoding UTF8; break }
-$porta = 47801
+$porta = 47802
 $aqui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $mesa = [Environment]::GetFolderPath('Desktop')
 $base = Join-Path $mesa ([string][char]0x00C1 + 'rea de trabalho antiga')
@@ -13,13 +13,13 @@ $atalhos = Join-Path $base 'Atalhos'
 New-Item -ItemType Directory -Force -Path $atalhos | Out-Null
 Add-Type -AssemblyName System.Drawing
 
+$http = New-Object System.Net.HttpListener
+$http.Prefixes.Add("http://localhost:$porta/")
+try { $http.Start() } catch { "porta ocupada: $($_.Exception.Message)" | Out-File (Join-Path $aqui 'ajudante_erro.txt') -Encoding UTF8; exit 0 }
 # chave nova a cada início; a página lê pelo arquivo ao lado dela
 $chave = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
 Set-Content -Path (Join-Path $aqui 'ajudante_chave.js') -Value "window.AJUDANTE_CHAVE='$chave';" -Encoding UTF8
 
-$http = New-Object System.Net.HttpListener
-$http.Prefixes.Add("http://localhost:$porta/")
-try { $http.Start() } catch { "porta ocupada: $($_.Exception.Message)" | Out-File (Join-Path $aqui 'ajudante_erro.txt') -Encoding UTF8; exit 0 }
 
 function Responder($ctx, $codigo, $tipo, [byte[]]$corpo) {
   $r = $ctx.Response
