@@ -2,6 +2,8 @@
 Set sh = CreateObject("WScript.Shell")
 Set fs = CreateObject("Scripting.FileSystemObject")
 d = fs.GetParentFolderName(WScript.ScriptFullName)
+' já está aberta? só traz a janela para a frente
+If sh.AppActivate("Central no PC") Then WScript.Quit
 On Error Resume Next
 Set t = fs.CreateTextFile(d & "\vbs_ok.txt", True): t.WriteLine Now: t.Close
 On Error GoTo 0
