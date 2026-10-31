@@ -261,6 +261,18 @@ header { align-items: center; }
 .pc-menu button[aria-pressed="true"] { color: var(--acc); }
 
 .pj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; overflow-y: auto; align-content: start; }
+.pj-grid.kanban { grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: stretch; flex: 1; min-height: 0; }
+.ci.arr { cursor: grab; } .ci.arrastando { opacity: .4; }
+#cal-grade .cd.alvo { outline: 2px solid var(--acc); outline-offset: -2px; }
+.kb-col { background: var(--panel2); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow-y: auto; border: 2px solid transparent; }
+.kb-col.alvo { border-color: var(--acc); }
+.kb-col h3 { display: flex; justify-content: space-between; align-items: center; margin: 2px 4px 4px; }
+.kb-col h3 small { color: var(--muted); font-weight: 600; }
+.kb-card { background: rgba(36,32,90,calc(var(--vidro) + .2)); border-radius: 12px; padding: 10px 12px; font-size: 14px; cursor: grab; border: 1px solid rgba(255,255,255,.08); display: flex; gap: 8px; align-items: flex-start; }
+.kb-card.arrastando { opacity: .4; }
+.kb-card .num { color: var(--muted); font-size: 12px; font-weight: 700; flex: none; }
+.kb-col[data-st="feito"] .kb-card { opacity: .7; text-decoration: line-through; }
+.kb-col[data-st="fazendo"] .kb-card { border-color: var(--acc); }
 .pj { font: inherit; color: var(--fg); text-align: left; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.08); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; min-height: 170px; }
 .pj:hover { border-color: rgba(255,255,255,.25); }
 .pj[aria-pressed="true"] { border-color: var(--acc); }
@@ -544,7 +556,8 @@ body.menu-mini .sub[hidden] { display: flex !important; }
       <div class="cal-grade" id="cal-grade"></div>
     </div>
     <div class="col card meio" id="meio-proj" hidden>
-      <div class="banner slim"><div class="banner-tx"><h2>Projetos</h2><span id="pj-resumo"></span></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Projetos</h2><span id="pj-resumo"></span></div><div class="row"><button class="chip" data-pjmodo="cartoes">Cartões</button><button class="chip" data-pjmodo="colunas">Colunas</button></div></div>
+      <div class="row" id="pj-chips" hidden></div>
       <div class="pj-grid" id="pj-grid"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-est" hidden>
@@ -1566,7 +1579,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     var out = [], md = dia.slice(5), fer = feriado(dia);
     if (fer) out.push({ k: 'feriado', h: '', t: fer });
     ((S.ag && S.ag.reunioes) || []).forEach(function (r) { if (r.d === dia) out.push({ k: 'reuniao', h: r.dt ? '' : r.h, fim: r.f, t: r.t }); });
-    ((S.ev && S.ev.eventos) || []).forEach(function (e) { if (e.d === dia || (e.anual && e.d.slice(5) === md && e.d <= dia)) out.push({ k: e.tipo || 'evento', h: e.h, t: e.t, id: e.id }); });
+    ((S.ev && S.ev.eventos) || []).forEach(function (e) { if (e.d === dia || (e.anual && e.d.slice(5) === md && e.d <= dia)) out.push({ k: e.tipo || 'evento', h: e.h, t: e.t, id: e.id, anual: !!e.anual }); });
     ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (t.data === dia) out.push({ k: 'tarefa', h: '', t: (t.cli ? t.cli + ': ' : '') + t.t, id: t.id, ok: t.ok }); });
     return out.sort(function (a, b) { return (a.h || '') < (b.h || '') ? -1 : (a.h || '') > (b.h || '') ? 1 : 0; });
   }
@@ -1667,7 +1680,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     for (var i = 0; i < 42; i++) {
       var dd = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i), di = iso(dd), its = itens(di);
       h += '<button class="cd' + (dd.getMonth() !== m ? ' fora' : '') + (di === hj ? ' hoje' : '') + (di === dia ? ' sel' : '') + '" data-a="dia" data-v="' + di + '"><b>' + dd.getDate() + '</b>' +
-        its.slice(0, 3).map(function (x) { return '<span class="ci" style="--c:' + CORES[x.k] + '">' + esc(x.t) + '</span>'; }).join('') + (its.length > 3 ? '<span class="mais">+' + (its.length - 3) + '</span>' : '') + '</button>';
+        its.slice(0, 3).map(function (x) { var arr = x.id && (x.k === 'tarefa' || !x.anual) && x.k !== 'reuniao' && x.k !== 'feriado'; return '<span class="ci' + (arr ? ' arr' : '') + '" style="--c:' + CORES[x.k] + '"' + (arr ? ' draggable="true" data-arr="' + (x.k === 'tarefa' ? 'tar' : 'ev') + '" data-id="' + esc(x.id) + '" title="Arraste para outro dia"' : '') + '>' + esc(x.t) + '</span>'; }).join('') + (its.length > 3 ? '<span class="mais">+' + (its.length - 3) + '</span>' : '') + '</button>';
     }
     el.innerHTML = h;
     var p = dia.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]);
@@ -1678,15 +1691,41 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     $('cal-hora').hidden = tipoNovo === 'tarefa' || tipoNovo === 'aniversario';
   }
 
+  /* arrastar tarefa (ou evento) para outro dia muda a data */
+  var calArr = null;
+  document.addEventListener('dragstart', function (e) { var c = e.target.closest && e.target.closest('.ci[data-arr]'); if (!c) return; calArr = c; c.classList.add('arrastando'); try { e.dataTransfer.setData('text/plain', c.dataset.id); } catch (x) {} });
+  document.addEventListener('dragover', function (e) { var d = e.target.closest && e.target.closest('#cal-grade .cd'); if (!d || !calArr) return; e.preventDefault(); document.querySelectorAll('#cal-grade .cd.alvo').forEach(function (x) { x.classList.remove('alvo'); }); d.classList.add('alvo'); });
+  document.addEventListener('drop', function (e) {
+    var d = e.target.closest && e.target.closest('#cal-grade .cd'); if (!d || !calArr) return; e.preventDefault();
+    var id = calArr.dataset.id, novo = d.dataset.v;
+    if (calArr.dataset.arr === 'tar') mudar('tar', function (x) { (x.tarefas || []).forEach(function (t) { if (t.id === id) t.data = novo; }); });
+    else mudar('ev', function (x) { (x.eventos || []).forEach(function (ev) { if (ev.id === id && !ev.anual) ev.d = novo; }); });
+    dia = novo;
+  });
+  document.addEventListener('dragend', function () { if (calArr) calArr.classList.remove('arrastando'); calArr = null; document.querySelectorAll('#cal-grade .cd.alvo').forEach(function (x) { x.classList.remove('alvo'); }); });
+
   /* ---------- PROJETOS ---------- */
   var pjSel = null;
+  var pjModo = 'cartoes'; try { pjModo = localStorage.getItem('pj-modo') || 'cartoes'; } catch (e) {}
+  function stEtapa(e) { return e.ok ? 'feito' : e.fazendo ? 'fazendo' : 'afazer'; }
   function desenharProj() {
     var el = $('pj-grid'); if (!el) return;
     var P = (S.pj && S.pj.projetos) || {}, ids = Object.keys(P).sort(function (a, b) { return (P[a].ordem || 99) - (P[b].ordem || 99); });
     var tot = 0, feitas = 0; ids.forEach(function (k) { (P[k].etapas || []).forEach(function (e) { tot++; if (e.ok) feitas++; }); });
     $('pj-resumo').textContent = ids.length + ' projetos · ' + feitas + ' de ' + tot + ' etapas feitas';
     if (!pjSel && ids.length) pjSel = ids[0];
-    el.innerHTML = ids.map(function (k) {
+    document.querySelectorAll('[data-pjmodo]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pjmodo === pjModo); });
+    el.classList.toggle('kanban', pjModo === 'colunas'); $('pj-chips').hidden = pjModo !== 'colunas';
+    if (pjModo === 'colunas') {
+      /* colunas: A fazer / Fazendo / Feito do projeto escolhido; arraste as etapas entre as colunas */
+      $('pj-chips').innerHTML = ids.map(function (k) { return '<button class="chip" data-a="pj" data-v="' + esc(k) + '" aria-pressed="' + (pjSel === k) + '">' + esc(P[k].nome) + '</button>'; }).join('');
+      var E0 = (P[pjSel] && P[pjSel].etapas) || [];
+      el.innerHTML = [['afazer', 'A fazer'], ['fazendo', 'Fazendo'], ['feito', 'Feito']].map(function (c) {
+        var it = E0.map(function (e, i) { return { e: e, i: i }; }).filter(function (x) { return stEtapa(x.e) === c[0]; });
+        return '<div class="kb-col" data-st="' + c[0] + '"><h3>' + c[1] + ' <small>' + it.length + '</small></h3>' + it.map(function (x) { return '<div class="kb-card" draggable="true" data-i="' + x.i + '"><span class="num">' + (x.i + 1) + '</span><span>' + esc(x.e.t) + '</span></div>'; }).join('') + '</div>';
+      }).join('');
+    }
+    else el.innerHTML = ids.map(function (k) {
       var p = P[k], E = p.etapas || [], n = E.filter(function (e) { return e.ok; }).length, prox = E.filter(function (e) { return !e.ok; })[0];
       return '<button class="pj" data-a="pj" data-v="' + esc(k) + '" aria-pressed="' + (pjSel === k) + '"><span class="nm">' + esc(p.nome) + '</span>' + (p.objetivo ? '<span class="ob">' + esc(p.objetivo) + '</span>' : '') +
         '<span class="px">' + (prox ? '<b>Próximo:</b> ' + esc(prox.t) : 'Tudo feito ✓') + '</span><span class="ct">' + n + ' de ' + E.length + ' etapas</span><span class="bar"><i style="width:' + (E.length ? Math.round(n / E.length * 100) : 0) + '%"></i></span></button>';
@@ -1699,6 +1738,16 @@ body.menu-mini .sub[hidden] { display: flex !important; }
       return '<div class="et' + (e.ok ? ' ok' : '') + '"><button class="chk' + (e.ok ? ' on' : '') + '" data-a="etOk" data-i="' + i + '" aria-label="Marcar etapa">' + (e.ok ? '✓' : '') + '</button><span class="t">' + esc(e.t) + '</span><button class="x" data-a="etApaga" data-i="' + i + '" aria-label="Apagar etapa">×</button></div>';
     }).join('') || '<p class="note">Sem etapas ainda.</p>';
   }
+  document.addEventListener('click', function (e) { var b = e.target.closest('[data-pjmodo]'); if (!b) return; pjModo = b.dataset.pjmodo; try { localStorage.setItem('pj-modo', pjModo); } catch (x) {} desenharProj(); });
+  var kbArr = null;
+  document.addEventListener('dragstart', function (e) { var c = e.target.closest && e.target.closest('.kb-card'); if (!c) return; kbArr = c; c.classList.add('arrastando'); try { e.dataTransfer.setData('text/plain', c.dataset.i); } catch (x) {} });
+  document.addEventListener('dragover', function (e) { var col = e.target.closest && e.target.closest('.kb-col'); if (!col || !kbArr) return; e.preventDefault(); document.querySelectorAll('.kb-col.alvo').forEach(function (x) { x.classList.remove('alvo'); }); col.classList.add('alvo'); });
+  document.addEventListener('drop', function (e) {
+    var col = e.target.closest && e.target.closest('.kb-col'); if (!col || !kbArr) return; e.preventDefault();
+    var i = +kbArr.dataset.i, st = col.dataset.st, k = pjSel, E = S.pj.projetos[k].etapas, t = E[i].t;
+    mudar('pj', function (d) { var pp = d.projetos[k]; if (!pp || !pp.etapas[i] || pp.etapas[i].t !== t) return; var et = pp.etapas[i]; et.ok = st === 'feito'; if (st === 'fazendo') et.fazendo = true; else delete et.fazendo; });
+  });
+  document.addEventListener('dragend', function () { if (kbArr) kbArr.classList.remove('arrastando'); kbArr = null; document.querySelectorAll('.kb-col.alvo').forEach(function (x) { x.classList.remove('alvo'); }); });
   /* ---------- STATUS DA TV ---------- */
   var DSEM3 = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   function proxDespertar() {
