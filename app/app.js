@@ -133,6 +133,7 @@
     });
   }
   function registrar(msg) {
+    if (/^SmartThings:|^Despertar extra/.test(msg)) { try { tvStatus({ st: msg, stEm: Date.now() }); } catch (e) {} }
     try { var l = ler('registro', []); var d = new Date(); l.unshift(('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ' ' + msg); gravar('registro', l.slice(0, 12)); } catch (e) {}
   }
   var ajusteTimer = null;
@@ -325,6 +326,7 @@
       .then(function (r) { if (r.status === 409 || r.status === 422) throw new Error('conflito'); if (!r.ok) throw new Error('HTTP ' + r.status); });
   }
   var GH_OPS = {
+    status: function (d, a) { Object.keys(a.v).forEach(function (k) { d[k] = a.v[k]; }); },
     modo: function (d, a) { if (a.em >= (d.modoEm || 0)) { d.modo = a.v; d.modoEm = a.em; } },
     marca: function (d, a) {
       d.dias = d.dias || {}; var dia = d.dias[a.d] || (d.dias[a.d] = {});
@@ -1176,12 +1178,19 @@
   function codigoFmt() { var c = codigoCelular(); return c.slice(0, 4) + '-' + c.slice(4, 8) + '-' + c.slice(8, 12); }
   var CEL_URL = 'https://ntfy.sh/centraltv-' + codigoCelular().toLowerCase();
   var celOcupado = false, estadoUltimo = '';
+  /* status da TV para o app do PC e o celular (próximo despertar e a rotina do SmartThings) */
+  var tvStT = null, tvStPend = {};
+  function tvStatus(v) {
+    Object.keys(v).forEach(function (k) { tvStPend[k] = v[k]; });
+    clearTimeout(tvStT); tvStT = setTimeout(function () { if (!window.DADOS_GH) return; var x = tvStPend; tvStPend = {}; x.em = Date.now(); ghOp('tv-status.json', { op: 'status', v: x }); }, 5000);
+  }
   function celEstado(forcar) {
     var a = proximoDespertar ? proximoDespertar() : null;
     var est = { modo: cfg.modo || 'normal', musica: !!cfg.musica.on, desp: a ? DIAS[a.dow] + ' ' + ('0' + a.h).slice(-2) + ':' + ('0' + a.m).slice(-2) : null, versao: window.CENTRAL_ORIGEM || '' };
     var txt = JSON.stringify(est);
     if (!forcar && txt === estadoUltimo) return;
     estadoUltimo = txt;
+    try { tvStatus({ desp: est.desp, despIso: a && a.data ? isoD(a.data) : null, modo: est.modo }); } catch (e) {}
     try { var x = new XMLHttpRequest(); x.open('POST', CEL_URL + '-estado', true); x.setRequestHeader('Cache', 'yes'); x.send(JSON.stringify({ tipo: 'estado', em: Date.now(), estado: est })); } catch (e) {}
   }
   function celComando(m) {

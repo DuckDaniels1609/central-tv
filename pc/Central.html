@@ -245,6 +245,29 @@ header { align-items: center; }
 .pc-menu button { font: inherit; text-align: left; color: var(--fg); background: transparent; border: 0; border-radius: 10px; padding: 9px 10px; cursor: pointer; font-weight: 700; font-size: 14px; }
 .pc-menu button:hover { background: rgba(255,255,255,.08); }
 .pc-menu button[aria-pressed="true"] { color: var(--acc); }
+
+.pj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; overflow-y: auto; align-content: start; }
+.pj { font: inherit; color: var(--fg); text-align: left; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.08); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; min-height: 170px; }
+.pj:hover { border-color: rgba(255,255,255,.25); }
+.pj[aria-pressed="true"] { border-color: var(--acc); }
+.pj .nm { font-size: 18px; font-weight: 800; }
+.pj .ob { font-size: 13px; color: var(--muted); }
+.pj .bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: auto; }
+.pj .bar i { display: block; height: 100%; background: var(--acc); border-radius: 99px; }
+.pj .px { font-size: 13px; color: #D9D5F2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pj .px b { color: var(--acc); }
+.pj .ct { font-size: 12px; color: var(--muted); font-weight: 700; }
+.in-txt { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
+.et { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: 12px; background: rgba(20,18,52,calc(var(--vidro) + .05)); font-size: 14px; }
+.et .t { flex: 1; min-width: 0; line-height: 1.4; }
+.et.ok .t { color: var(--muted); text-decoration: line-through; }
+.et .chk { margin-top: 1px; }
+.tvst { display: flex; flex-direction: column; gap: 8px; }
+.tvl { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 10px 12px; border-radius: 12px; background: rgba(20,18,52,calc(var(--vidro) + .05)); }
+.tvl span { font-size: 13px; color: var(--muted); }
+.tvl b { font-size: 16px; text-align: right; }
+.tvl.okv b { color: var(--ok); }
+.tvl.alerta b { color: var(--acc); }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
@@ -273,6 +296,7 @@ header { align-items: center; }
       <button class="mi" data-sec="hoje" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>Hoje</button>
       <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Tarefas</button>
       <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
+      <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Projetos</button>
       <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
       <button class="mg mg-bt" id="mg-tv" aria-expanded="false">Ajustes da TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="sub-tv" id="sub-tv" hidden>
@@ -307,6 +331,10 @@ header { align-items: center; }
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2 id="cal-tit"></h2><span>Reuniões, eventos, aniversários e prazos</span></div>
         <div class="row" style="position:relative"><button class="btn" data-a="mes" data-v="-1" aria-label="Mês anterior">‹</button><button class="btn" data-a="mes" data-v="0">Hoje</button><button class="btn" data-a="mes" data-v="1" aria-label="Próximo mês">›</button></div></div>
       <div class="cal-grade" id="cal-grade"></div>
+    </div>
+    <div class="col card meio" id="meio-proj" hidden>
+      <div class="banner slim"><div class="banner-tx"><h2>Projetos</h2><span id="pj-resumo"></span></div></div>
+      <div class="pj-grid" id="pj-grid"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card" id="meio-pc" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Meus programas</h2><span id="pc-st"></span></div><span class="note" style="position:relative">Botão direito num programa: mudar categoria ou fixar</span></div>
@@ -345,8 +373,16 @@ header { align-items: center; }
         <span class="note" id="lk-icone-st"></span>
         <p class="note" style="margin:0">Fica salvo só neste PC. As imagens não saem do computador.</p>
       </section>
+      <section data-s="proj" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3 id="pj-tit">Escolha um projeto</h3>
+        <p class="note" id="pj-obj" style="margin:0"></p>
+        <div class="col" style="gap:6px" id="pj-etapas"></div>
+        <form id="pj-nova" class="col" style="gap:8px" hidden><input type="text" id="pj-txt" placeholder="Nova etapa…" aria-label="Nova etapa" autocomplete="off" class="in-txt"><button class="btn prim" type="submit">Adicionar etapa</button></form>
+      </section>
       <section data-s="hoje" class="sec" style="display:flex;flex-direction:column;gap:10px">
-        <h3>Anotar rápido</h3>
+        <h3>TV do quarto</h3>
+        <div class="tvst" id="tv-st"><p class="note">Carregando…</p></div>
+        <h3 style="margin-top:10px">Anotar rápido</h3>
         <form id="hj-nova" class="col" style="gap:8px">
           <input type="text" id="hj-txt" placeholder="O que precisa fazer?" aria-label="Nova tarefa" autocomplete="off">
           <div class="row"><select class="sel" id="hj-cat" aria-label="Categoria"><option value="trabalho">Trabalho</option><option value="pessoal">Pessoal</option><option value="condominio">Condomínio</option></select><button class="btn prim" type="submit">Anotar</button></div>
@@ -912,7 +948,7 @@ header { align-items: center; }
 (function () {
   'use strict';
   var BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
-  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json' };
+  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json' };
   var S = {}, SHA = {};
   var $ = function (id) { return document.getElementById(id); };
   function tok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
@@ -1050,7 +1086,53 @@ header { align-items: center; }
     $('cal-hora').hidden = tipoNovo === 'tarefa' || tipoNovo === 'aniversario';
   }
 
-  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); }
+  /* ---------- PROJETOS ---------- */
+  var pjSel = null;
+  function desenharProj() {
+    var el = $('pj-grid'); if (!el) return;
+    var P = (S.pj && S.pj.projetos) || {}, ids = Object.keys(P).sort(function (a, b) { return (P[a].ordem || 99) - (P[b].ordem || 99); });
+    var tot = 0, feitas = 0; ids.forEach(function (k) { (P[k].etapas || []).forEach(function (e) { tot++; if (e.ok) feitas++; }); });
+    $('pj-resumo').textContent = ids.length + ' projetos · ' + feitas + ' de ' + tot + ' etapas feitas';
+    if (!pjSel && ids.length) pjSel = ids[0];
+    el.innerHTML = ids.map(function (k) {
+      var p = P[k], E = p.etapas || [], n = E.filter(function (e) { return e.ok; }).length, prox = E.filter(function (e) { return !e.ok; })[0];
+      return '<button class="pj" data-a="pj" data-v="' + esc(k) + '" aria-pressed="' + (pjSel === k) + '"><span class="nm">' + esc(p.nome) + '</span>' + (p.objetivo ? '<span class="ob">' + esc(p.objetivo) + '</span>' : '') +
+        '<span class="px">' + (prox ? '<b>Próximo:</b> ' + esc(prox.t) : 'Tudo feito ✓') + '</span><span class="ct">' + n + ' de ' + E.length + ' etapas</span><span class="bar"><i style="width:' + (E.length ? Math.round(n / E.length * 100) : 0) + '%"></i></span></button>';
+    }).join('') || '<p class="note">Nenhum projeto.</p>';
+    var p2 = P[pjSel];
+    $('pj-nova').hidden = !p2;
+    if (!p2) return;
+    $('pj-tit').textContent = p2.nome; $('pj-obj').textContent = p2.objetivo || '';
+    $('pj-etapas').innerHTML = (p2.etapas || []).map(function (e, i) {
+      return '<div class="et' + (e.ok ? ' ok' : '') + '"><button class="chk' + (e.ok ? ' on' : '') + '" data-a="etOk" data-i="' + i + '" aria-label="Marcar etapa">' + (e.ok ? '✓' : '') + '</button><span class="t">' + esc(e.t) + '</span><button class="x" data-a="etApaga" data-i="' + i + '" aria-label="Apagar etapa">×</button></div>';
+    }).join('') || '<p class="note">Sem etapas ainda.</p>';
+  }
+  /* ---------- STATUS DA TV ---------- */
+  var DSEM3 = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  function proxDespertar() {
+    var c = S.cfg || {}, dz = (c.tv && c.tv.despertar) || (c.editor && c.editor.despertar) || { on: true, hora: '06:00', dias: [1, 2, 3, 4, 5], feriados: true }, ex = c.despertarExtra || {}, modo = (S.est && S.est.modo) || 'normal', ag = new Date();
+    for (var i = 0; i < 8; i++) {
+      var d = new Date(ag.getFullYear(), ag.getMonth(), ag.getDate() + i), di = iso(d), h = null, extra = false;
+      if (ex[di]) { h = ex[di]; extra = true; }
+      else if (modo === 'normal' && dz.on !== false && (dz.dias || []).indexOf(d.getDay()) >= 0 && !(dz.feriados && feriado(di))) h = (dz.horas || {})[d.getDay()] || dz.hora;
+      if (!h) continue;
+      if (i === 0) { var p = h.split(':'); if (ag.getHours() * 60 + ag.getMinutes() >= +p[0] * 60 + +p[1]) continue; }
+      return { di: di, h: h, extra: extra, txt: (i === 0 ? 'hoje' : i === 1 ? 'amanhã' : DSEM3[d.getDay()]) + ' ' + dmy(di) + ' às ' + h };
+    }
+    return null;
+  }
+  function desenharTV() {
+    var el = $('tv-st'); if (!el) return;
+    var pd = proxDespertar(), st = S.st || {}, modo = (S.est && S.est.modo) || 'normal';
+    var h = '<div class="tvl"><span>Modo</span><b>' + ({ normal: 'Normal', discreto: 'Discreto', ferias: 'Férias' }[modo] || modo) + '</b></div>';
+    h += '<div class="tvl"><span>Próximo despertar</span><b>' + (pd ? pd.txt + (pd.extra ? ' (exceção)' : '') : 'nenhum programado') + '</b></div>';
+    var conf = st.desp && pd && st.despIso === pd.di && st.desp.slice(-5) === pd.h;
+    h += '<div class="tvl ' + (conf ? 'okv' : 'alerta') + '"><span>A TV confirmou</span><b>' + (st.desp ? esc(st.desp) + (conf ? ' ✓' : '') : 'ainda não') + '</b></div>';
+    if (st.st) h += '<div class="tvl ' + (/erro/i.test(st.st) ? 'alerta' : 'okv') + '"><span>Ligar a TV</span><b>' + esc(st.st.replace('SmartThings: ', '')) + '</b></div>';
+    h += '<p class="note" style="margin:0">' + (st.em ? 'TV falou com a Central em ' + new Date(st.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '.' : 'A TV ainda não mandou o status (a versão nova manda quando a Central abrir na TV).') + '</p>';
+    el.innerHTML = h;
+  }
+  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }
@@ -1067,6 +1149,9 @@ header { align-items: center; }
     else if (a === 'dia') { dia = b.dataset.v; desenharCal(); }
     else if (a === 'mes') { var y = +mes.slice(0, 4), m = +mes.slice(5, 7) - 1 + (+b.dataset.v); if (b.dataset.v === '0') { mes = hoje().slice(0, 7); dia = hoje(); } else { var nd = new Date(y, m, 1); mes = iso(nd).slice(0, 7); } desenharCal(); }
     else if (a === 'tipoNovo') { tipoNovo = b.dataset.v; desenharCal(); }
+    else if (a === 'pj') { pjSel = b.dataset.v; desenharProj(); }
+    else if (a === 'etOk') { var i1 = +b.dataset.i, P1 = S.pj.projetos[pjSel], e1 = P1.etapas[i1], v1 = !e1.ok, k1 = pjSel, t1 = e1.t; mudar('pj', function (d) { var pp = d.projetos[k1]; if (pp && pp.etapas[i1] && pp.etapas[i1].t === t1) pp.etapas[i1].ok = v1; }); }
+    else if (a === 'etApaga') { if (!b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'apagar?'; b.classList.add('conf'); setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = '×'; b.classList.remove('conf'); } }, 3000); return; } var i2 = +b.dataset.i, k2 = pjSel, t2 = S.pj.projetos[k2].etapas[i2].t; mudar('pj', function (d) { var pp = d.projetos[k2]; if (pp && pp.etapas[i2] && pp.etapas[i2].t === t2) pp.etapas.splice(i2, 1); }); }
   });
   document.addEventListener('change', function (e) {
     var t = e.target; if (t.dataset.a !== 'data') return;
@@ -1087,6 +1172,11 @@ header { align-items: center; }
       if (tipoNovo === 'tarefa') { var t2 = { id: novoId('t'), t: tx, ok: false, criada: Date.now(), cat: 'pessoal', cli: '', resp: [], data: dia }; mudar('tar', function (d) { d.tarefas = d.tarefas || []; d.tarefas.push(JSON.parse(JSON.stringify(t2))); }); }
       else { var ev = { id: novoId('e'), d: dia, h: $('cal-hora').hidden ? '' : $('cal-hora').value, t: tx, tipo: tipoNovo, anual: tipoNovo === 'aniversario' }; mudar('ev', function (d) { d.eventos = d.eventos || []; d.eventos.push(JSON.parse(JSON.stringify(ev))); }); }
       $('cal-txt').value = ''; $('cal-hora').value = '';
+    }
+    if (f.id === 'pj-nova') {
+      e.preventDefault(); var tp = $('pj-txt').value.trim(); if (!tp || !pjSel) return; var kp = pjSel;
+      mudar('pj', function (d) { var pp = d.projetos[kp]; if (pp) { pp.etapas = pp.etapas || []; if (!pp.etapas.some(function (x) { return x.t === tp; })) pp.etapas.push({ ok: false, t: tp }); } });
+      $('pj-txt').value = '';
     }
     if (f.id === 'hj-nova') {
       e.preventDefault(); var tq = $('hj-txt').value.trim(); if (!tq) return;
