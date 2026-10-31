@@ -394,6 +394,21 @@ header { align-items: center; }
 .obs-tr { font-size: 13px; padding: 6px 12px; }
 .obs-tr.grav { border-color: #FF4D6D; color: #FF8FA6; }
 .obs-tr.grav.on { background: #FF4D6D; color: #fff; }
+.cl-painel { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.cl-lista { overflow: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; }
+.cl-grupo h4 { margin: 0 0 8px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+.cl-grupo h4 small { font-weight: 400; opacity: .7; }
+.cl-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.cl-it { border-radius: 12px; overflow: hidden; background: rgba(20,18,52,calc(var(--vidro) + .1)); border: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; }
+.cl-it.mantido { border-color: rgba(80,200,120,.6); }
+.cl-it video { width: 100%; aspect-ratio: 16/9; background: #000; display: block; }
+.cl-it .cl-pe { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.cl-it .cl-pe b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-it .cl-pe small { opacity: .7; font-size: 12px; }
+.cl-it .row { gap: 6px; }
+.cl-it .btn.sm { flex: 1; justify-content: center; }
+.cl-it .btn.apaga:hover { background: rgba(235,42,73,.35); }
+body.cl-on #meio-stream > :not(.banner):not(#cl-painel) { display: none !important; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -463,6 +478,8 @@ body.menu-mini .sub[hidden] { display: flex !important; }
 .sc b { font-size: 14px; white-space: nowrap; }
 .sc.alerta { box-shadow: inset 0 0 0 1.5px var(--acc); }
 .sc.alerta b { color: var(--acc); }
+.fs-sug { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: rgba(246,188,0,.08); border: 1px dashed rgba(246,188,0,.4); }
+.fs-sug .fs-it button { flex: none; }
 .fs-lista { display: flex; flex-direction: column; gap: 6px; }
 .fs-it { display: flex; align-items: center; gap: 10px; padding: 5px 8px 5px 5px; border-radius: 10px; background: rgba(20,18,52,calc(var(--vidro) + .05)); }
 .fs-it i { width: 30px; height: 42px; flex: none; border-radius: 6px; background: #24205A center/cover no-repeat; }
@@ -589,12 +606,16 @@ body.menu-mini .sub[hidden] { display: flex !important; }
       <span class="note" id="tvc-st"></span>
     </div>
     <div class="col card meio" id="meio-stream" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="obs-audio" title="O Yeti Mic e o PC apontavam para aparelhos do computador antigo">Consertar áudio</button><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cl-abrir" title="Ver os clipes do Valorant e os momentos do F9 e decidir o que manter">🎬 Revisar clipes<span class="bdg" id="bdg-clipes" style="margin-left:6px"></span></button><button class="btn" id="obs-audio" title="O Yeti Mic e o PC apontavam para aparelhos do computador antigo">Consertar áudio</button><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
       <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
       <div class="row obs-grav" id="obs-grav"></div>
       <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
       <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div><img class="obs-foto" id="obs-foto" alt="" hidden><span class="obs-selo" id="obs-selo" hidden>Imagem real do OBS</span></div>
       <span class="note" id="obs-nota"></span>
+      <div class="cl-painel" id="cl-painel" hidden>
+        <div class="row" style="gap:8px;align-items:center"><button class="btn" id="cl-voltar">← Voltar às cenas</button><span class="note" id="cl-st" style="flex:1"></span><label class="row" style="gap:6px;font-size:13px"><input type="checkbox" id="cl-so-pend" checked> Só os que faltam revisar</label></div>
+        <div id="cl-lista" class="cl-lista"></div>
+      </div>
     </div>
     <div class="col card" id="meio-pc" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Meus programas</h2><span id="pc-st"></span></div><span class="note" style="position:relative">Botão direito num programa: mudar categoria ou fixar</span></div>
@@ -676,7 +697,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
         <label class="row" style="gap:8px;font-size:13px">Atalho de marcar momento <input type="text" id="obs-tecla" class="in-txt" value="F9" style="width:110px;padding:6px 10px" aria-label="Atalho de marcar momento"></label>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-auto" checked> Trocar de cena sozinho quando a partida começar</label>
         <span class="note" id="obs-auto-info"></span>
-        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando; os momentos viram clipes na pasta Gravações da Stream\\Momentos quando a gravação termina.</p>
+        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando; os momentos viram clipes na pasta Gravações da Stream › Momentos quando a gravação termina.</p>
         <h3 style="margin-top:8px">Como mudar</h3>
         <p class="note" style="margin:0">Me peça no chat (ex.: "aumenta a câmera no Jogos de Luta"). Eu faço uma cópia de segurança e edito com o OBS fechado; depois é só abrir o OBS de novo. A prévia lê o arquivo de cenas que o OBS salva, então mostra a última versão salva.</p>
       </section>
@@ -696,7 +717,8 @@ body.menu-mini .sub[hidden] { display: flex !important; }
         <div class="tvst" id="tv-st"><p class="note">Carregando…</p></div>
         <h3 style="margin-top:10px">Este PC</h3>
         <div class="saude" id="saude"><p class="note" style="margin:0">Lendo o PC…</p></div>
-        <h3 style="margin-top:10px">Fim de semana na TV</h3>
+        <h3 style="margin-top:10px;display:flex;align-items:center;gap:8px">Fim de semana na TV <button class="btn sm" data-a="fsSug" style="margin-left:auto">✨ Sugerir para mim</button></h3>
+        <div class="fs-sug" id="fs-sug" hidden></div>
         <div class="fs-lista" id="fs-lista"></div>
         <h3 style="margin-top:10px">Anotar rápido</h3>
         <form id="hj-nova" class="col" style="gap:8px">
@@ -1245,6 +1267,54 @@ body.menu-mini .sub[hidden] { display: flex !important; }
   /* ===== Stream: prévia das cenas do OBS Studio (lê a coleção que o OBS salva no disco) ===== */
   var OBS = { d: null, meta: null, cena: null, sel: null };
   var TIPO_OBS = { image_source: 'Imagem', ffmpeg_source: 'Vídeo/som', dshow_input: 'Câmera', monitor_capture: 'Tela', game_capture: 'Jogo', window_capture: 'Janela', browser_source: 'Navegador', wasapi_input_capture: 'Microfone', wasapi_output_capture: 'Som do PC', wasapi_process_output_capture: 'Som de app', text_gdiplus: 'Texto', text_gdiplus_v2: 'Texto', text_gdiplus_v3: 'Texto', color_source: 'Cor', color_source_v3: 'Cor', scene: 'Cena', group: 'Grupo' };
+  /* ---------- revisar clipes (Valorant e F9): manter ou mandar para a Lixeira ---------- */
+  var CL = [];
+  function clUrl(c, g, extra) { return AJ + '/clipes/' + c + '?k=' + ajK() + '&r=' + g.r + '&pasta=' + encodeURIComponent(g.pasta) + (extra || ''); }
+  function clBdg() { var el = $('bdg-clipes'), n = clPend(); if (!el) return; el.textContent = n > 99 ? '99+' : n; el.className = 'bdg' + (n ? ' on' : ''); }
+  function clPend() { var n = 0; CL.forEach(function (g) { g.clipes.forEach(function (c) { if (!c.manter) n++; }); }); return n; }
+  function clCarregar() {
+    $('cl-st').textContent = 'Procurando clipes…';
+    fetch(AJ + '/clipes/lista?k=' + ajK()).then(function (r) { if (!r.ok) throw new Error('o ajudante não respondeu'); return r.json(); }).then(function (j) {
+      CL = (Array.isArray(j) ? j : [j]).filter(function (g) { return g && g.clipes; }); CL.forEach(function (g) { if (!Array.isArray(g.clipes)) g.clipes = [g.clipes]; });
+      clBdg(); clDesenhar();
+    }).catch(function (e) { $('cl-st').textContent = 'Não consegui ler os clipes: ' + e.message + '. O ajudante está aberto?'; });
+  }
+  function clDesenhar() {
+    if ($('cl-painel').hidden) return;
+    var so = $('cl-so-pend').checked, tot = 0, pend = clPend();
+    CL.forEach(function (g) { tot += g.clipes.length; });
+    $('cl-st').textContent = tot ? tot + ' clipes · ' + pend + ' para revisar. "Apagar" manda para a Lixeira do Windows (dá para recuperar).' : 'Nenhum clipe por enquanto. Eles aparecem aqui depois de gravar Valorant ou marcar momentos com o F9.';
+    $('cl-lista').innerHTML = CL.map(function (g, gi) {
+      var L = g.clipes.map(function (c, ci) { return { c: c, ci: ci }; }).filter(function (x) { return !so || !x.c.manter; });
+      if (!L.length) return '';
+      var d = new Date(g.quando);
+      return '<div class="cl-grupo"><h4>' + esc(g.grupo) + (g.pasta ? ' · ' + esc(g.pasta) : '') + ' <small>' + d.toLocaleDateString('pt-BR') + ' · ' + g.clipes.length + ' clipes</small></h4><div class="cl-grade">' +
+        L.map(function (x) { var c = x.c; return '<div class="cl-it' + (c.manter ? ' mantido' : '') + '"><video preload="metadata" controls src="' + esc(clUrl('video', g, '&arq=' + encodeURIComponent(c.arq))) + '#t=0.5"></video><div class="cl-pe"><b title="' + esc(c.arq) + '">' + esc(c.arq.replace(/\.mp4$/i, '')) + '</b><small>' + c.mb + ' MB' + (c.manter ? ' · ✓ mantido' : '') + '</small><div class="row"><button class="btn sm" data-cl="manter" data-g="' + gi + '" data-c="' + x.ci + '">' + (c.manter ? '↺ Desfazer' : '✓ Manter') + '</button><button class="btn sm apaga" data-cl="apagar" data-g="' + gi + '" data-c="' + x.ci + '">🗑 Apagar</button></div></div></div>'; }).join('') + '</div></div>';
+    }).join('') || (tot ? '<p class="note">Tudo revisado. 🎉 Desmarque "Só os que faltam revisar" para ver os mantidos.</p>' : '');
+  }
+  function clAbrir(on) { document.body.classList.toggle('cl-on', on); $('cl-painel').hidden = !on; if (on) clCarregar(); else { $('cl-lista').innerHTML = ''; obsDesenhar(); } }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#cl-abrir')) { clAbrir(!document.body.classList.contains('cl-on')); return; }
+    if (e.target.closest('#cl-voltar')) { clAbrir(false); return; }
+    var b = e.target.closest('[data-cl]'); if (!b) return;
+    var g = CL[+b.dataset.g], c = g && g.clipes[+b.dataset.c]; if (!c) return;
+    if (b.dataset.cl === 'manter') {
+      var v = !c.manter; b.disabled = true;
+      fetch(clUrl('manter', g, '&arq=' + encodeURIComponent(c.arq) + '&v=' + (v ? 1 : 0))).then(function (r) { return r.json(); }).then(function (j) { if (j.ok) { c.manter = v; clBdg(); clDesenhar(); } else { b.disabled = false; $('cl-st').textContent = j.msg || 'Não deu.'; } }).catch(function () { b.disabled = false; });
+    } else {
+      if (!confirm('Mandar "' + c.arq + '" para a Lixeira?')) return;
+      var card = b.closest('.cl-it'), vid = card && card.querySelector('video'); if (vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
+      b.disabled = true;
+      setTimeout(function () {
+        fetch(clUrl('apagar', g, '&arq=' + encodeURIComponent(c.arq))).then(function (r) { return r.json(); }).then(function (j) {
+          if (j.ok) { g.clipes.splice(g.clipes.indexOf(c), 1); CL = CL.filter(function (x) { return x.clipes.length; }); clBdg(); clDesenhar(); }
+          else { b.disabled = false; $('cl-st').textContent = 'Não consegui apagar: ' + (j.msg || '') + ' (se o vídeo estiver aberto em outro programa, feche e tente de novo)'; }
+        });
+      }, 300);
+    }
+  });
+  document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
+  setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   function obsCarregar(forcar) {
     if (OBS.d && !forcar) { obsDesenhar(); return; }
     $('obs-st').textContent = 'Lendo o OBS…';
@@ -1461,7 +1531,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
   var fotoOcupado = false;
   function obsFoto() {
     var img = $('obs-foto'), selo = $('obs-selo'); if (!img) return;
-    var pode = SEC === 'stream' && !document.hidden && obsEst && obsEst.aberto && !obsEst.erro && OBS.cena;
+    var pode = SEC === 'stream' && !document.body.classList.contains('cl-on') && !document.hidden && obsEst && obsEst.aberto && !obsEst.erro && OBS.cena;
     if (!pode) { img.hidden = true; selo.hidden = true; return; }
     if (fotoOcupado) return; fotoOcupado = true;
     fetch(AJ + '/obs/foto?k=' + ajK() + '&cena=' + encodeURIComponent(OBS.cena)).then(function (r) { return r.json(); }).then(function (j) {
@@ -1474,7 +1544,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 23 && !sessionStorage.getItem('aj-reiniciou-23')) { sessionStorage.setItem('aj-reiniciou-23', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 24 && !sessionStorage.getItem('aj-reiniciou-24')) { sessionStorage.setItem('aj-reiniciou-24', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
@@ -2270,14 +2340,41 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     mudar('cfg', function (d) { d.fimSemana = (d.fimSemana || []).filter(function (x) { return x.k !== it.k; }); d.fimSemana.push(it); });
   }
   function fsBotao(el, k) { if (!el) return; var on = fsTem(k); el.classList.toggle('fs-on', on); el.textContent = on ? '★ No fim de semana' : '☆ Fim de semana'; }
+  /* "Sugerir para mim": 1 anime (maior nota no MAL), 1 mangá parado há mais tempo, 1 jogo que está jogando */
+  var fsRodada = 0;
+  function fsSugestoes() {
+    var r = fsRodada, out = [];
+    var an = (MAL.anime || []).filter(function (x) { return (x.st === 'plan_to_watch' || x.st === 'watching') && !fsTem('an' + x.id); })
+      .sort(function (a, b) { return (b.nota || 0) - (a.nota || 0); });
+    if (an.length) { var x = an[r % an.length]; out.push({ a: 'fsAn', v: x.id, tipo: 'Anime', nome: x.en || x.t, capa: (x.img || '').replace('/r/50x70', ''), por: (x.nota ? '★ ' + (+x.nota).toFixed(2) + ' no MAL' : 'Na sua lista') + (x.st === 'watching' ? ' · você está no ep. ' + x.ep : '') }); }
+    var le = ((S.le && S.le.itens) || []).filter(function (y) { return y.status === 'lendo' && !fsTem('le' + y.id); })
+      .sort(function (a, b) { return (a.lido || 0) - (b.lido || 0); });
+    if (le.length) { var it = le[r % le.length], dias = it.lido ? Math.floor((Date.now() - it.lido) / 864e5) : null; out.push({ a: 'fsLeId', v: it.id, tipo: it.tipo || 'Mangá', nome: it.nome, capa: '', por: (dias == null ? 'Sem leitura recente' : 'Parado há ' + dias + (dias === 1 ? ' dia' : ' dias')) + (it.cap ? ' · cap. ' + Math.floor(+it.cap) : '') }); }
+    var js = jogosEst().filter(function (j) { return !fsTem('es' + j.id); }), jog = js.filter(function (j) { return progDe(j.id).status === 'jogando'; });
+    if (!jog.length) jog = js.filter(function (j) { return progDe(j.id).status === 'fila'; });
+    if (jog.length) { var j = jog[r % jog.length]; out.push({ a: 'fsEsId', v: j.id, tipo: 'Jogo', nome: j.name, capa: '', por: progDe(j.id).status === 'jogando' ? 'Você está jogando' : 'Na sua fila' }); }
+    return out;
+  }
+  function desenharSug() {
+    var el = $('fs-sug'); if (!el || el.hidden) return; var L = fsSugestoes();
+    el.innerHTML = (L.length ? L.map(function (x) { return '<div class="fs-it"><i style="background-image:url(&quot;' + esc(x.capa) + '&quot;)"></i><span><b title="' + esc(x.nome) + '">' + esc(x.nome) + '</b><small>' + esc(x.tipo) + ' · ' + esc(x.por) + '</small></span><button class="btn sm" data-a="' + x.a + '" data-v="' + esc(String(x.v)) + '">+ Adicionar</button></div>'; }).join('')
+      : '<p class="note" style="margin:0">Nada para sugerir: tudo já está na fila.</p>') +
+      '<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" data-a="fsOutras">↻ Outras</button><button class="btn sm" data-a="fsFecha">Fechar</button></div>';
+  }
+  function fsAddLe(it) { capaLeitura(it, function (u) { fsAlterna({ k: 'le' + it.id, tipo: it.tipo || 'Mangá', nome: it.nome, capa: u || '', info: it.cap != null ? 'parou no cap. ' + Math.floor(+it.cap) : '' }); }); }
+  function fsAddEs(idJ) { var j = (S.es && S.es.jogos || {})[idJ]; if (!j) return; var fim = function (u) { fsAlterna({ k: 'es' + idJ, tipo: 'Jogo', nome: j.name, capa: u || '' }); }; if (window.CAPAS) CAPAS.buscar({ id: 'es-' + idJ, nome: j.name, wiki: j.wiki }, fim); else fim(''); }
   function desenharFS() {
     var el = $('fs-lista'); if (!el) return; var L = fsL();
     el.innerHTML = L.length ? L.map(function (x) { return '<div class="fs-it"><i style="background-image:url(&quot;' + esc(x.capa || '') + '&quot;)"></i><span><b title="' + esc(x.nome) + '">' + esc(x.nome) + '</b><small>' + esc(x.tipo) + '</small></span><button data-a="fsTira" data-v="' + esc(x.k) + '" aria-label="Tirar da fila">×</button></div>'; }).join('') + '<p class="note" style="margin:0">A TV mostra um por dia, no lugar de Reunião e Trabalho, aos sábados, domingos e feriados.</p>'
       : '<p class="note" style="margin:0">Vazia. Use o botão <b>☆ Fim de semana</b> num anime, mangá ou jogo da Estante, e a TV sugere um por dia nos sábados, domingos e feriados.</p>';
-    fsBotao($('fs-le'), 'le' + leSel); fsBotao($('fs-es'), 'es' + esSel);
+    fsBotao($('fs-le'), 'le' + leSel); fsBotao($('fs-es'), 'es' + esSel); desenharSug();
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a;
+    if (a === 'fsSug' || a === 'fsOutras') { if (a === 'fsOutras') fsRodada++; $('fs-sug').hidden = false; desenharSug(); return; }
+    if (a === 'fsFecha') { $('fs-sug').hidden = true; return; }
+    if (a === 'fsLeId') { var it2 = ((S.le && S.le.itens) || []).filter(function (y) { return y.id === b.dataset.v; })[0]; if (it2) fsAddLe(it2); return; }
+    if (a === 'fsEsId') { fsAddEs(b.dataset.v); return; }
     if (a === 'fsTira') mudar('cfg', function (d) { d.fimSemana = (d.fimSemana || []).filter(function (x) { return x.k !== b.dataset.v; }); });
     else if (a === 'fsAn') { var x = (MAL.anime || []).filter(function (y) { return y.id === +b.dataset.v; })[0]; if (x) fsAlterna({ k: 'an' + x.id, tipo: 'Anime', nome: x.en || x.t, capa: (x.img || '').replace('/r/50x70', ''), info: x.nota ? '★ ' + (+x.nota).toFixed(2) + ' no MAL' : '' }); }
     else if (a === 'fsLe') { var it = ((S.le && S.le.itens) || []).filter(function (y) { return y.id === leSel; })[0]; if (!it) return; if (fsTem('le' + it.id)) { fsAlterna({ k: 'le' + it.id }); return; } capaLeitura(it, function (u) { fsAlterna({ k: 'le' + it.id, tipo: it.tipo || 'Mangá', nome: it.nome, capa: u || '', info: it.cap != null ? 'parou no cap. ' + Math.floor(+it.cap) : '' }); }); }

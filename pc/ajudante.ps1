@@ -37,6 +37,57 @@ function Achar($nome) {
   foreach ($d in @($atalhos, $base)) { $p = Join-Path $d $nome; if (Test-Path -LiteralPath $p) { return (Get-Item -LiteralPath $p) } }
   return $null
 }
+# ---------- clipes para revisar (Valorant e momentos do F9); apagar manda para a Lixeira ----------
+function ClipesRaizes {
+  $g = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'
+  @(@{ n = 'Valorant'; p = (Join-Path $g ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant\clipes')) },
+    @{ n = 'Valorant (testes)'; p = (Join-Path $g 'Clipes Valorant') },
+    @{ n = 'Momentos (F9)'; p = (Join-Path $g 'Momentos') })
+}
+function NomeSimples($x) { return ($x -and $x -notmatch '[\\/:*?"<>|]' -and $x -notmatch '^\.') }
+function ClipePasta($r, $pasta) {
+  $raizes = @(ClipesRaizes); $i = [int]$r; if ($i -lt 0 -or $i -ge $raizes.Count) { return $null }
+  if ($pasta -eq '' -or $null -eq $pasta) { $d = $raizes[$i].p } elseif (NomeSimples $pasta) { $d = Join-Path $raizes[$i].p $pasta } else { return $null }
+  if (Test-Path -LiteralPath $d -PathType Container) { return $d } else { return $null }
+}
+function ClipeArq($r, $pasta, $arq) {
+  $d = ClipePasta $r $pasta; if (-not $d -or -not (NomeSimples $arq) -or [IO.Path]::GetExtension($arq).ToLower() -ne '.mp4') { return $null }
+  $f = Join-Path $d $arq; if (Test-Path -LiteralPath $f -PathType Leaf) { return $f } else { return $null }
+}
+function RevisaoLer($d) { $f = Join-Path $d 'revisao.json'; try { if (Test-Path -LiteralPath $f) { return @((Get-Content -LiteralPath $f -Raw -Encoding UTF8 | ConvertFrom-Json).manter) } } catch {}; return @() }
+function RevisaoGravar($d, $lista) { $f = Join-Path $d 'revisao.json'; [IO.File]::WriteAllText($f, (@{ manter = @($lista | Where-Object { $_ } | Select-Object -Unique) } | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false)) }
+function ClipesLista {
+  $raizes = @(ClipesRaizes); $out = @()
+  for ($i = 0; $i -lt $raizes.Count; $i++) {
+    if (-not (Test-Path -LiteralPath $raizes[$i].p)) { continue }
+    $pastas = @(@{ nome = ''; d = $raizes[$i].p }) + @(Get-ChildItem -LiteralPath $raizes[$i].p -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '^[._]' } | ForEach-Object { @{ nome = $_.Name; d = $_.FullName } })
+    foreach ($pa in $pastas) {
+      $vs = @(Get-ChildItem -LiteralPath $pa.d -Filter *.mp4 -File -ErrorAction SilentlyContinue | Sort-Object Name)
+      if (-not $vs.Count) { continue }
+      $man = RevisaoLer $pa.d
+      $out += @{ r = $i; grupo = $raizes[$i].n; pasta = $pa.nome; quando = ($vs | Measure-Object -Property LastWriteTime -Maximum).Maximum.ToString('yyyy-MM-ddTHH:mm:ss');
+                 clipes = @($vs | ForEach-Object { @{ arq = $_.Name; mb = [math]::Round($_.Length / 1MB, 1); manter = ($man -contains $_.Name) } }) }
+    }
+  }
+  return @($out | Sort-Object { $_.quando } -Descending)
+}
+function MandarVideo($ctx, $f) {
+  $fs = [IO.File]::OpenRead($f)
+  try {
+    $tam = $fs.Length; $ini = [long]0; $fim = $tam - 1; $r = $ctx.Response
+    $r.Headers['Access-Control-Allow-Origin'] = '*'; $r.Headers['Accept-Ranges'] = 'bytes'; $r.ContentType = 'video/mp4'
+    $rg = [string]$ctx.Request.Headers['Range']
+    if ($rg -match 'bytes=(\d*)-(\d*)') {
+      if ($matches[1]) { $ini = [long]$matches[1] }; if ($matches[2]) { $fim = [long]$matches[2] }
+      $fim = [math]::Min([math]::Min($fim, $ini + 8MB - 1), $tam - 1)
+      $r.StatusCode = 206; $r.Headers['Content-Range'] = "bytes $ini-$fim/$tam"
+    }
+    $len = $fim - $ini + 1; $r.ContentLength64 = $len; $fs.Position = $ini
+    $buf = New-Object byte[] 65536; $rest = $len
+    while ($rest -gt 0) { $n = $fs.Read($buf, 0, [int][math]::Min(65536, $rest)); if ($n -le 0) { break }; $r.OutputStream.Write($buf, 0, $n); $rest -= $n }
+    $r.Close()
+  } catch { try { $ctx.Response.Abort() } catch {} } finally { $fs.Close() }
+}
 # coleção de cenas em uso no OBS Studio (lida do disco; o OBS grava ao trocar de cena ou fechar)
 function ObsColecao {
   $od = Join-Path $env:APPDATA 'obs-studio'
@@ -425,6 +476,24 @@ while ($http.IsListening) {
         $meta = @{ arquivo = $oc.arquivo; nome = $oc.nome; cx = $oc.cx; cy = $oc.cy; aberto = [bool](Get-Process obs64 -ErrorAction SilentlyContinue); mudou = $oc.mudou } | ConvertTo-Json -Compress
         Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes('{"meta":' + $meta + ',"colecao":' + $oc.txt + '}'))
       }
+      '/clipes/lista' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ClipesLista) -Depth 6 -Compress))) }
+      '/clipes/video' { $f = ClipeArq $q['r'] $q['pasta'] $q['arq']; if ($f) { MandarVideo $ctx $f } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('clipe')) } }
+      '/clipes/manter' {
+        $f = ClipeArq $q['r'] $q['pasta'] $q['arq']; if (-not $f) { Json $ctx @{ ok = $false; msg = 'clipe não encontrado' }; continue }
+        $d = Split-Path $f -Parent; $L = @(RevisaoLer $d | Where-Object { $_ -ne $q['arq'] }); if ($q['v'] -eq '1') { $L += [string]$q['arq'] }
+        RevisaoGravar $d $L; Json $ctx @{ ok = $true }
+      }
+      '/clipes/apagar' {
+        # só a pedido (botão na Central): vai para a Lixeira, dá para recuperar
+        $f = ClipeArq $q['r'] $q['pasta'] $q['arq']; if (-not $f) { Json $ctx @{ ok = $false; msg = 'clipe não encontrado' }; continue }
+        try {
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($f, 'OnlyErrorDialogs', 'SendToRecycleBin')
+          $d = Split-Path $f -Parent; RevisaoGravar $d @(RevisaoLer $d | Where-Object { $_ -ne $q['arq'] })
+          "$(Get-Date -f 'yyyy-MM-dd HH:mm:ss') clipe para a Lixeira: $f" | Add-Content -LiteralPath (Join-Path $aqui 'clipes_apagados.log') -Encoding UTF8
+          Json $ctx @{ ok = $true }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/arquivo' {
         # só arquivos que a coleção de cenas do OBS usa (imagens e vídeos)
         $oc = ObsColecao; $p = ([string]$q['p']) -replace '/', '\'
@@ -576,7 +645,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 23 } }
+      default  { Json $ctx @{ ok = $true; versao = 24 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
