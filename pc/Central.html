@@ -370,6 +370,8 @@ header { align-items: center; }
 .obs-tr.grav { border-color: #FF4D6D; color: #FF8FA6; }
 .obs-tr.grav.on { background: #FF4D6D; color: #fff; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
+.obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
+.obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
 .obs-tr.cam { border-color: #9CF2A8; } .obs-tr.cam.on { background: #9CF2A8; color: #1C1838; }
 .obs-tr.live { background: #FF4D6D; color: #fff; border-color: #FF4D6D; font-weight: 800; }
 .obs-jogo { font-size: 13px; color: var(--muted); } .obs-jogo b { color: var(--fg); }
@@ -628,6 +630,11 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-ocultos"> Mostrar as camadas ocultas</label>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-contornos" checked> Mostrar contornos (alertas, câmera, jogo)</label>
         <div class="obs-camadas" id="obs-camadas"></div>
+        <h3 style="margin-top:8px">Durante a live</h3>
+        <label class="row" style="gap:8px;font-size:13px">Atalho de marcar momento <input type="text" id="obs-tecla" class="in-txt" value="F9" style="width:110px;padding:6px 10px" aria-label="Atalho de marcar momento"></label>
+        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-auto" checked> Trocar de cena sozinho quando a partida começar</label>
+        <span class="note" id="obs-auto-info"></span>
+        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando.</p>
         <h3 style="margin-top:8px">Como mudar</h3>
         <p class="note" style="margin:0">Me peça no chat (ex.: "aumenta a câmera no Jogos de Luta"). Eu faço uma cópia de segurança e edito com o OBS fechado; depois é só abrir o OBS de novo. A prévia lê o arquivo de cenas que o OBS salva, então mostra a última versão salva.</p>
       </section>
@@ -1296,13 +1303,20 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.addEventListener('resize', function () { if (SEC === 'stream') obsDesenhar(); });
   window.obsCarregar = obsCarregar;
   /* no ar: cena atual do OBS + botões para trocar (controle remoto do OBS, pelo ajudante) */
-  var obsEst = null, gravJogo = '', obsJogo = null;
+  var obsEst = null, gravJogo = '', obsJogo = null, obsCfg = null;
+  function obsDesenharCfg() {
+    var c = obsCfg; if (!c || !$('obs-tecla')) return;
+    if (document.activeElement !== $('obs-tecla')) $('obs-tecla').value = c.tecla || 'F9';
+    $('obs-auto').checked = !!c.autoCena;
+    $('obs-auto-info').textContent = c.cenas ? 'SF6 → ' + (c.cenas.sf6 || '—') + ' · Valorant → ' + (c.cenas.valorant || '—') : '';
+  }
   var JOGO_NOME = { sf6: 'Street Fighter 6', valorant: 'Valorant', outro: 'outro jogo' };
   setTimeout(function () { fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=qual').then(function (r) { return r.json(); }).then(function (j) { gravJogo = JOGO_NOME[j.jogo] || ''; }).catch(function () {}); }, 3000);
   function obsEstado() {
     if (SEC !== 'stream' || document.hidden) return;
     fetch(AJ + '/obs/estado?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsEst = j; obsDesenharAr(); }).catch(function () { obsEst = null; obsDesenharAr(); });
     fetch(AJ + '/obs/jogo?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsJogo = j; obsDesenharAr(); }).catch(function () {});
+    fetch(AJ + '/obs/config?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsCfg = j; obsDesenharAr(); obsDesenharCfg(); }).catch(function () {});
   }
   function obsDesenharAr() {
     var j = obsEst, tx = $('obs-ar-tx'), luz = $('obs-luz'), bt = $('obs-trocar'); if (!tx) return;
@@ -1319,9 +1333,12 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       '';
     var gb = $('obs-grav'), jg = obsJogo && obsJogo.jogo ? JOGO_NOME[obsJogo.jogo] : '';
     var info = '<span class="obs-jogo">' + (jg ? 'Jogo aberto: <b>' + esc(jg) + '</b>' + (obsJogo.placar ? ' · placar ao vivo ligado' : '') : 'Nenhum jogo com análise aberto') + '</span>';
-    if (gb && j.aoVivo) { gb.innerHTML = '<button class="btn obs-tr grav on" data-obsstream="parar">■ Encerrar stream' + (j.gravando ? ' e gravação' : '') + '</button>' + info + '<span class="note">' + (obsJogo && obsJogo.jogo === 'valorant' ? 'Valorant: seus abates viram clipes para o BRB durante a live. ' : '') + 'No fim, os trechos de SF6 são cortados partida a partida.</span>'; }
-    else if (gb) gb.innerHTML = j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : 'o vídeo fica salvo inteiro.') + '</span>'
-      : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('');
+    var enc = obsCfg && obsCfg.encerrarEm ? Math.max(0, Math.round(obsCfg.encerrarEm - Date.now() / 1000)) : null;
+    var marcar = j.gravando ? '<button class="btn obs-tr marca" data-obsmarca="1">⭐ Marcar momento (' + esc((obsCfg && obsCfg.tecla) || 'F9') + ')</button>' : '';
+    if (gb && j.aoVivo) { gb.innerHTML = (enc !== null ? '<span class="obs-enc">Encerrando em ' + Math.floor(enc / 60) + ':' + ('0' + enc % 60).slice(-2) + '</span><button class="btn obs-tr" data-obsenc="cancelar">Cancelar</button><button class="btn obs-tr grav on" data-obsenc="ja">Encerrar já</button>'
+        : '<button class="btn obs-tr grav on" data-obsenc="iniciar">🏁 Encerrar live (tela End + 3 min)</button>') + marcar + info + '<span class="note">' + (obsJogo && obsJogo.jogo === 'valorant' ? 'Valorant: seus abates viram clipes para o BRB durante a live. ' : '') + 'No fim, os trechos de SF6 são cortados partida a partida.</span>'; }
+    else if (gb) gb.innerHTML = (j.gravando ? marcar : '') + (j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : 'o vídeo fica salvo inteiro.') + '</span>'
+      : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join(''));
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obstroca]'); if (!b) return;
@@ -1332,6 +1349,25 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     }).catch(function () { b.disabled = false; });
   });
   setInterval(obsEstado, 3000);
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-obsenc]'); if (b) {
+      b.disabled = true;
+      fetch(AJ + '/obs/encerrar?k=' + ajK() + '&acao=' + b.dataset.obsenc).then(function (r) { return r.json(); }).then(function (j) {
+        $('obs-nota').textContent = !j.ok ? 'Não consegui: ' + (j.msg || 'erro') : b.dataset.obsenc === 'iniciar' ? 'Tela de encerramento no ar. A live acaba sozinha em 3 minutos.' : b.dataset.obsenc === 'cancelar' ? 'Encerramento cancelado.' : 'Live encerrada.';
+        if (obsCfg) obsCfg.encerrarEm = j.em || null; obsDesenharAr(); setTimeout(obsEstado, 500);
+      }).catch(function () { b.disabled = false; });
+      return;
+    }
+    b = e.target.closest('[data-obsmarca]'); if (b) {
+      fetch(AJ + '/obs/marcar?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { $('obs-nota').textContent = j.ok ? 'Momento marcado: os últimos 15 s entram no compilado do BRB.' : 'Não consegui: ' + (j.msg || 'erro'); });
+      return;
+    }
+  });
+  setInterval(function () { if (SEC === 'stream' && obsCfg && obsCfg.encerrarEm) obsDesenharAr(); }, 1000);
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'obs-tecla') { var v = e.target.value.trim().toUpperCase().replace(/\s+/g, ''); if (/^((CTRL|ALT|SHIFT)\+)*(F([1-9]|1[0-2])|[A-Z0-9])$/.test(v)) fetch(AJ + '/obs/config?k=' + ajK() + '&tecla=' + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (j) { obsCfg = Object.assign(obsCfg || {}, j); $('obs-nota').textContent = 'Atalho de marcar momento: ' + j.tecla + '.'; }); else $('obs-nota').textContent = 'Use algo como F9, F8 ou CTRL+F9.'; }
+    if (e.target.id === 'obs-auto') fetch(AJ + '/obs/config?k=' + ajK() + '&auto=' + (e.target.checked ? 1 : 0)).then(function (r) { return r.json(); }).then(function (j) { obsCfg = Object.assign(obsCfg || {}, j); });
+  });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obscam]'); if (!b) return; b.disabled = true;
     fetch(AJ + '/obs/camera?k=' + ajK() + '&acao=alternar').then(function (r) { return r.json(); }).then(function (j) {
@@ -1374,7 +1410,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 17 && !sessionStorage.getItem('aj-reiniciou-17')) { sessionStorage.setItem('aj-reiniciou-17', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 18 && !sessionStorage.getItem('aj-reiniciou-18')) { sessionStorage.setItem('aj-reiniciou-18', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

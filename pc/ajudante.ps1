@@ -206,6 +206,22 @@ function LeitorIniciar {
   $pr = Start-Process $py -ArgumentList ('"' + $sc + '"') -WindowStyle Hidden -PassThru
   Set-Content -Path $leitorPid -Value $pr.Id
 }
+# configuração da stream (atalho de marcar momento, troca de cena automática) e encerramento com contagem
+$SCR = Join-Path $GRAV 'Arte da stream\_scripts'
+$cfgStreamF = Join-Path $SCR 'config.json'
+$atalhoPid = Join-Path $aqui 'atalho_momento.pid'
+$encF = Join-Path $aqui 'encerrar_em.txt'
+$comecouF = Join-Path $GRAV 'Arte da stream\overlays\jogo_comecou.json'
+function CfgStream {
+  $c = $null; try { $c = [IO.File]::ReadAllText($cfgStreamF, [Text.Encoding]::UTF8) | ConvertFrom-Json } catch {}
+  if (-not $c) { $c = [pscustomobject]@{} }
+  if ($null -eq $c.tecla) { $c | Add-Member -NotePropertyName tecla -NotePropertyValue 'F9' -Force }
+  if ($null -eq $c.autoCena) { $c | Add-Member -NotePropertyName autoCena -NotePropertyValue $true -Force }
+  if ($null -eq $c.cenas) { $c | Add-Member -NotePropertyName cenas -NotePropertyValue ([pscustomobject]@{ sf6 = 'Jogos de Luta'; valorant = 'Main Right' }) -Force }
+  return $c
+}
+function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | Out-Null; [IO.File]::WriteAllText($cfgStreamF, ($c | ConvertTo-Json -Depth 4), [Text.Encoding]::UTF8) }
+$script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false
 $script:tiqueEm = [DateTime]::MinValue
 function Tique {
   if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
@@ -215,6 +231,26 @@ function Tique {
   if ($obs) { try { $r = ObsWs @(@{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }); $vivo = [bool]$r[0].responseData.outputActive; $grav = [bool]$r[1].responseData.outputActive; $durMs = [double]$r[1].responseData.outputDuration } catch {} }
   # leitor ao vivo do SF6 (placar): só com o SF6 aberto e com live ou gravação; desliga sozinho fora disso
   if ($jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
+  # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
+  if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
+  # encerrar a live: depois da contagem, para a stream e a gravação
+  if (Test-Path $encF) {
+    $quando = [double](Get-Content $encF -Raw)
+    if ([DateTimeOffset]::Now.ToUnixTimeSeconds() -ge $quando) { Remove-Item $encF -Force; try { $null = ObsWs @(@{ t = 'StopStream' }, @{ t = 'StopRecord' }) } catch {} }
+  }
+  # troca de cena automática: só quando a partida começa de fato, e só se você não trocou de cena desde que abriu o jogo
+  if ($obs -and $jogo -ne $script:jogoAnt) {
+    $script:jogoAnt = $jogo; $script:autoPend = $false
+    if ($jogo) { try { $script:cenaQuandoAbriu = [string](ObsWs @(@{ t = 'GetCurrentProgramScene' }))[0].responseData.currentProgramSceneName; $script:autoPend = $true; if (Test-Path $comecouF) { Remove-Item $comecouF -Force } } catch {} }
+  }
+  if ($script:autoPend -and $obs -and (Test-Path $comecouF)) {
+    $script:autoPend = $false
+    try {
+      $cs = CfgStream; $alvo = [string]$cs.cenas.$jogo
+      $agoraC = [string](ObsWs @(@{ t = 'GetCurrentProgramScene' }))[0].responseData.currentProgramSceneName
+      if ($cs.autoCena -and $alvo -and $agoraC -eq $script:cenaQuandoAbriu -and $agoraC -ne $alvo) { $null = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = $alvo } }) }
+    } catch {}
+  }
   # clipes de abates do Valorant para o BRB: só com Valorant aberto, ao vivo E gravando (os cortes saem da gravação)
   if ($jogo -eq 'valorant' -and $vivo -and $grav) { if (-not (ProcRodando $clipPid)) { ProcIniciar (Join-Path $PASTA_VAL '_analisador\clipes_ao_vivo.py') $clipPid } } elseif (Test-Path $clipPid) { ProcParar $clipPid }
   # informa aos leitores onde está a gravação e quando começou (para cortar dela enquanto grava)
@@ -393,6 +429,30 @@ while ($http.IsListening) {
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/obs/encerrar' {
+        # encerrar a live: vai para a cena "End" e para tudo depois de N minutos (padrão 3)
+        try {
+          if ($q['acao'] -eq 'iniciar') {
+            $min = 3; if ($q['min']) { $min = [double]$q['min'] }
+            $null = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = 'End' } })
+            $quando = [DateTimeOffset]::Now.ToUnixTimeSeconds() + [math]::Round($min * 60); Set-Content -Path $encF -Value $quando
+            Json $ctx @{ ok = $true; em = $quando }
+          } elseif ($q['acao'] -eq 'cancelar') { if (Test-Path $encF) { Remove-Item $encF -Force }; Json $ctx @{ ok = $true }
+          } elseif ($q['acao'] -eq 'ja') { if (Test-Path $encF) { Remove-Item $encF -Force }; $r = ObsWs @(@{ t = 'StopStream' }, @{ t = 'StopRecord' }); Json $ctx @{ ok = $true }
+          } else { Json $ctx @{ ok = $false; msg = 'acao' } }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
+      '/obs/marcar' {
+        $py = (Get-Command pythonw -ErrorAction SilentlyContinue).Source; $sc = Join-Path $SCR 'atalho_momento.py'
+        if ($py -and (Test-Path $sc)) { Start-Process $py -ArgumentList ('"' + $sc + '" --agora') -WindowStyle Hidden; Json $ctx @{ ok = $true } } else { Json $ctx @{ ok = $false; msg = 'Python ou o script não encontrado' } }
+      }
+      '/obs/config' {
+        $c = CfgStream
+        if ($q['tecla']) { $c.tecla = ([string]$q['tecla']).ToUpper(); CfgStreamGravar $c; ProcParar $atalhoPid }
+        if ($q['auto']) { $c.autoCena = ($q['auto'] -eq '1'); CfgStreamGravar $c }
+        $em = $null; if (Test-Path $encF) { $em = [double](Get-Content $encF -Raw) }
+        Json $ctx @{ tecla = $c.tecla; autoCena = [bool]$c.autoCena; cenas = $c.cenas; encerrarEm = $em }
+      }
       '/obs/camera' {
         # mostra/oculta a câmera (Webcam, Moldura e o grupo Camera) na cena que está no ar
         try {
@@ -451,7 +511,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 17 } }
+      default  { Json $ctx @{ ok = $true; versao = 18 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
