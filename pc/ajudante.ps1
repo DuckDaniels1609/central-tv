@@ -2,6 +2,9 @@
 # "Área de trabalho antiga" (na Área de Trabalho). Só aceita pedidos deste PC
 # (localhost) e com a chave gerada aqui. Não abre nada fora dessa pasta.
 $ErrorActionPreference = 'Stop'
+$aqui0 = Split-Path -Parent $MyInvocation.MyCommand.Path
+try { Start-Transcript -Path (Join-Path $aqui0 'ajudante_log.txt') -Force | Out-Null } catch {}
+trap { "ERRO: $($_.Exception.Message) (linha $($_.InvocationInfo.ScriptLineNumber))" | Out-File -FilePath (Join-Path $aqui0 'ajudante_erro.txt') -Encoding UTF8; break }
 $porta = 47800
 $aqui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $mesa = [Environment]::GetFolderPath('Desktop')
@@ -16,7 +19,7 @@ Set-Content -Path (Join-Path $aqui 'ajudante_chave.js') -Value "window.AJUDANTE_
 
 $http = New-Object System.Net.HttpListener
 $http.Prefixes.Add("http://localhost:$porta/")
-try { $http.Start() } catch { exit 0 }   # já está rodando
+try { $http.Start() } catch { "porta ocupada: $($_.Exception.Message)" | Out-File (Join-Path $aqui 'ajudante_erro.txt') -Encoding UTF8; exit 0 }
 
 function Responder($ctx, $codigo, $tipo, [byte[]]$corpo) {
   $r = $ctx.Response
@@ -58,6 +61,7 @@ while ($http.IsListening) {
   $ctx = $http.GetContext()
   try {
     $q = $ctx.Request.QueryString
+    "$(Get-Date -f HH:mm:ss) $($ctx.Request.Url.AbsolutePath)" | Out-Host
     if ($q['k'] -ne $chave) { Responder $ctx 403 'text/plain' ([Text.Encoding]::UTF8.GetBytes('chave')); continue }
     switch ($ctx.Request.Url.AbsolutePath) {
       '/apps'  { Json $ctx @{ apps = @(Lista $atalhos $true); pastas = @(Lista $base $false) } }
