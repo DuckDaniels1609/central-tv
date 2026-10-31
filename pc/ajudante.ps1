@@ -406,9 +406,9 @@ function Tique {
 $tarefa = $null
 while ($http.IsListening) {
   if (-not $tarefa) { $tarefa = $http.GetContextAsync() }
-  if (-not $tarefa.Wait(5000)) { try { Tique } catch {}; continue }
+  if (-not $tarefa.Wait(5000)) { try { Tique } catch { try { Set-Content -Path (Join-Path $aqui 'tique_erro.txt') -Value ((Get-Date -f 'HH:mm:ss') + ' ' + $_.Exception.Message + ' (linha ' + $_.InvocationInfo.ScriptLineNumber + ')') } catch {} }; continue }
   $ctx = $tarefa.Result; $tarefa = $null
-  try { Tique } catch {}
+  try { Tique } catch { try { Set-Content -Path (Join-Path $aqui 'tique_erro.txt') -Value ((Get-Date -f 'HH:mm:ss') + ' ' + $_.Exception.Message + ' (linha ' + $_.InvocationInfo.ScriptLineNumber + ')') } catch {} }
   try {
     $q = $ctx.Request.QueryString
     "$(Get-Date -f HH:mm:ss) $($ctx.Request.Url.AbsolutePath)" | Out-Host
@@ -659,7 +659,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 27 } }
+      default  { Json $ctx @{ ok = $true; versao = 28 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
