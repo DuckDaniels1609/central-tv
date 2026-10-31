@@ -344,6 +344,14 @@ header { align-items: center; }
 .obs-ph.cam { background: linear-gradient(160deg, #3A2A7A, #1B1A4A); }
 .obs-ph.web { outline: 4px dashed rgba(255,211,110,.8); outline-offset: -4px; background: rgba(255,211,110,.08); }
 .obs-palco.sem-contornos .obs-ph span, .obs-palco.sem-contornos .obs-ph.web { visibility: hidden; }
+.obs-ar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); }
+.obs-ar > b { font-size: 14px; }
+.obs-ar .row { margin-left: auto; gap: 6px; }
+.obs-luz { width: 12px; height: 12px; border-radius: 50%; background: #6B6790; flex: none; }
+.obs-luz.ok { background: #9CF2A8; } .obs-luz.amarelo { background: #FFD36E; }
+.obs-luz.vivo { background: #FF4D6D; box-shadow: 0 0 0 4px rgba(255,77,109,.25); }
+.obs-tr { font-size: 13px; padding: 6px 12px; }
+.obs-tr.no-ar { background: #FF4D6D; color: #fff; border-color: #FF4D6D; }
 .obs-camadas { display: flex; flex-direction: column; gap: 4px; }
 .obs-ly { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; background: rgba(20,18,52,calc(var(--vidro) + .05)); font-size: 13px; cursor: pointer; border: 0; color: var(--fg); font-family: inherit; text-align: left; width: 100%; }
 .obs-ly:hover, .obs-ly.sel { background: rgba(255,127,168,.18); }
@@ -511,7 +519,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     </div>
     <div class="col card meio" id="meio-stream" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
-      <div class="row" id="obs-cenas"></div>
+      <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
+      <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
       <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div></div>
       <span class="note" id="obs-nota"></span>
     </div>
@@ -1203,6 +1212,10 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       var rs = String(st.resolution || '1920x1080').split('x'); el.classList.add('obs-ph', 'cam'); el.innerHTML = '<span>📷 ' + esc(it.name) + '</span>'; obsPor(el, it, +rs[0] || 1920, +rs[1] || 1080);
     } else if (/capture$/.test(id)) {
       el.classList.add('obs-ph', 'jogo'); el.innerHTML = '<span>🎮 ' + esc(it.name) + ' (jogo / tela)</span>'; obsPor(el, it, cx, cy);
+    } else if (/^browser_source/.test(id) && st.is_local_file && st.local_file) {
+      var fr = document.createElement('iframe'); fr.src = obsUrl(st.local_file); fr.width = st.width || 800; fr.height = st.height || 600; fr.setAttribute('scrolling', 'no');
+      fr.setAttribute('allowtransparency', 'true'); fr.style.cssText = 'color-scheme:normal;position:absolute;left:0;top:0;border:0;background:transparent;pointer-events:none;transform-origin:0 0;transform:scale(' + (((it.scale || {}).x) || 1) + ',' + (((it.scale || {}).y) || 1) + ')';
+      el.appendChild(fr); obsPor(el, it, st.width || 800, st.height || 600);
     } else if (/^browser_source/.test(id)) {
       el.classList.add('obs-ph', 'web'); el.innerHTML = '<span>' + esc(it.name) + '</span>'; obsPor(el, it, st.width || 800, st.height || 600);
     } else if (/^text_gdiplus/.test(id)) {
@@ -1221,7 +1234,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     if (!OBS.d) return;
     var m = OBS.meta, nomes = (OBS.d.scene_order || []).map(function (x) { return x.name; });
     $('obs-st').textContent = 'Coleção "' + m.nome + '" · ' + nomes.length + ' cenas · ' + (m.aberto ? 'OBS aberto' : 'OBS fechado') + ' · salvo em ' + new Date(m.mudou).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    $('obs-cenas').innerHTML = nomes.map(function (n) { return '<button class="chip" data-obscena="' + esc(n) + '" aria-pressed="' + (n === OBS.cena) + '">' + esc(n) + (n === OBS.d.current_scene ? ' ●' : '') + '</button>'; }).join('');
+    $('obs-cenas').innerHTML = '<span class="lbl">Ver prévia:</span>' + nomes.map(function (n) { return '<button class="chip" data-obscena="' + esc(n) + '" aria-pressed="' + (n === OBS.cena) + '">' + esc(n) + (n === OBS.d.current_scene ? ' ●' : '') + '</button>'; }).join('');
     var cena = obsFonte(OBS.cena), palco = $('obs-palco'), wrap = $('obs-wrap'), ocultos = $('obs-ocultos').checked;
     palco.innerHTML = ''; palco.style.width = m.cx + 'px'; palco.style.height = m.cy + 'px';
     palco.classList.toggle('sem-contornos', !$('obs-contornos').checked);
@@ -1253,10 +1266,37 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   document.addEventListener('change', function (e) { if (e.target.id === 'obs-ocultos' || e.target.id === 'obs-contornos') obsDesenhar(); });
   window.addEventListener('resize', function () { if (SEC === 'stream') obsDesenhar(); });
   window.obsCarregar = obsCarregar;
+  /* no ar: cena atual do OBS + botões para trocar (controle remoto do OBS, pelo ajudante) */
+  var obsEst = null;
+  function obsEstado() {
+    if (SEC !== 'stream' || document.hidden) return;
+    fetch(AJ + '/obs/estado?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsEst = j; obsDesenharAr(); }).catch(function () { obsEst = null; obsDesenharAr(); });
+  }
+  function obsDesenharAr() {
+    var j = obsEst, tx = $('obs-ar-tx'), luz = $('obs-luz'), bt = $('obs-trocar'); if (!tx) return;
+    var nomes = j && j.cenas && j.cenas.length ? j.cenas.slice().reverse() : (OBS.d ? (OBS.d.scene_order || []).map(function (x) { return x.name; }) : []);
+    nomes = nomes.filter(function (n) { return n !== 'Base'; });
+    if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
+    if (!j.aberto) { tx.textContent = 'OBS fechado · abra o OBS para trocar de cena por aqui'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
+    if (j.erro) { tx.textContent = 'OBS aberto, mas não consegui falar com ele (' + j.erro + ')'; luz.className = 'obs-luz amarelo'; bt.innerHTML = ''; return; }
+    tx.textContent = (j.aoVivo ? 'AO VIVO ' + (j.tempo || '').slice(0, 8) : 'Fora do ar') + (j.gravando ? ' · gravando' : '') + ' · no ar: ' + j.cena;
+    luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
+    bt.innerHTML = nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('');
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-obstroca]'); if (!b) return;
+    var n = b.dataset.obstroca; b.disabled = true;
+    fetch(AJ + '/obs/cena?k=' + ajK() + '&nome=' + encodeURIComponent(n)).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) $('obs-nota').textContent = 'Não troquei: ' + (j.msg || 'erro'); else { if (obsEst) obsEst.cena = n; OBS.cena = n; obsDesenhar(); }
+      obsDesenharAr(); setTimeout(obsEstado, 600);
+    }).catch(function () { b.disabled = false; });
+  });
+  setInterval(obsEstado, 3000);
+  document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="stream"]')) setTimeout(obsEstado, 100); });
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 10 && !sessionStorage.getItem('aj-reiniciou-10')) { sessionStorage.setItem('aj-reiniciou-10', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 11 && !sessionStorage.getItem('aj-reiniciou-11')) { sessionStorage.setItem('aj-reiniciou-11', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

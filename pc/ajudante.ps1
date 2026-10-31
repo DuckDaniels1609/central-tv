@@ -50,6 +50,49 @@ function ObsColecao {
   $it = Get-Item -LiteralPath $arq
   return @{ arquivo = $it.Name; nome = [IO.Path]::GetFileNameWithoutExtension($it.Name); txt = [IO.File]::ReadAllText($arq, [Text.Encoding]::UTF8); cx = $cx; cy = $cy; mudou = $it.LastWriteTime.ToString('s') }
 }
+# controle remoto do OBS (obs-websocket 5, embutido no OBS 28+). A senha fica só no config do OBS, neste PC.
+function WsEnviar($ws, $obj, $ct) {
+  $b = [Text.Encoding]::UTF8.GetBytes(($obj | ConvertTo-Json -Depth 6 -Compress))
+  $seg = New-Object 'System.ArraySegment[byte]' (, $b)
+  $ws.SendAsync($seg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $ct).GetAwaiter().GetResult()
+}
+function WsLer($ws, $ct) {
+  $buf = New-Object byte[] 65536; $ms = New-Object IO.MemoryStream
+  do {
+    $seg = New-Object 'System.ArraySegment[byte]' (, $buf)
+    $res = $ws.ReceiveAsync($seg, $ct).GetAwaiter().GetResult()
+    if ($res.MessageType -eq [System.Net.WebSockets.WebSocketMessageType]::Close) { throw 'o OBS fechou a conexão' }
+    $ms.Write($buf, 0, $res.Count)
+  } while (-not $res.EndOfMessage)
+  return ([Text.Encoding]::UTF8.GetString($ms.ToArray()) | ConvertFrom-Json)
+}
+function ObsWs($pedidos) {
+  $cfgF = Join-Path $env:APPDATA 'obs-studio\plugin_config\obs-websocket\config.json'
+  $cfg = [IO.File]::ReadAllText($cfgF, [Text.Encoding]::UTF8) | ConvertFrom-Json
+  if (-not $cfg.server_enabled) { throw 'o controle remoto do OBS está desligado (Ferramentas > Configurações do servidor WebSocket)' }
+  $ws = New-Object System.Net.WebSockets.ClientWebSocket
+  $ct = (New-Object System.Threading.CancellationTokenSource 4000).Token
+  try {
+    $ws.ConnectAsync([Uri]('ws://127.0.0.1:' + $cfg.server_port), $ct).GetAwaiter().GetResult()
+    $hello = WsLer $ws $ct
+    $id = @{ rpcVersion = 1; eventSubscriptions = 0 }
+    if ($hello.d.authentication) {
+      $sha = [Security.Cryptography.SHA256]::Create()
+      $sec = [Convert]::ToBase64String($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$cfg.server_password + $hello.d.authentication.salt)))
+      $id.authentication = [Convert]::ToBase64String($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($sec + $hello.d.authentication.challenge)))
+    }
+    WsEnviar $ws @{ op = 1; d = $id } $ct
+    $r = WsLer $ws $ct; if ($r.op -ne 2) { throw 'o OBS recusou a conexão' }
+    $saida = @(); $n = 0
+    foreach ($p in $pedidos) {
+      $n++; $req = @{ requestType = $p.t; requestId = "c$n" }; if ($p.d) { $req.requestData = $p.d }
+      WsEnviar $ws @{ op = 6; d = $req } $ct
+      do { $r = WsLer $ws $ct } while ($r.op -ne 7)
+      $saida += , $r.d
+    }
+    return , $saida
+  } finally { try { $ws.Dispose() } catch {} }
+}
 function Lista($pasta, $soAtalhos) {
   Get-ChildItem -LiteralPath $pasta -Force | Where-Object { $_.Name -ne 'desktop.ini' -and $_.Name -ne 'Atalhos' -and (-not $soAtalhos -or $_.Extension -in '.lnk', '.url', '.exe') } |
     Sort-Object Name | ForEach-Object { @{ f = $_.Name; nome = [IO.Path]::GetFileNameWithoutExtension($_.Name); pasta = $_.PSIsContainer; ext = $_.Extension.ToLower() } }
@@ -222,9 +265,22 @@ while ($http.IsListening) {
         $oc = ObsColecao; $p = ([string]$q['p']) -replace '/', '\'
         $lista = @([regex]::Matches($oc.txt, '"(?:file|local_file)"\s*:\s*"((?:[^"\\]|\\.)*)"') | ForEach-Object { ($_.Groups[1].Value -replace '\\\\', '\') -replace '/', '\' })
         $ext = [IO.Path]::GetExtension($p).ToLower()
-        $tipos = @{ '.png' = 'image/png'; '.jpg' = 'image/jpeg'; '.jpeg' = 'image/jpeg'; '.gif' = 'image/gif'; '.webp' = 'image/webp'; '.mp4' = 'video/mp4'; '.webm' = 'video/webm'; '.mov' = 'video/quicktime' }
+        $tipos = @{ '.html' = 'text/html; charset=utf-8'; '.png' = 'image/png'; '.jpg' = 'image/jpeg'; '.jpeg' = 'image/jpeg'; '.gif' = 'image/gif'; '.webp' = 'image/webp'; '.mp4' = 'video/mp4'; '.webm' = 'video/webm'; '.mov' = 'video/quicktime' }
         if (-not $oc -or -not ($lista -contains $p) -or -not $tipos[$ext] -or -not (Test-Path -LiteralPath $p)) { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('arquivo')); continue }
         Responder $ctx 200 $tipos[$ext] ([IO.File]::ReadAllBytes($p))
+      }
+      '/obs/estado' {
+        if (-not (Get-Process obs64 -ErrorAction SilentlyContinue)) { Json $ctx @{ aberto = $false } }
+        else {
+          try {
+            $r = ObsWs @(@{ t = 'GetCurrentProgramScene' }, @{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }, @{ t = 'GetSceneList' })
+            Json $ctx @{ aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
+          } catch { Json $ctx @{ aberto = $true; erro = $_.Exception.Message } }
+        }
+      }
+      '/obs/cena' {
+        try { $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = [string]$q['nome'] } }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment } }
+        catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/saude' {
         $discos = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | ForEach-Object { @{ letra = $_.DeviceID; nome = $_.VolumeName; total = [math]::Round($_.Size / 1GB, 1); livre = [math]::Round($_.FreeSpace / 1GB, 1) } })
@@ -247,7 +303,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 10 } }
+      default  { Json $ctx @{ ok = $true; versao = 11 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
