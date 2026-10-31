@@ -163,15 +163,42 @@
       var velho = sec.querySelector('svg.bg, .bgimg'); var dim = sec.querySelector('.bgdim');
       var usaDisc = p[0] === 'inicio' && cfg.modo === 'discreto' && cfg.discreto && cfg.discreto.fundo;
       var esc = usaDisc ? cfg.discreto.fundo : cfg.fundo[p[0]], novo, chImg = usaDisc ? 'discreto' : p[0];
+      var assada = esc === 'img' && imgOk[chImg] ? fundoAssado(chImg) : null;
       if (esc === 'img' && imgOk[chImg]) {
-        novo = document.createElement('div'); novo.className = 'bgimg'; novo.style.backgroundImage = 'linear-gradient(rgba(10,8,30,.62), rgba(10,8,30,0) 34%, rgba(10,8,30,0) 58%, rgba(10,8,30,.6)), url(' + imgOk[chImg] + ')';
+        novo = document.createElement('div'); novo.className = 'bgimg';
+        novo.style.backgroundImage = assada ? 'url(' + assada + ')' : 'linear-gradient(rgba(10,8,30,.62), rgba(10,8,30,0) 34%, rgba(10,8,30,0) 58%, rgba(10,8,30,.6)), url(' + imgOk[chImg] + ')';
       } else {
         var t = document.createElement('div'); t.innerHTML = cenaSVG[esc === 'img' ? PADRAO.fundo[p[0]] : esc] || cenaSVG[PADRAO.fundo[p[0]]]; novo = t.firstChild;
       }
       if (velho) sec.replaceChild(novo, velho); else sec.insertBefore(novo, sec.firstChild);
       if (!dim) { dim = document.createElement('div'); dim.className = 'bgdim'; novo.parentNode.insertBefore(dim, novo.nextSibling); }
-      dim.style.opacity = (cfg.escuro || 0) / 100;
+      dim.style.opacity = assada ? 0 : (cfg.escuro || 0) / 100;
     });
+  }
+  /* Fundo com imagem própria: a TV mistura mal camadas semitransparentes (degradê + escurecer) sobre imagens claras
+     e aparece um quadriculado. Então "assamos" o degradê e o escurecer dentro da própria imagem, uma camada só. */
+  var ASSADOS = {}, assando = {};
+  function fundoAssado(ch) {
+    var src = imgOk[ch], chave = ch + '|' + src + '|' + (cfg.escuro || 0);
+    if (ASSADOS[ch] && ASSADOS[ch].k === chave) return ASSADOS[ch].u;
+    if (assando[chave]) return null; assando[chave] = true;
+    var im = new Image();
+    im.onload = function () {
+      try {
+        var cv = document.createElement('canvas'); cv.width = 1920; cv.height = 1080; var x = cv.getContext('2d');
+        var r = Math.max(1920 / im.width, 1080 / im.height), w = im.width * r, h = im.height * r;
+        x.drawImage(im, (1920 - w) / 2, (1080 - h) / 2, w, h);
+        var g = x.createLinearGradient(0, 0, 0, 1080);
+        g.addColorStop(0, 'rgba(10,8,30,.62)'); g.addColorStop(.34, 'rgba(10,8,30,0)'); g.addColorStop(.58, 'rgba(10,8,30,0)'); g.addColorStop(1, 'rgba(10,8,30,.6)');
+        x.fillStyle = g; x.fillRect(0, 0, 1920, 1080);
+        if (cfg.escuro) { x.fillStyle = 'rgba(0,0,0,' + (cfg.escuro / 100) + ')'; x.fillRect(0, 0, 1920, 1080); }
+        ASSADOS[ch] = { k: chave, u: cv.toDataURL('image/jpeg', 0.95) }; diagAdd('fundo ' + ch + ': degradê e escurecer dentro da imagem');
+        aplicarCfg();
+      } catch (e) { diagAdd('fundo assado falhou: ' + e.message); }
+    };
+    im.onerror = function () { diagAdd('fundo assado: imagem não abriu'); };
+    im.src = src;
+    return null;
   }
 
   /* ---------- clipes do YouTube no Início (layout Janela) ----------
