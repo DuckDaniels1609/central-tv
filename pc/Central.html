@@ -312,6 +312,23 @@ header { align-items: center; }
 .btn.big:hover { background: color-mix(in srgb, var(--acc) 30%, var(--panel2)); }
 .pc-acoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .pc-acoes .btn { border-radius: 12px; min-height: 48px; }
+
+.le-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; overflow-y: auto; align-content: start; }
+.lv { display: flex; gap: 14px; padding: 10px; border-radius: 16px; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.06); }
+.lv.sel { border-color: var(--acc); }
+.lv-capa { font: inherit; color: var(--fg); flex: none; width: 82px; height: 116px; border-radius: 10px; border: 0; cursor: pointer; background: linear-gradient(160deg, #3A2A7A, #1B1A4A) center/cover; position: relative; display: grid; place-items: center; }
+.lv-capa.tem b { display: none; }
+.lv-capa b { font-size: 22px; opacity: .6; }
+.lv-capa .tp { position: absolute; left: 4px; bottom: 4px; font-style: normal; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: rgba(10,8,30,.8); }
+.lv-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.lv-tx > b { font-size: 15px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lv-tx .cap { font-size: 22px; font-weight: 800; color: var(--acc); }
+.lv-tx .cap small { font-size: 14px; color: var(--muted); }
+.lv-bt { display: flex; gap: 6px; margin-top: auto; align-items: center; }
+.lv-bt .mais1 { background: color-mix(in srgb, var(--acc) 30%, var(--panel2)); border-radius: 10px; padding: 8px 16px; }
+.lv-bt .ler { text-decoration: none; border-radius: 10px; padding: 8px 14px; margin-left: auto; }
+.chip small { opacity: .7; font-weight: 500; }
+.sep { width: 1px; height: 26px; background: rgba(255,255,255,.15); margin: 0 6px; }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
@@ -343,6 +360,7 @@ header { align-items: center; }
       <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
       <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Projetos</button>
       <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>Estante</button>
+      <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>Leitura</button>
       <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>Lançamentos</button>
       <button class="mi" data-sec="tvc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Controle da TV</button>
       <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
@@ -387,6 +405,11 @@ header { align-items: center; }
     <div class="col card meio" id="meio-est" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Estante de Platinas</h2><span id="es-resumo"></span></div><div class="row" id="es-filtros" style="position:relative"></div></div>
       <div class="jg-grid" id="es-grid"><p class="note">Carregando…</p></div>
+    </div>
+    <div class="col card meio" id="meio-leit" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Leitura</h2><span id="le-resumo"></span></div><div class="row" style="position:relative"><input type="search" id="le-busca" class="in-txt" placeholder="Procurar título…" aria-label="Procurar título" style="width:260px"><button class="btn prim" data-a="leNovo">+ Novo</button></div></div>
+      <div class="row" id="le-filtros"></div>
+      <div class="le-grid" id="le-grid"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-lanc" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Lançamentos</h2><span id="ln-resumo"></span></div><button class="chip" id="ln-so" data-a="lnSo" style="position:relative">Só a minha lista ★</button></div>
@@ -445,6 +468,18 @@ header { align-items: center; }
         <p class="note" id="es-info" style="margin:0"></p>
         <div class="row" id="es-status"></div>
         <div class="col" style="gap:6px" id="es-trof"></div>
+      </section>
+      <section data-s="leit" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <p class="note" id="le-vazio" style="margin:0">Clique na capa de um título para editar. O <b>+1</b> soma um capítulo e o <b>Ler</b> abre o site onde você lê.</p>
+        <form id="le-form" class="col" style="gap:10px" hidden onsubmit="return false">
+          <label class="f" for="le-nome">Título<input type="text" id="le-nome" autocomplete="off"></label>
+          <div class="row" id="le-status"></div>
+          <div class="row" style="flex-wrap:nowrap"><label class="f" for="le-cap" style="flex:1">Capítulo<input type="text" id="le-cap" inputmode="decimal" class="in-txt"></label><label class="f" for="le-total" style="flex:1">Total (se souber)<input type="text" id="le-total" inputmode="numeric" class="in-txt"></label></div>
+          <label class="f" for="le-tipo">Tipo<select class="sel" id="le-tipo"></select></label>
+          <label class="f" for="le-link">Site onde você lê<input type="text" id="le-link" autocomplete="off" placeholder="https://…"></label>
+          <label class="f" for="le-nota">Nota<input type="text" id="le-nota" autocomplete="off"></label>
+          <div class="row"><button class="btn" type="button" data-a="leApaga">Apagar</button></div>
+        </form>
       </section>
       <section data-s="lanc" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Como funciona</h3>
@@ -1040,7 +1075,7 @@ header { align-items: center; }
 (function () {
   'use strict';
   var BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
-  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json' };
+  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json' };
   var S = {}, SHA = {};
   var $ = function (id) { return document.getElementById(id); };
   function tok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
@@ -1345,6 +1380,7 @@ header { align-items: center; }
     ((S.tar && S.tar.tarefas) || []).forEach(function (t) { if (!t.ok) out.push({ tipo: 'Tarefa', t: (t.cli ? t.cli + ': ' : '') + t.t, ir: function () { document.querySelector('.mi[data-sec="tar"]').click(); } }); });
     var P = (S.pj && S.pj.projetos) || {}; Object.keys(P).forEach(function (k) { out.push({ tipo: 'Projeto', t: P[k].nome, ir: function () { pjSel = k; document.querySelector('.mi[data-sec="proj"]').click(); desenharProj(); } }); });
     jogosEst().forEach(function (j) { out.push({ tipo: 'Estante', t: j.name, ir: function () { esSel = j.id; document.querySelector('.mi[data-sec="est"]').click(); desenharEst(); } }); });
+    ((S.le && S.le.itens) || []).forEach(function (x) { out.push({ tipo: x.tipo + (x.cap != null ? ' · cap. ' + x.cap : ''), t: x.nome, ir: function () { leSel = x.id; leQ = x.nome; document.querySelector('.mi[data-sec="leit"]').click(); $('le-busca').value = x.nome; desenharLeit(); } }); });
     ((S.ln && S.ln.jogos) || []).forEach(function (j) { out.push({ tipo: 'Lançamento ' + dmy(j.d), t: j.nome, ir: function () { document.querySelector('.mi[data-sec="lanc"]').click(); } }); });
     ((S.ev && S.ev.eventos) || []).concat(((S.ag && S.ag.reunioes) || [])).forEach(function (e) { out.push({ tipo: dmy(e.d), t: e.t, ir: function () { dia = e.d; mes = e.d.slice(0, 7); document.querySelector('.mi[data-sec="cal"]').click(); desenharCal(); } }); });
     return out;
@@ -1389,7 +1425,67 @@ header { align-items: center; }
     }).catch(function () { $('pc-acao-st').textContent = 'O ajudante não está ligado.'; });
   });
 
-  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); }
+  /* ========== LEITURA (mangás, manhwas e light novels; veio do Notion) ========== */
+  var leSel = null, leSt = 'lendo', leTipo = 'todos', leQ = '';
+  var LE_ST = [['lendo', 'Lendo'], ['quero', 'Quero ler'], ['pausa', 'Pausado'], ['acabou', 'Acabou']], LE_TIPOS = ['Mangá', 'Manhwa', 'Light Novel'];
+  function capaLeitura(it, cb) {
+    var k = 'capa-le-' + it.id, c = null; try { c = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) {}
+    if (c && Date.now() - c.em < (c.u ? 30 : 3) * 864e5) { cb(c.u); return; }
+    var q = 'query($s:String){Media(search:$s,type:MANGA){coverImage{large}}}';
+    fetch('https://graphql.anilist.co', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ query: q, variables: { s: it.nome } }) })
+      .then(function (r) { return r.json(); }).then(function (j) { var u = j && j.data && j.data.Media && j.data.Media.coverImage ? j.data.Media.coverImage.large : ''; try { localStorage.setItem(k, JSON.stringify({ u: u, em: Date.now() })); } catch (e) {} cb(u); })
+      .catch(function () { cb(''); });
+  }
+  var leFila = [], leAtivos = 0;
+  function leProx() { if (leAtivos >= 2 || !leFila.length) return; var f = leFila.shift(); leAtivos++; f(function () { leAtivos--; setTimeout(leProx, 350); }); leProx(); }
+  function desenharLeit() {
+    var el = $('le-grid'); if (!el) return;
+    var L = ((S.le && S.le.itens) || []);
+    var cont = {}; LE_ST.forEach(function (s2) { cont[s2[0]] = L.filter(function (x) { return x.status === s2[0]; }).length; });
+    $('le-resumo').textContent = cont.lendo + ' lendo · ' + cont.quero + ' para ler · ' + cont.acabou + ' acabados';
+    $('le-filtros').innerHTML = LE_ST.map(function (s2) { return '<button class="chip" data-a="leSt" data-v="' + s2[0] + '" aria-pressed="' + (leSt === s2[0]) + '">' + s2[1] + ' <small>' + cont[s2[0]] + '</small></button>'; }).join('') +
+      '<span class="sep"></span>' + [['todos', 'Tudo']].concat(LE_TIPOS.map(function (t) { return [t, t]; })).map(function (t) { return '<button class="chip" data-a="leTipo" data-v="' + t[0] + '" aria-pressed="' + (leTipo === t[0]) + '">' + t[1] + '</button>'; }).join('');
+    var q = norm(leQ);
+    var vis = L.filter(function (x) { return (q ? norm(x.nome).indexOf(q) >= 0 : x.status === leSt) && (leTipo === 'todos' || x.tipo === leTipo); });
+    el.innerHTML = vis.map(function (x) {
+      return '<div class="lv' + (leSel === x.id ? ' sel' : '') + '"><button class="lv-capa" data-a="leSel" data-v="' + esc(x.id) + '" data-lecapa="' + esc(x.id) + '" aria-label="Detalhes de ' + esc(x.nome) + '"><b>' + esc(x.nome.slice(0, 2)) + '</b><i class="tp">' + esc(x.tipo) + '</i></button>' +
+        '<div class="lv-tx"><b title="' + esc(x.nome) + '">' + esc(x.nome) + '</b><span class="cap">' + (x.cap != null ? 'Cap. ' + x.cap + (x.total ? ' <small>/ ' + x.total + '</small>' : '') : ({ quero: 'Para ler', acabou: 'Acabou ✓' }[x.status] || '—')) + '</span>' +
+        '<div class="lv-bt">' + (x.status !== 'acabou' ? '<button class="mini" data-a="leMenos" data-v="' + esc(x.id) + '" aria-label="Voltar um capítulo">−</button><button class="btn mais1" data-a="leMais" data-v="' + esc(x.id) + '">+1</button>' : '') +
+        (x.link ? '<a class="btn ler" href="' + esc(x.link) + '" target="_blank" rel="noopener">Ler</a>' : '') + '</div></div></div>';
+    }).join('') || '<p class="note">Nada aqui.</p>';
+    Array.prototype.forEach.call(el.querySelectorAll('[data-lecapa]'), function (b) {
+      var it = L.filter(function (x) { return x.id === b.dataset.lecapa; })[0]; if (!it) return;
+      leFila.push(function (fim) { capaLeitura(it, function (u) { if (u && b.isConnected) { b.style.backgroundImage = 'url("' + u + '")'; b.classList.add('tem'); } fim(); }); });
+    });
+    leProx();
+    var s3 = L.filter(function (x) { return x.id === leSel; })[0];
+    $('le-form').hidden = !s3; $('le-vazio').hidden = !!s3;
+    if (s3 && document.activeElement.closest && !document.activeElement.closest('#le-form')) {
+      $('le-nome').value = s3.nome; $('le-cap').value = s3.cap != null ? s3.cap : ''; $('le-total').value = s3.total || ''; $('le-link').value = s3.link || ''; $('le-nota').value = s3.nota || '';
+      $('le-tipo').innerHTML = LE_TIPOS.map(function (t) { return '<option' + (s3.tipo === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+      $('le-status').innerHTML = LE_ST.map(function (s4) { return '<button class="chip" type="button" data-a="leStatus" data-v="' + s4[0] + '" aria-pressed="' + (s3.status === s4[0]) + '">' + s4[1] + '</button>'; }).join('');
+    }
+  }
+  function leMuda(id, fn) { mudar('le', function (d) { (d.itens || []).forEach(function (x) { if (x.id === id) fn(x); }); }); }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a, v = b.dataset.v;
+    if (a === 'leSt') { leSt = v; leQ = ''; $('le-busca').value = ''; desenharLeit(); }
+    else if (a === 'leTipo') { leTipo = v; desenharLeit(); }
+    else if (a === 'leSel') { leSel = v; desenharLeit(); }
+    else if (a === 'leMais' || a === 'leMenos') { var dlt = a === 'leMais' ? 1 : -1; leMuda(v, function (x) { var c = Math.floor(+x.cap || 0) + dlt; x.cap = Math.max(0, c); if (x.status === 'quero') x.status = 'lendo'; x.lido = Date.now(); }); }
+    else if (a === 'leStatus') { leMuda(leSel, function (x) { x.status = v; }); }
+    else if (a === 'leNovo') { var id = 'le' + Date.now().toString(36); mudar('le', function (d) { d.itens = d.itens || []; d.itens.unshift({ id: id, nome: 'Novo título', tipo: 'Manhwa', status: 'lendo', cap: 0 }); }); leSel = id; leSt = 'lendo'; setTimeout(function () { $('le-nome').focus(); $('le-nome').select(); }, 300); }
+    else if (a === 'leApaga') { if (!b.dataset.conf) { b.dataset.conf = '1'; b.textContent = 'Clique de novo para apagar'; setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = 'Apagar'; } }, 3000); return; } var idA = leSel; leSel = null; mudar('le', function (d) { d.itens = (d.itens || []).filter(function (x) { return x.id !== idA; }); }); }
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target; if (!t.closest || !t.closest('#le-form') || !leSel) return;
+    var campo = { 'le-nome': 'nome', 'le-cap': 'cap', 'le-total': 'total', 'le-link': 'link', 'le-nota': 'nota', 'le-tipo': 'tipo' }[t.id]; if (!campo) return;
+    var val = t.value.trim(); if (campo === 'cap' || campo === 'total') val = val === '' ? null : +val.replace(',', '.');
+    leMuda(leSel, function (x) { if (val === null || val === '') delete x[campo]; else x[campo] = val; });
+  });
+  document.addEventListener('input', function (e) { if (e.target.id === 'le-busca') { leQ = e.target.value; desenharLeit(); } });
+
+  function desenhar() { desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }
