@@ -105,7 +105,7 @@ function ObsColecao {
 function WsEnviar($ws, $obj, $ct) {
   $b = [Text.Encoding]::UTF8.GetBytes(($obj | ConvertTo-Json -Depth 6 -Compress))
   $seg = New-Object 'System.ArraySegment[byte]' (, $b)
-  $ws.SendAsync($seg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $ct).GetAwaiter().GetResult()
+  $null = $ws.SendAsync($seg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $ct).GetAwaiter().GetResult()
 }
 function WsLer($ws, $ct) {
   $buf = New-Object byte[] 65536; $ms = New-Object IO.MemoryStream
@@ -124,7 +124,7 @@ function ObsWs($pedidos) {
   $ws = New-Object System.Net.WebSockets.ClientWebSocket
   $ct = (New-Object System.Threading.CancellationTokenSource 4000).Token
   try {
-    $ws.ConnectAsync([Uri]('ws://127.0.0.1:' + $cfg.server_port), $ct).GetAwaiter().GetResult()
+    $null = $ws.ConnectAsync([Uri]('ws://127.0.0.1:' + $cfg.server_port), $ct).GetAwaiter().GetResult()
     $hello = WsLer $ws $ct
     $id = @{ rpcVersion = 1; eventSubscriptions = 0 }
     if ($hello.d.authentication) {
@@ -276,7 +276,7 @@ function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | 
 $script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false; $script:gravAnt = $false
 # Captura do jogo (e não da tela inteira): cria "Jogo: Street Fighter 6", "Jogo: Valorant" e "Jogo (tela cheia)"
 # nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
-$capOkF = Join-Path $aqui 'captura_jogo_ok3.txt'
+$capOkF = Join-Path $aqui 'captura_jogo_ok4.txt'
 function CapturaJogo {
   # de baixo para cima (logo acima da Tela 1): tela cheia, PS5 (4K Capture), Valorant, SF6
   $novos = @(
@@ -645,7 +645,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 24 } }
+      default  { Json $ctx @{ ok = $true; versao = 25 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
