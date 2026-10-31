@@ -1651,13 +1651,16 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       MAL.anime = L.map(function (x) { var n = x.node, ls = x.list_status || {}; return { id: n.id, t: n.title, en: (n.alternative_titles || {}).en || '', img: (n.main_picture || {}).medium || '', eps: n.num_episodes || 0, sin: n.synopsis || '', gen: (n.genres || []).map(function (g) { return g.name; }), nota: n.mean || null, tipo: n.media_type || '', ano: (n.start_season || {}).year || '', st: ls.status, ep: ls.num_episodes_watched || 0, score: ls.score || 0, em: ls.updated_at || '' }; });
       try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e) {}
       /* cópia leve no repositório para o celular, a TV e a skill */
-      mudar('an', function (d) { d.fonte = 'MyAnimeList · ' + MAL.usuario; d.itens = MAL.anime.map(function (a) { return { id: a.id, t: a.t, en: a.en, img: a.img, eps: a.eps, st: a.st, ep: a.ep, score: a.score }; }); });
+      mudar('an', function (d) { d.fonte = 'MyAnimeList · ' + MAL.usuario; d.itens = MAL.anime.map(function (a) { return { id: a.id, t: a.t, en: a.en, img: a.img, eps: a.eps, st: a.st, ep: a.ep, score: a.score, em: a.em }; }); });
       MAL.carregando = false; desenharAnime();
     }).catch(function (e) { MAL.carregando = false; $('an-resumo').textContent = 'Não consegui ler o MAL (' + e.message + ')'; });
   }
   function anMuda(id, campos) {
     var a = (MAL.anime || []).filter(function (x) { return x.id === id; })[0]; if (!a) return;
     Object.keys(campos).forEach(function (k) { a[k] = campos[k]; });
+    a.em = new Date().toISOString();
+    /* a TV usa a cópia do repositório (Continuar e Sugestão do dia) */
+    mudar('an', function (d) { (d.itens || []).forEach(function (y) { if (y.id === id) { Object.keys(campos).forEach(function (k) { y[k] = campos[k]; }); y.em = a.em; } }); });
     try { localStorage.setItem('mal-anime', JSON.stringify(MAL.anime)); } catch (e) {}
     desenharAnime();
     var f = []; if ('st' in campos) f.push('status=' + campos.st); if ('ep' in campos) f.push('num_watched_episodes=' + campos.ep); if ('score' in campos) f.push('score=' + campos.score);

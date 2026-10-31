@@ -237,10 +237,55 @@ body.discreto .hoje2 .trab { display: none; }
 /* sugestão do dia (sábado, domingo e feriado): troca Reunião/Trabalho por um item da fila do fim de semana */
 .sug[hidden] { display: none; }
 .hoje2.fds { grid-template-columns: 1fr; }
-.hoje2.fds > .card:not(.sug) { display: none; }
+.hoje2.fds > .card:not(.sug):not(.cont) { display: none; }
 .sug { display: flex; align-items: center; gap: 26px; padding: 18px 26px !important; }
 .sug-capa { width: 112px; height: 158px; flex: none; border-radius: 14px; background: #24205A center/cover no-repeat; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
 .sug-tx { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
 .sug-nome { font-size: 34px; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 body.discreto .hoje2.fds > .card:not(.sug) { display: flex; }
 body.discreto .hoje2.fds > .trab, body.discreto .sug { display: none !important; }
+
+/* barra de baixo do Início: só as bolinhas e as setas; Modo/Personalizar/Menu Samsung aparecem quando o foco desce até ela */
+#p-inicio .pnav .modobtn, #p-inicio .pnav .cfgbtn, #p-inicio .pnav .smbtn { opacity: 0; transform: translateY(14px); transition: opacity .25s, transform .25s; }
+body.nav-on #p-inicio .pnav .modobtn, body.nav-on #p-inicio .pnav .cfgbtn, body.nav-on #p-inicio .pnav .smbtn { opacity: 1; transform: none; }
+#p-inicio .pnav [data-go] { font-size: 24px; padding: 10px 24px; background: rgba(16,16,48,.55); }
+body.discreto #p-inicio .pnav .modobtn { opacity: 1; transform: none; }
+
+/* apps mais baixos, com o ícone oficial do app */
+#p-inicio .app { height: 112px; flex-direction: row; gap: 14px; padding: 0 16px; border-radius: 22px; font-size: 22px; justify-content: flex-start; }
+#p-inicio .app svg { width: 44px; height: 44px; flex: none; }
+#p-inicio .app span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.app-ic { width: 56px; height: 56px; border-radius: 14px; flex: none; object-fit: cover; }
+#p-inicio.com-clipe .app { height: 100px; gap: 12px; }
+#p-inicio .apps-sec h2 { display: none; }
+
+/* clima com ícone, máxima e mínima */
+#clima { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+#p-inicio.com-clipe #clima { align-items: flex-start; }
+.clima-l { display: flex; align-items: center; gap: 10px; font-size: 30px; }
+.clima-l b { font-size: 34px; }
+.clima-i { width: 40px; height: 40px; flex: none; }
+.clima-l .mm { font-size: 24px; opacity: .85; }
+.clima-c { font-size: 22px; opacity: .85; }
+.desp-clima { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; font-size: 30px; }
+.desp-clima .clima-i { width: 42px; height: 42px; }
+
+/* Continuar (anime) */
+.cont[hidden] { display: none; }
+.cont { display: flex; align-items: center; gap: 22px; padding: 14px 22px !important; }
+.cont-capa { width: 62px; height: 88px; flex: none; border-radius: 10px; background: #24205A center/cover no-repeat; }
+.cont-tx { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.cont-nome { font-size: 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cont .sub { font-size: 22px; }
+.hoje2.com-cont { grid-template-columns: 1fr 1fr 1fr; }
+.hoje2.fds.com-cont { grid-template-columns: 1.4fr 1fr; }
+#p-inicio.com-clipe .sug-capa { width: 92px; height: 130px; }
+#p-inicio.com-clipe .sug-nome { font-size: 30px; }
+#p-inicio.com-clipe .hoje2 { gap: 16px; }
+body.discreto .cont { display: none !important; }
+
+/* com o clipe: relógio e clima lado a lado, sem a etiqueta "Início", para caber Continuar + Sugestão */
+#p-inicio.com-clipe header .col.end { flex-direction: row; align-items: center; gap: 30px; }
+#p-inicio.com-clipe header .pill { display: none; }
+#p-inicio.com-clipe .ini-esq { gap: 24px; }
+#p-inicio.com-clipe header.row { gap: 4px; }

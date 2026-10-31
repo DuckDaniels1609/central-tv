@@ -244,11 +244,23 @@
     $('saudacao').textContent = (h < 5 ? 'Boa noite' : h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite') + ', ' + D.nome + '!';
     $('data').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()] + ' · おかえり';
   }
+  var climaTxt = '', climaIc = '';
+  /* ícone simples pelo código do tempo (open-meteo): sol/lua, nuvem, chuva, tempestade, neblina */
+  function iconeClima(cod, dia) {
+    var sol = dia ? '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>' : '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>';
+    var nuvem = '<path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 11 3.5 3.5 0 0 0 7 18z"/>';
+    var d = cod <= 1 ? sol : cod === 2 ? '<g transform="translate(-3 -3) scale(.75)">' + sol + '</g><path d="M9 20h8.5a3.5 3.5 0 0 0 .5-6.96A5 5 0 0 0 8.4 14 3 3 0 0 0 9 20z"/>' : cod === 3 ? nuvem : (cod === 45 || cod === 48) ? '<path d="M4 9h16M3 13h18M5 17h14"/>' : cod >= 95 ? nuvem.replace('18h10', '15h10') + '<path d="M12 15l-2 4h3l-2 4"/>' : '<path d="M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8 3.5 3.5 0 0 0 7 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>';
+    return '<svg class="clima-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  }
   function clima() {
     var c = D.cidade;
-    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + c.lat + '&longitude=' + c.lon + '&current=temperature_2m&timezone=auto';
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + c.lat + '&longitude=' + c.lon + '&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=1&timezone=auto';
     fetch(url).then(function (r) { return r.json(); }).then(function (j) {
-      $('clima').textContent = Math.round(j.current.temperature_2m) + '° em ' + c.nome;
+      var t = Math.round(j.current.temperature_2m), dd = j.daily || {}, mx = dd.temperature_2m_max ? Math.round(dd.temperature_2m_max[0]) : null, mn = dd.temperature_2m_min ? Math.round(dd.temperature_2m_min[0]) : null, ch = dd.precipitation_probability_max ? dd.precipitation_probability_max[0] : null;
+      var ic = iconeClima(j.current.weather_code, j.current.is_day);
+      $('clima').innerHTML = '<span class="clima-l">' + ic + '<b>' + t + '°</b>' + (mx != null ? '<span class="mm">↑' + mx + '° ↓' + mn + '°</span>' : '') + '</span>' + '<span class="clima-c">' + esc(c.nome) + (ch != null && ch >= 40 ? ' · chuva ' + ch + '%' : '') + '</span>';
+      climaTxt = t + '° agora' + (mx != null ? ' · máx ' + mx + '° / mín ' + mn + '°' : '') + (ch != null && ch >= 40 ? ' · chuva ' + ch + '%' : '');
+      climaIc = ic;
     }).catch(function () { $('clima').textContent = c.nome; });
   }
 
@@ -257,13 +269,33 @@
   function renderApps() {
     $('apps').innerHTML = D.apps.map(function (a, i) {
       if (cfg.ocultos[a.nome]) return '';
-      return '<div class="app f" data-app="' + i + '" style="background:' + a.cor + '">' + icone(a.icone) + '<span>' + esc(a.nome) + '</span></div>';
+      var ip = iconeTV(a);
+      return '<div class="app f' + (ip ? ' com-ic' : '') + '" data-app="' + i + '" style="background:' + a.cor + '">' + (ip ? '<img class="app-ic" src="' + esc(ip) + '" alt="">' : icone(a.icone)) + '<span>' + esc(a.nome) + '</span></div>';
     }).join('');
   }
   function carregarAppsTV() {
     if (!tizenOk) return;
-    try { tizen.application.getAppsInfo(function (l) { appsTV = l.map(function (x) { return { id: x.id, name: (x.name || '').toLowerCase() }; }); }, function () {}); } catch (e) {}
+    try { tizen.application.getAppsInfo(function (l) {
+      var antes = appsTV.length;
+      appsTV = l.map(function (x) { return { id: x.id, name: (x.name || '').toLowerCase(), ic: x.iconPath || '' }; });
+      if (!antes) { renderApps(); var n = D.apps.filter(function (a) { return iconeTV(a); }).length; diagAdd('ícones dos apps: ' + n + ' de ' + D.apps.length); }
+    }, function () {}); } catch (e) {}
   }
+  /* ícone oficial do app instalado na TV (o mesmo do menu da Samsung); se não achar ou não carregar, fica o desenho */
+  var icFalhou = {};
+  function iconeTV(a) {
+    if (!a.match || !appsTV.length) return '';
+    for (var i = 0; i < appsTV.length; i++) for (var k = 0; k < a.match.length; k++) if (appsTV[i].name.indexOf(a.match[k]) >= 0 && appsTV[i].ic) {
+      var u = appsTV[i].ic; if (u.charAt(0) === '/') u = 'file://' + u;
+      return icFalhou[u] ? '' : u;
+    }
+    return '';
+  }
+  document.addEventListener('error', function (e) {
+    var t = e.target; if (!t || t.className !== 'app-ic') return;
+    icFalhou[t.getAttribute('src')] = true; diagAdd('ícone não carregou: ' + t.getAttribute('src'));
+    var p = t.parentNode, a = D.apps[+p.getAttribute('data-app')]; p.classList.remove('com-ic'); t.outerHTML = icone(a.icone);
+  }, true);
   function abrirApp(a) {
     window.ultimoLancamento = Date.now();
     if (a.tipo === 'ps5') { toast('Ligue o PS5 pelo botão PS do controle: com o Anynet+ ligado, a TV troca de entrada sozinha.'); return; }
@@ -440,16 +472,53 @@
   }
   /* sábado, domingo e feriado: no lugar de Reunião/Trabalho, uma sugestão da fila do fim de semana (montada no app do PC) */
   var sugUlt = '';
+  /* frase da sugestão a partir do que você já fez (animes do MAL e troféus da Estante) */
+  function sugInfo(it) {
+    if (it.k.indexOf('an') === 0) {
+      var A = (ler('dados-an', {}) || {}).itens || [], a = A.filter(function (x) { return 'an' + x.id === it.k; })[0];
+      if (a) {
+        if (a.st === 'completed') return 'Você já terminou ✓';
+        if (!a.ep || a.st === 'plan_to_watch') return 'Comece hoje' + (a.eps ? ' · ' + a.eps + ' episódios' : '');
+        return 'Você parou no ep. ' + a.ep + (a.eps ? ' de ' + a.eps : '');
+      }
+    }
+    if (it.k.indexOf('es') === 0) {
+      var E = ler('dados-est', null), id = it.k.slice(2), j = E && E.jogos && E.jogos[id], p = (E && E.progresso && E.progresso[id]) || {};
+      if (j) {
+        var T = j.trophies || [], n = Object.keys(p.done || {}).length;
+        if (p.status === 'platinado') return 'Platinado ✓';
+        if (!n && (p.status || 'fila') === 'fila') return 'Comece hoje';
+        return T.length ? n + ' de ' + T.length + ' troféus' : 'Continue de onde parou';
+      }
+    }
+    return it.info || '';
+  }
+  /* Continuar: o anime que você mexeu por último (Assistindo no MAL). OK abre o Crunchyroll */
+  function animeAtual() {
+    var A = ((ler('dados-an', {}) || {}).itens || []).filter(function (x) { return x.st === 'watching'; });
+    A.sort(function (a, b) { return (b.em || '') < (a.em || '') ? -1 : (b.em || '') > (a.em || '') ? 1 : 0; });
+    return A[0] || null;
+  }
+  function renderContinuar() {
+    var box = $('continuar'); if (!box) return;
+    var a = animeAtual(), sug = $('sugestao'), mesmo = a && sug && !sug.hidden && sugUlt.indexOf('an' + a.id + '|') === 0;
+    box.hidden = !a || mesmo; box.parentNode.classList.toggle('com-cont', !box.hidden); if (box.hidden) return;
+    $('cont-capa').style.backgroundImage = a.img ? 'url("' + a.img + '")' : '';
+    $('cont-nome').textContent = a.en || a.t;
+    $('cont-ep').textContent = 'Próximo: ep. ' + (a.ep + 1) + (a.eps ? ' de ' + a.eps : '');
+  }
   function renderSugestao() {
     var box = $('sugestao'); if (!box) return;
     var L = cfg.fimSemana || [], d = new Date(), folga = d.getDay() === 0 || d.getDay() === 6 || !!feriado(d);
     var on = folga && L.length > 0, par = box.parentNode;
     var n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000), it = on ? L[n % L.length] : null;
-    var chave = it ? it.k + '|' + it.capa : '';
+    var info = it ? sugInfo(it) : '', chave = it ? it.k + '|' + it.capa + '|' + info : '';
     par.classList.toggle('fds', on); box.hidden = !on;
-    if (!it || chave === sugUlt) return; sugUlt = chave;
+    if (!it) { sugUlt = ''; renderContinuar(); return; }
+    if (chave === sugUlt) return; sugUlt = chave;
     $('sug-nome').textContent = it.nome;
-    $('sug-tipo').textContent = it.tipo + (it.info ? ' · ' + it.info : '');
+    $('sug-tipo').textContent = it.tipo + (info ? ' · ' + info : '');
+    renderContinuar();
     $('sug-capa').style.backgroundImage = it.capa ? 'url("' + it.capa + '")' : '';
   }
   function renderEstanteTV() {
@@ -778,7 +847,8 @@
     ghBuscar('estado.json', 'dados-estado', function (d) { estadoAplicar(d); });
     ghBuscar('marcacoes.json', 'dados-marc', function (d) { marcAplicar(d); });
     ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) { renderTarefasTV(); renderTrabalhoTV(); renderAgenda(); } });
-    ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) renderEstanteTV(); });
+    ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) { renderEstanteTV(); renderSugestao(); } });
+    ghBuscar('animes.json', 'dados-an', function (d, mudou) { if (mudou) { renderSugestao(); renderContinuar(); } });
     ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
     ghBuscar('eventos.json', 'dados-ev', function (d, mudou) { if (mudou) renderAgenda(); });
     ghBuscar('clientes.json', 'dados-cli', function () {});
@@ -1085,7 +1155,7 @@
     }, 5000);
     setTimeout(function () { try { var r = el.getBoundingClientRect(); registrar('Tela de despertar: ' + getComputedStyle(el).display + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + (despAudio && !despAudio.paused ? ', música tocando' : ', música parada')); } catch (err) {} }, 3000);
   }
-  function relogioDesp() { var d = new Date(); $('desp-hora').textContent = hhmm(d); $('desp-data').textContent = DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()]; }
+  function relogioDesp() { var d = new Date(); $('desp-hora').textContent = hhmm(d); $('desp-data').innerHTML = esc(DIAS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()]) + (climaTxt ? '<span class="desp-clima">' + climaIc + esc(climaTxt) + '</span>' : ''); }
   function pararDespertador(tecla) {
     if (!despAtivo) return;
     despAtivo = false; clearInterval(despTimer); registrar(tecla ? 'Despertador desligado pelo controle (' + (tecla === 13 ? 'OK' : 'Voltar') + ')' : 'Despertador desligado sozinho (1 hora)');
@@ -1279,6 +1349,7 @@
     if (foco) foco.classList.remove('focus');
     foco = el;
     if (el && cfgAberto && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { el.scrollIntoView(false); } }
+    try { document.body.classList.toggle('nav-on', !!(el && el.parentNode && (el.closest ? el.closest('.pnav') : null))); } catch (e) {}
     if (el) { el.classList.add('focus'); ultimoFoco[pagina] = el.getAttribute('data-chk') || el.getAttribute('data-app') || el.textContent; }
   }
   function focoPadrao() {
@@ -1338,6 +1409,7 @@
     if (cf) { mudarCfg(cf); return; }
     var act = foco.getAttribute('data-act'), k = 'gym:' + hojeISO(), est = ler(k, {});
     if (act === 'clipe') { clipeCmd('prox'); toast('Próximo clipe'); return; }
+    if (act === 'continuar') { var cr = D.apps.filter(function (x) { return x.nome === 'Crunchyroll'; })[0]; if (cr) abrirApp(cr); return; }
     if (act === 'cfg') { abrirCfg(); return; }
     if (act === 'samsung') { menuSamsung = true; registrar('Abriu o menu da Samsung'); if (tizenOk) { try { tizen.application.launch('com.samsung.tv.csfs', function () {}, function () { toast('Não consegui abrir o menu da Samsung'); }); } catch (e) { toast('Não consegui abrir o menu da Samsung'); } } return; }
     if (act === 'modo') { var ord = ['normal', 'discreto', 'ferias']; mudarModo(ord[(ord.indexOf(cfg.modo || 'normal') + 1) % ord.length]); return; }
@@ -1450,7 +1522,7 @@
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
   setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(entradaTV, 7000); setInterval(entradaTV, 30000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
-  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV(); try { renderSugestao(); } catch (e) { diagAdd('sugestão: ' + e.message); }
+  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV(); try { renderSugestao(); renderContinuar(); } catch (e) { diagAdd('sugestão: ' + e.message); }
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();
