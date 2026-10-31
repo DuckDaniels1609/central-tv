@@ -414,6 +414,14 @@ body.cl-on #meio-stream > :not(.banner):not(#cl-painel) { display: none !importa
 .cel-img i { width: 36px; height: 64px; border-radius: 8px; background: rgba(255,255,255,.08) center/cover no-repeat; flex: none; }
 .cel-img i.larga { width: 64px; height: 36px; margin: 14px 0; }
 .cel-img span { flex: 1; font-size: 14px; }
+.retro { border-radius: 16px; padding: 14px 16px; background: linear-gradient(135deg, rgba(246,188,0,.16), rgba(255,127,168,.14)); border: 1px solid rgba(246,188,0,.35); display: flex; flex-direction: column; gap: 10px; flex: none; }
+.retro h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.retro h3 button { margin-left: auto; }
+.retro .rt-nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.retro .rt-nums div { background: rgba(0,0,0,.18); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; }
+.retro .rt-nums b { font-size: 22px; line-height: 1.1; }
+.retro .rt-nums span { font-size: 12px; opacity: .8; }
+.retro .rt-dest { font-size: 13px; opacity: .9; display: flex; flex-direction: column; gap: 3px; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -558,6 +566,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
     </nav>
     <div class="col card meio" id="meio-hoje" hidden>
       <div class="banner" id="hj-banner"><div class="banner-tx"><h2 id="hj-tit">Olá, Daniel</h2><span id="hj-sub"></span></div><button class="hj-trava" id="hj-trava" title="Destravar para arrastar os blocos">🔒</button></div>
+      <div class="retro" id="hj-retro" hidden></div>
       <div class="hj-grid" id="hj-corpo"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-tar" hidden>
@@ -725,6 +734,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
         <h3 style="margin-top:10px;display:flex;align-items:center;gap:8px">Fim de semana na TV <button class="btn sm" data-a="fsSug" style="margin-left:auto">✨ Sugerir para mim</button></h3>
         <div class="fs-sug" id="fs-sug" hidden></div>
         <div class="fs-lista" id="fs-lista"></div>
+        <button class="btn sm" id="retro-ver" style="align-self:flex-start">📅 Retrospectiva do mês</button>
         <h3 style="margin-top:10px">Anotar rápido</h3>
         <form id="hj-nova" class="col" style="gap:8px">
           <input type="text" id="hj-txt" placeholder="O que precisa fazer?" aria-label="Nova tarefa" autocomplete="off">
@@ -1640,7 +1650,7 @@ body.menu-mini .sub[hidden] { display: flex !important; }
 (function () {
   'use strict';
   var BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
-  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json', an: 'animes.json' };
+  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json', an: 'animes.json', rt: 'retro.json' };
   var S = {}, SHA = {};
   var $ = function (id) { return document.getElementById(id); };
   function tok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
@@ -1753,9 +1763,66 @@ body.menu-mini .sub[hidden] { display: flex !important; }
         var at = t.data && t.data < hj; return '<div class="it"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button><span class="h" style="color:' + cat(t.cat)[2] + '">' + cat(t.cat)[1] + '</span><span class="t">' + esc((t.cli ? t.cli + ': ' : '') + t.t) + '</span>' + (t.data ? '<span class="dt' + (at ? ' atraso' : '') + '">' + (at ? 'atrasada · ' : '') + dmy(t.data) + '</span>' : '') + '</div>';
       }).join('') : '<p class="note">Nada pendente. ✓</p>') + '</section>' +
       '<section class="bloco" data-bl="proximos"><h3>Próximos 14 dias' + BLCTL + '</h3>' + (prox.length ? prox.slice(0, 14).map(function (p) { return '<div class="it"><span class="dia">' + dmy(p.dia) + '</span><i class="bolinha" style="background:' + CORES[p.x.k] + '"></i><span class="t">' + esc(p.x.t) + '</span></div>'; }).join('') : '<p class="note">Nada nos próximos dias.</p>') + '</section>';
-    hjAplicar();
+    hjAplicar(); retroCuidar();
   }
 
+  /* ---------- retrospectiva do mês: foto no começo de cada mês (retro.json) e a diferença no fim ---------- */
+  function mesDe(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
+  function retroFoto() {
+    var f = { em: Date.now(), caps: {}, eps: {}, trof: {}, plat: {}, etapas: 0 }, JJ = (S.es && S.es.jogos) || {};
+    ((S.le && S.le.itens) || []).forEach(function (x) { f.caps[x.id] = Math.floor(+x.cap || 0); });
+    ((S.an && S.an.itens) || []).forEach(function (x) { f.eps[x.id] = x.ep || 0; });
+    var P = (S.es && S.es.progresso) || {}; Object.keys(P).forEach(function (k) { var dn = P[k].done || {}; f.trof[k] = Object.keys(dn).length; if (JJ[k] && (JJ[k].trophies || []).some(function (t) { return t.type === 'platina' && dn[t.id]; })) f.plat[k] = 1; });
+    var PJ = (S.pj && S.pj.projetos) || {}; Object.keys(PJ).forEach(function (k) { (PJ[k].etapas || []).forEach(function (e) { if (e.ok) f.etapas++; }); });
+    return f;
+  }
+  function retroCalc(mes) {
+    var R = (S.rt && S.rt.fotos) || {}, ini = R[mes]; if (!ini) return null;
+    var y = +mes.slice(0, 4), m = +mes.slice(5, 7), prox = mesDe(new Date(y, m, 1)), fim = R[prox] || retroFoto();
+    var t0 = new Date(y, m - 1, 1).getTime(), t1 = new Date(y, m, 1).getTime();
+    var tar = ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.ok && t.feita >= t0 && t.feita < t1; }).length;
+    var eps = 0, topA = null, caps = 0, topM = null, trof = 0, plats = [];
+    var A = {}; ((S.an && S.an.itens) || []).forEach(function (x) { A[x.id] = x; });
+    Object.keys(fim.eps).forEach(function (k) { var d = fim.eps[k] - (ini.eps[k] || 0); if (d > 0) { eps += d; if (!topA || d > topA.d) topA = { d: d, x: A[k] }; } });
+    var M = {}; ((S.le && S.le.itens) || []).forEach(function (x) { M[x.id] = x; });
+    Object.keys(fim.caps).forEach(function (k) { var d = fim.caps[k] - (ini.caps[k] || 0); if (d > 0) { caps += d; if (!topM || d > topM.d) topM = { d: d, x: M[k] }; } });
+    var J = (S.es && S.es.jogos) || {};
+    Object.keys(fim.trof).forEach(function (k) { var d = fim.trof[k] - (ini.trof[k] || 0); if (d > 0) trof += d; });
+    Object.keys(fim.plat || {}).forEach(function (k) { if (!(ini.plat || {})[k] && J[k]) plats.push(J[k].short || J[k].name); });
+    var compl = ((S.an && S.an.itens) || []).filter(function (x) { var t = Date.parse(x.em || ''); return x.st === 'completed' && t >= t0 && t < t1; });
+    return { mes: mes, tarefas: tar, etapas: Math.max(0, fim.etapas - ini.etapas), eps: eps, caps: caps, trof: trof, plats: plats, compl: compl.map(function (x) { return x.en || x.t; }), topA: topA && topA.x ? { nome: topA.x.en || topA.x.t, n: topA.d, img: (topA.x.img || '').replace('/r/50x70', '') } : null, topM: topM && topM.x ? { nome: topM.x.nome, n: topM.d } : null, parcial: !R[prox], desde: ini.em };
+  }
+  var retroAberto = null, retroGravando = false;
+  function retroCuidar() {
+    if (!S.rt || !S.an || !S.le || !S.es || !S.pj || retroGravando) return;
+    var agora = new Date(), mes = mesDe(agora), R = S.rt.fotos || {};
+    if (!R[mes]) { retroGravando = true; var f = retroFoto(); mudar('rt', function (d) { d.fotos = d.fotos || {}; if (!d.fotos[mes]) d.fotos[mes] = f; }).then(function () { retroGravando = false; retroCuidar(); }); return; }
+    /* nos primeiros dias do mês: resumo do mês anterior, também para a TV */
+    var ant = mesDe(new Date(agora.getFullYear(), agora.getMonth() - 1, 1)), r = R[ant] ? retroCalc(ant) : null;
+    if (r && (!S.rt.ultimo || S.rt.ultimo.mes !== ant)) { retroGravando = true; mudar('rt', function (d) { d.ultimo = r; }).then(function () { retroGravando = false; }); }
+    if (retroAberto === null) { var fechado = ''; try { fechado = localStorage.getItem('retro-fechou') || ''; } catch (e) {} retroAberto = agora.getDate() <= 7 && r && fechado !== ant ? ant : ''; }
+    retroDesenhar();
+  }
+  var MESES_N = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  function retroDesenhar() {
+    var el = $('hj-retro'); if (!el) return;
+    var r = retroAberto ? retroCalc(retroAberto) : null;
+    if (!r) { el.hidden = true; return; }
+    var nm = MESES_N[+r.mes.slice(5, 7) - 1], N = function (v, t) { return '<div><b>' + v + '</b><span>' + t + '</span></div>'; };
+    var dest = [];
+    if (r.topA) dest.push('📺 Mais assistido: <b>' + esc(r.topA.nome) + '</b> (' + r.topA.n + ' ep.)');
+    if (r.topM) dest.push('📖 Mais lido: <b>' + esc(r.topM.nome) + '</b> (' + r.topM.n + ' cap.)');
+    if (r.compl.length) dest.push('✅ Animes completos: ' + r.compl.map(esc).join(', '));
+    if (r.plats.length) dest.push('🏆 Platina: ' + r.plats.map(esc).join(', '));
+    el.innerHTML = '<h3>📅 ' + nm.charAt(0).toUpperCase() + nm.slice(1) + ' em resumo' + (r.parcial || new Date(r.desde).getDate() > 3 ? ' <small style="font-weight:400;opacity:.7">(' + (r.parcial ? 'até agora, ' : '') + 'episódios, capítulos e troféus contados desde ' + new Date(r.desde).toLocaleDateString('pt-BR') + ')</small>' : '') + '<button class="btn sm" id="retro-fecha">Fechar</button></h3>' +
+      '<div class="rt-nums">' + N(r.tarefas, 'tarefas feitas') + N(r.etapas, 'etapas de projeto') + N(r.eps, 'episódios') + N(r.caps, 'capítulos') + N(r.trof, 'troféus') + '</div>' +
+      (dest.length ? '<div class="rt-dest">' + dest.map(function (x) { return '<span>' + x + '</span>'; }).join('') + '</div>' : '');
+    el.hidden = false;
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.id === 'retro-fecha') { try { localStorage.setItem('retro-fechou', retroAberto); } catch (x) {} retroAberto = ''; retroDesenhar(); }
+    if (e.target.closest('#retro-ver')) { retroAberto = mesDe(new Date()); if (!retroCalc(retroAberto)) retroAberto = Object.keys((S.rt && S.rt.fotos) || {}).sort().pop() || ''; document.querySelector('.mi[data-sec="hoje"]').click(); retroDesenhar(); }
+  });
   /* ---------- TAREFAS ---------- */
   var filtro = 'todas', soDBA = false, catNova = 'trabalho', respNova = ['DBA'];
   function desenharTar() {

@@ -551,10 +551,18 @@
     var L = cfg.fimSemana || [], d = new Date(), folga = d.getDay() === 0 || d.getDay() === 6 || !!feriado(d);
     var on = folga && L.length > 0, par = box.parentNode;
     var n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000), it = on ? L[n % L.length] : null;
-    var info = it ? sugInfo(it) : '', chave = it ? it.k + '|' + it.capa + '|' + info : '';
+    /* dias 1 a 3: resumo do mês anterior (retro.json, feito pelo PC) no lugar da sugestão */
+    var rt = ler('dados-rt', null), ant = new Date(d.getFullYear(), d.getMonth() - 1, 1), antK = ant.getFullYear() + '-' + ('0' + (ant.getMonth() + 1)).slice(-2);
+    if (d.getDate() <= 3 && rt && rt.ultimo && rt.ultimo.mes === antK) {
+      var u = rt.ultimo, MN = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'], partes = [];
+      if (u.tarefas) partes.push(u.tarefas + ' tarefas'); if (u.eps) partes.push(u.eps + ' episódios'); if (u.caps) partes.push(u.caps + ' capítulos'); if (u.trof) partes.push(u.trof + ' troféus');
+      it = { k: 'retro-' + antK, nome: MN[ant.getMonth()] + ' em resumo', tipo: partes.join(' · ') || 'Mês tranquilo', capa: (u.topA && u.topA.img) || '' }; on = true;
+    }
+    var info = it && it.k.indexOf('retro-') !== 0 ? sugInfo(it) : '', chave = it ? it.k + '|' + it.capa + '|' + info : '';
     par.classList.toggle('fds', on); box.hidden = !on;
     if (!it) { sugUlt = ''; renderContinuar(); return; }
     if (chave === sugUlt) return; sugUlt = chave;
+    if ($('sug-tag')) $('sug-tag').textContent = it.k.indexOf('retro-') === 0 ? '振り返り · Retrospectiva' : 'おすすめ · Sugestão do dia';
     $('sug-nome').textContent = it.nome;
     $('sug-tipo').textContent = it.tipo + (info ? ' · ' + info : '');
     renderContinuar();
@@ -890,6 +898,7 @@
     ghBuscar('tarefas.json', 'dados-tar', function (d, mudou) { if (mudou) { renderTarefasTV(); renderTrabalhoTV(); renderAgenda(); } });
     ghBuscar('estante.json', 'dados-est', function (d, mudou) { if (mudou) { renderEstanteTV(); renderSugestao(); } });
     ghBuscar('animes.json', 'dados-an', function (d, mudou) { if (mudou) { renderSugestao(); renderContinuar(); } });
+    ghBuscar('retro.json', 'dados-rt', function (d, mudou) { if (mudou) renderSugestao(); });
     ghBuscar('config.json', 'dados-cfg', function (d) { configAplicar(d); });
     ghBuscar('eventos.json', 'dados-ev', function (d, mudou) { if (mudou) renderAgenda(); });
     ghBuscar('clientes.json', 'dados-cli', function () {});
