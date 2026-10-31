@@ -224,7 +224,7 @@ function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | 
 $script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false
 # Captura do jogo (e não da tela inteira): cria "Jogo: Street Fighter 6", "Jogo: Valorant" e "Jogo (tela cheia)"
 # nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
-$capOkF = Join-Path $aqui 'captura_jogo_ok2.txt'
+$capOkF = Join-Path $aqui 'captura_jogo_ok3.txt'
 function CapturaJogo {
   # de baixo para cima (logo acima da Tela 1): tela cheia, PS5 (4K Capture), Valorant, SF6
   $novos = @(
@@ -237,9 +237,10 @@ function CapturaJogo {
   $log = @()
   $ex = @((ObsWs @(@{ t = 'GetInputList' }))[0].responseData.inputs | ForEach-Object { $_.inputName })
   foreach ($cena in $cenas) {
-    $its = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0].responseData.sceneItems)
-    $tela = $its | Where-Object { $_.sourceName -eq 'Tela 1' } | Select-Object -First 1
-    if (-not $tela) { $log += "$cena sem Tela 1"; continue }
+    $rl = (ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0]
+    $its = @($rl.responseData.sceneItems)
+    $tela = $its | Where-Object { ([string]$_.sourceName).Trim() -eq 'Tela 1' } | Select-Object -First 1
+    if (-not $tela) { $log += "$cena sem Tela 1 (status $($rl.requestStatus.code) $($rl.requestStatus.comment); itens: $((@($its | ForEach-Object { $_.sourceName }) -join ', ')))"; continue }
     $ids = @{}
     foreach ($nv in $novos) {
       $ja = $its | Where-Object { $_.sourceName -eq $nv.n } | Select-Object -First 1
@@ -278,7 +279,7 @@ function Tique {
   if ($jogo -eq 'sf6' -and ($vivo -or $grav)) { if (-not (LeitorRodando)) { LeitorIniciar } } elseif (Test-Path $leitorPid) { LeitorParar }
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
-  if ($obs -and -not (Test-Path $capOkF)) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
+  if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
   # encerrar a live: depois da contagem, para a stream e a gravação
   if (Test-Path $encF) {
     $quando = [double](Get-Content $encF -Raw)
@@ -568,7 +569,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 21 } }
+      default  { Json $ctx @{ ok = $true; versao = 22 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
