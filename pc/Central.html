@@ -171,11 +171,39 @@ html, body { height: 100%; margin: 0; }
 .cd.sel { border-color: var(--acc); }
 .ci { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); }
 .mais { font-size: 11px; color: var(--muted); }
+
+/* ---------- visual do app (personalizável) ---------- */
+:root { --vidro: .72; --blur: 18px; }
+body { background: var(--bg); }
+#bg-app { position: fixed; inset: 0; z-index: -2; background: var(--fundo-app, radial-gradient(120% 90% at 85% 0%, #4A2B7A 0%, transparent 55%), radial-gradient(90% 70% at 0% 100%, #1D3E7A 0%, transparent 60%), #100E2B); background-size: cover; background-position: center; }
+#bg-app::after { content: ""; position: absolute; inset: 0; background: #07061A; opacity: var(--escuro, .35); }
+.card { background: rgba(27, 24, 66, var(--vidro)); border-color: rgba(255,255,255,.10); backdrop-filter: blur(var(--blur)) saturate(1.2); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.sem-blur .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.bloco, .it, .tr, .cd, .pc-app, .pc-pasta { background: rgba(36, 32, 90, calc(var(--vidro) + .1)); }
+.it, .tr { background: rgba(20, 18, 52, calc(var(--vidro) + .05)); }
+header { align-items: center; }
+.marca { display: flex; align-items: center; gap: 16px; }
+.relogio { font-size: 46px; font-weight: 800; line-height: 1; letter-spacing: -1px; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.marca b { font-size: 20px; }
+.marca small { font-size: 14px; color: var(--muted); }
+.mi { display: flex; align-items: center; gap: 12px; }
+.mi svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; opacity: .9; }
+.mi[aria-pressed="true"] { box-shadow: 0 6px 18px color-mix(in srgb, var(--acc) 35%, transparent); }
+.banner { position: relative; min-height: 150px; border-radius: 20px; overflow: hidden; display: flex; align-items: flex-end; padding: 22px 26px; background: var(--banner, linear-gradient(120deg, color-mix(in srgb, var(--acc) 55%, #1B1842), #24205A 70%)); background-size: cover; background-position: center; flex: none; }
+.banner::before { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(8,6,26,.75), rgba(8,6,26,0) 70%); }
+.banner-tx { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.banner h2 { margin: 0; font-size: 38px; font-weight: 800; text-shadow: 0 3px 10px rgba(0,0,0,.4); }
+.banner span { font-size: 16px; color: #E6E3FA; }
+.temas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tema { font: inherit; font-size: 12px; font-weight: 700; color: #FFF; height: 64px; border-radius: 14px; border: 3px solid transparent; cursor: pointer; display: flex; align-items: flex-end; padding: 6px 8px; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.tema[aria-pressed="true"] { border-color: #FFF; }
+.bloco h3, .grupo h3, .sec h3 { color: color-mix(in srgb, var(--acc) 45%, var(--muted)); }
 </style>
+<div id="bg-app" aria-hidden="true"></div>
 
 <div class="wrap">
   <header>
-    <h1>Central no PC <small>TV do quarto · カスタマイズ</small></h1>
+    <div class="marca"><span class="relogio" id="relogio">--:--</span><div class="col" style="gap:2px"><b>Central</b><small id="hdata">&nbsp;</small></div></div>
     <div class="status" role="status"><span class="dot" id="dot"></span><span id="st">Carregando…</span></div>
   </header>
 
@@ -195,21 +223,23 @@ html, body { height: 100%; margin: 0; }
   <div class="grid">
     <nav class="card menu" aria-label="Seções">
       <span class="mg">Central</span>
-      <button class="mi" data-sec="hoje" aria-pressed="true">Hoje</button>
-      <button class="mi" data-sec="tar">Tarefas</button>
-      <button class="mi" data-sec="cal">Calendário</button>
-      <button class="mi" data-sec="pc">Meus programas</button>
+      <button class="mi" data-sec="hoje" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>Hoje</button>
+      <button class="mi" data-sec="tar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Tarefas</button>
+      <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendário</button>
+      <button class="mi" data-sec="pc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Meus programas</button>
       <span class="mg">Ajustes da TV</span>
-      <button class="mi" data-sec="clip">Clipes</button>
-      <button class="mi" data-sec="visual">Aparência</button>
-      <button class="mi" data-sec="apps">Apps</button>
-      <button class="mi" data-sec="desp">Despertador</button>
-      <button class="mi" data-sec="mus">Música</button>
-      <button class="mi" data-sec="disc">Modo discreto</button>
-      <button class="mi" data-sec="cel">App do celular</button>
+      <button class="mi" data-sec="clip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Clipes</button>
+      <button class="mi" data-sec="visual"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 10c0-4.4-4.5-8-10-8z"/></svg>Aparência</button>
+      <button class="mi" data-sec="apps"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>Apps</button>
+      <button class="mi" data-sec="desp"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3L2 6M22 6l-3-3"/></svg>Despertador</button>
+      <button class="mi" data-sec="mus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Música</button>
+      <button class="mi" data-sec="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>Modo discreto</button>
+      <button class="mi" data-sec="cel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>App do celular</button>
+      <span class="mg">Este app</span>
+      <button class="mi" data-sec="look"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Personalizar</button>
     </nav>
     <div class="col card meio" id="meio-hoje" hidden>
-      <div><h2 id="hj-tit" style="margin:0;font-size:32px">Olá, Daniel</h2><span class="note" id="hj-sub"></span></div>
+      <div class="banner" id="hj-banner"><div class="banner-tx"><h2 id="hj-tit">Olá, Daniel</h2><span id="hj-sub"></span></div></div>
       <div class="hj-grid" id="hj-corpo"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-tar" hidden>
@@ -247,6 +277,19 @@ html, body { height: 100%; margin: 0; }
     </div>
 
     <div class="card" id="painel">
+      <section data-s="look" class="sec" style="display:flex;flex-direction:column;gap:12px">
+        <h3>Fundo do app</h3>
+        <div class="temas" id="lk-temas"></div>
+        <div class="row"><label class="btn" for="lk-fundo-in">Escolher imagem do PC…</label><input type="file" id="lk-fundo-in" accept="image/*" hidden><button class="btn" id="lk-fundo-x">Tirar imagem</button></div>
+        <h3>Imagem do topo (tela Hoje)</h3>
+        <div class="row"><label class="btn" for="lk-banner-in">Escolher imagem…</label><input type="file" id="lk-banner-in" accept="image/*" hidden><button class="btn" id="lk-banner-x">Tirar</button></div>
+        <h3>Cor de destaque</h3>
+        <div class="row" id="lk-cores"></div>
+        <label class="f" for="lk-escuro">Escurecer o fundo: <span id="lk-escuro-v"></span><input type="range" id="lk-escuro" min="0" max="85" step="5"></label>
+        <label class="f" for="lk-vidro">Painéis transparentes: <span id="lk-vidro-v"></span><input type="range" id="lk-vidro" min="0" max="80" step="5"></label>
+        <div class="row"><button class="chip" id="lk-blur">Desfocar atrás dos painéis</button></div>
+        <p class="note" style="margin:0">Fica salvo só neste PC. As imagens não saem do computador.</p>
+      </section>
       <section data-s="hoje" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Anotar rápido</h3>
         <form id="hj-nova" class="col" style="gap:8px">
@@ -425,7 +468,7 @@ html, body { height: 100%; margin: 0; }
     return CENAS[f.cena] || CENAS.entardecer;
   }
   function render() {
-    document.documentElement.style.setProperty('--acc', S.cor);
+    $('tv').style.setProperty('--acc', S.cor);
     var h = fundoHTML(pg) + '<div class="dim" style="opacity:' + (S.escuro / 100) + '"></div><div class="ui">';
     if (pg === 'inicio') {
       var vis = S.apps.filter(function (a) { return a.visivel; }), comClipe = S.clipes && S.clipes.lista;
@@ -704,7 +747,7 @@ html, body { height: 100%; margin: 0; }
     SEC = sx;
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
-    var temMeio = !!$('meio-' + sx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + sx : m.id !== 'meio-tv'; });
+    var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
     var alvo = sx === 'desp' ? 'despertar' : sx === 'disc' ? 'discreto' : (sx === 'visual' ? pg : 'inicio');
     if (sx === 'visual' && (pg === 'despertar' || pg === 'discreto')) alvo = 'inicio';
     if (alvo !== pg) { pg = alvo; document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pg === pg); }); render(); }
@@ -930,4 +973,76 @@ html, body { height: 100%; margin: 0; }
 })();
 </script>
 
+<script>
+/* visual do próprio app: fundo, imagem do topo, cor, transparência (fica só neste PC) */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var TEMAS = { noite: ['Noite', 'radial-gradient(120% 90% at 85% 0%, #4A2B7A 0%, transparent 55%), radial-gradient(90% 70% at 0% 100%, #1D3E7A 0%, transparent 60%), #100E2B'],
+    sakura: ['Sakura', 'radial-gradient(110% 90% at 90% 0%, #B04A7E 0%, transparent 55%), radial-gradient(90% 80% at 0% 100%, #5A2A6E 0%, transparent 60%), #1E0F26'],
+    oceano: ['Oceano', 'radial-gradient(110% 90% at 85% 0%, #1F7A9C 0%, transparent 55%), radial-gradient(90% 80% at 0% 100%, #173E7A 0%, transparent 60%), #071827'],
+    aurora: ['Aurora', 'radial-gradient(100% 80% at 80% 0%, #2BB39A 0%, transparent 50%), radial-gradient(90% 80% at 10% 100%, #6A3AB0 0%, transparent 60%), #0B1324'],
+    por_do_sol: ['Pôr do sol', 'radial-gradient(110% 90% at 85% 0%, #E0784A 0%, transparent 55%), radial-gradient(90% 80% at 0% 100%, #8A2F5E 0%, transparent 60%), #1C0E1E'],
+    floresta: ['Floresta', 'radial-gradient(110% 90% at 85% 0%, #3E8A5A 0%, transparent 55%), radial-gradient(90% 80% at 0% 100%, #1F4A3A 0%, transparent 60%), #08160F'],
+    grafite: ['Grafite', 'radial-gradient(110% 90% at 85% 0%, #4A4F66 0%, transparent 55%), #0E0F14'],
+    imagem: ['Minha imagem', ''] };
+  var CORES = ['#FF7FA8', '#8FE3FF', '#FFD36E', '#9CF2A8', '#C8A6FF', '#FF9F6E'];
+  var P = { tema: 'noite', cor: '#FF7FA8', escuro: 35, vidro: 70, blur: true };
+  try { Object.assign(P, JSON.parse(localStorage.getItem('pc-visual') || '{}')); } catch (e) {}
+  function salvar() { try { localStorage.setItem('pc-visual', JSON.stringify(P)); } catch (e) {} }
+  /* imagens no IndexedDB (sem limite apertado de tamanho) */
+  var dbp = new Promise(function (ok) { try { var r = indexedDB.open('central-pc', 1); r.onupgradeneeded = function () { r.result.createObjectStore('img'); }; r.onsuccess = function () { ok(r.result); }; r.onerror = function () { ok(null); }; } catch (e) { ok(null); } });
+  function imgPut(k, blob) { return dbp.then(function (db) { if (!db) return; return new Promise(function (ok) { var t = db.transaction('img', 'readwrite'); if (blob) t.objectStore('img').put(blob, k); else t.objectStore('img').delete(k); t.oncomplete = ok; t.onerror = ok; }); }); }
+  function imgGet(k) { return dbp.then(function (db) { if (!db) return null; return new Promise(function (ok) { var q = db.transaction('img').objectStore('img').get(k); q.onsuccess = function () { ok(q.result || null); }; q.onerror = function () { ok(null); }; }); }); }
+  var urls = {};
+  function urlDe(k, blob) { if (urls[k]) URL.revokeObjectURL(urls[k]); urls[k] = blob ? URL.createObjectURL(blob) : null; return urls[k]; }
+  function aplicar() {
+    var r = document.documentElement.style;
+    r.setProperty('--acc', P.cor); r.setProperty('--escuro', P.escuro / 100); r.setProperty('--vidro', (100 - P.vidro) / 100 + .2 > 1 ? 1 : Math.max(.15, 1 - P.vidro / 100));
+    document.body.classList.toggle('sem-blur', !P.blur);
+    imgGet('fundo').then(function (b) {
+      var u = P.tema === 'imagem' && b ? urlDe('fundo', b) : null;
+      r.setProperty('--fundo-app', u ? 'url("' + u + '")' : (TEMAS[P.tema] || TEMAS.noite)[1] || TEMAS.noite[1]);
+    });
+    imgGet('banner').then(function (b) { var u = b ? urlDe('banner', b) : null; if (u) r.setProperty('--banner', 'url("' + u + '")'); else r.removeProperty('--banner'); });
+    desenhar();
+  }
+  function desenhar() {
+    if (!$('lk-temas')) return;
+    $('lk-temas').innerHTML = Object.keys(TEMAS).filter(function (k) { return k !== 'imagem'; }).map(function (k) { return '<button class="tema" data-lktema="' + k + '" aria-pressed="' + (P.tema === k) + '" style="background:' + TEMAS[k][1] + '">' + TEMAS[k][0] + '</button>'; }).join('') +
+      '<button class="tema" data-lktema="imagem" aria-pressed="' + (P.tema === 'imagem') + '" style="background:#24205A">Minha imagem</button>';
+    $('lk-cores').innerHTML = CORES.map(function (c) { return '<button class="sw" style="background:' + c + '" aria-label="Cor ' + c + '" aria-pressed="' + (P.cor.toLowerCase() === c.toLowerCase()) + '" data-lkcor="' + c + '"></button>'; }).join('') + '<input type="color" id="lk-cor-livre" aria-label="Outra cor" value="' + P.cor + '">';
+    $('lk-escuro').value = P.escuro; $('lk-escuro-v').textContent = P.escuro + '%';
+    $('lk-vidro').value = P.vidro; $('lk-vidro-v').textContent = P.vidro + '%';
+    $('lk-blur').setAttribute('aria-pressed', P.blur);
+  }
+  function lerArquivo(inp, k) {
+    var f = inp.files && inp.files[0]; if (!f) return;
+    imgPut(k, f).then(function () { if (k === 'fundo') P.tema = 'imagem'; salvar(); aplicar(); });
+    inp.value = '';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.lktema) { P.tema = b.dataset.lktema; salvar(); aplicar(); if (P.tema === 'imagem') imgGet('fundo').then(function (x) { if (!x) $('lk-fundo-in').click(); }); }
+    else if (b.dataset.lkcor) { P.cor = b.dataset.lkcor; salvar(); aplicar(); }
+    else if (b.id === 'lk-blur') { P.blur = !P.blur; salvar(); aplicar(); }
+    else if (b.id === 'lk-fundo-x') { imgPut('fundo', null).then(function () { if (P.tema === 'imagem') P.tema = 'noite'; salvar(); aplicar(); }); }
+    else if (b.id === 'lk-banner-x') { imgPut('banner', null).then(aplicar); }
+  });
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'lk-escuro') { P.escuro = +t.value; salvar(); aplicar(); }
+    else if (t.id === 'lk-vidro') { P.vidro = +t.value; salvar(); aplicar(); }
+    else if (t.id === 'lk-cor-livre') { P.cor = t.value; salvar(); aplicar(); }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'lk-fundo-in') lerArquivo(e.target, 'fundo');
+    if (e.target.id === 'lk-banner-in') lerArquivo(e.target, 'banner');
+  });
+  /* relógio do topo */
+  var DS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'], MS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  function relogio() { var d = new Date(); $('relogio').textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); $('hdata').textContent = DS[d.getDay()] + ', ' + d.getDate() + ' ' + MS[d.getMonth()]; }
+  relogio(); setInterval(relogio, 10000);
+  aplicar();
+})();
+</script>
 </body></html>
