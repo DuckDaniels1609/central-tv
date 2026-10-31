@@ -368,6 +368,9 @@ header { align-items: center; }
 .obs-luz.vivo { background: #FF4D6D; box-shadow: 0 0 0 4px rgba(255,77,109,.25); }
 .obs-tr { font-size: 13px; padding: 6px 12px; }
 .obs-tr.grav { border-color: #FF4D6D; color: #FF8FA6; }
+.obs-tr.grav.on { background: #FF4D6D; color: #fff; }
+.obs-grav { gap: 8px; align-items: center; }
+.obs-grav:empty { display: none; }
 .obs-tr.no-ar { background: #FF4D6D; color: #fff; border-color: #FF4D6D; }
 .obs-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; z-index: 5; }
 .obs-selo { position: absolute; left: 10px; top: 10px; z-index: 6; font-size: 12px; font-weight: 800; background: rgba(255,77,109,.9); color: #fff; padding: 3px 10px; border-radius: 99px; }
@@ -540,6 +543,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     <div class="col card meio" id="meio-stream" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row"><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
       <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
+      <div class="row obs-grav" id="obs-grav"></div>
       <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
       <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div><img class="obs-foto" id="obs-foto" alt="" hidden><span class="obs-selo" id="obs-selo" hidden>Imagem real do OBS</span></div>
       <span class="note" id="obs-nota"></span>
@@ -1287,13 +1291,16 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.addEventListener('resize', function () { if (SEC === 'stream') obsDesenhar(); });
   window.obsCarregar = obsCarregar;
   /* no ar: cena atual do OBS + botões para trocar (controle remoto do OBS, pelo ajudante) */
-  var obsEst = null;
+  var obsEst = null, gravJogo = '';
+  var JOGO_NOME = { sf6: 'Street Fighter 6', valorant: 'Valorant', outro: 'outro jogo' };
+  setTimeout(function () { fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=qual').then(function (r) { return r.json(); }).then(function (j) { gravJogo = JOGO_NOME[j.jogo] || ''; }).catch(function () {}); }, 3000);
   function obsEstado() {
     if (SEC !== 'stream' || document.hidden) return;
     fetch(AJ + '/obs/estado?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsEst = j; obsDesenharAr(); }).catch(function () { obsEst = null; obsDesenharAr(); });
   }
   function obsDesenharAr() {
     var j = obsEst, tx = $('obs-ar-tx'), luz = $('obs-luz'), bt = $('obs-trocar'); if (!tx) return;
+    var gb0 = $('obs-grav'); if (gb0 && (!j || !j.aberto || j.erro)) gb0.innerHTML = '';
     var nomes = j && j.cenas && j.cenas.length ? j.cenas.slice().reverse() : (OBS.d ? (OBS.d.scene_order || []).map(function (x) { return x.name; }) : []);
     nomes = nomes.filter(function (n) { return n !== 'Base'; });
     if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
@@ -1302,7 +1309,10 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     tx.textContent = (j.aoVivo ? 'AO VIVO ' + (j.tempo || '').slice(0, 8) : 'Fora do ar') + (j.gravando ? ' · gravando' : '') + ' · no ar: ' + j.cena;
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
     bt.innerHTML = nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') +
-      (j.gravando ? '<button class="btn obs-tr grav" data-obsgrav="parar">■ Parar gravação ' + esc((j.tempoGrav || '').slice(0, 8)) + '</button>' : (j.aoVivo ? '' : '<button class="btn obs-tr grav" data-obsgrav="so_jogo">● Só gravar (sem stream)</button>'));
+      '';
+    var gb = $('obs-grav');
+    if (gb) gb.innerHTML = j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : gravJogo === 'Valorant' ? 'os seus abates viram clipes sozinhos.' : 'o vídeo fica salvo.') + '</span>'
+      : '<span class="lbl">Gravar sem stream:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('');
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obstroca]'); if (!b) return;
@@ -1315,8 +1325,10 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   setInterval(obsEstado, 3000);
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obsgrav]'); if (!b) return; b.disabled = true;
-    fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=' + b.dataset.obsgrav).then(function (r) { return r.json(); }).then(function (j) {
-      $('obs-nota').textContent = j.ok ? (b.dataset.obsgrav === 'parar' ? 'Gravação salva.' : 'Gravando só o jogo em F:\\Gravações da Stream\\Só gravação (sem transmitir).') : 'Não consegui: ' + (j.msg || 'erro');
+    fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=' + b.dataset.obsgrav + (b.dataset.jogo ? '&jogo=' + b.dataset.jogo : '')).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok && b.dataset.obsgrav === 'jogo') gravJogo = j.jogo;
+      if (b.dataset.obsgrav === 'parar') gravJogo = '';
+      $('obs-nota').textContent = !j.ok ? 'Não consegui: ' + (j.msg || 'erro') : b.dataset.obsgrav === 'parar' ? 'Gravação salva.' + (j.analise ? ' Em 1 minuto o analisador de ' + j.analise + ' começa sozinho (janela minimizada na barra de tarefas).' : '') : 'Gravando ' + j.jogo + ' (sem transmitir).';
       setTimeout(obsEstado, 500);
     }).catch(function () { b.disabled = false; });
   });
@@ -1337,7 +1349,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 13 && !sessionStorage.getItem('aj-reiniciou-13')) { sessionStorage.setItem('aj-reiniciou-13', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 14 && !sessionStorage.getItem('aj-reiniciou-14')) { sessionStorage.setItem('aj-reiniciou-14', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

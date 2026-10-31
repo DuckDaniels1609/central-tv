@@ -283,18 +283,37 @@ while ($http.IsListening) {
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/obs/gravar' {
-        # "Só gravação": troca para a cena sem overlays, grava numa pasta própria e não transmite
-        $pastaGrav = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'; $pastaSo = Join-Path $pastaGrav ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o')
+        # gravar sem stream, por jogo: cada jogo grava na sua pasta; ao parar, o analisador daquele jogo roda sozinho
+        $pastaGrav = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'
+        $cenaSo = 'S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'
+        $jogos = @{ sf6 = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6')); bat = 'Analisar partidas.bat'; nome = 'Street Fighter 6' };
+                    valorant = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')); bat = 'Cortar Valorant.bat'; nome = 'Valorant' };
+                    outro = @{ pasta = (Join-Path $pastaGrav $cenaSo); bat = ''; nome = 'outro jogo' } }
+        $estF = Join-Path $aqui 'gravando_jogo.txt'
         try {
-          if ($q['acao'] -eq 'so_jogo') {
-            New-Item -ItemType Directory -Force -Path $pastaSo | Out-Null
-            $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o') } }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $pastaSo } }, @{ t = 'StartRecord' })
-            Json $ctx @{ ok = [bool]$r[2].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
+          if ($q['acao'] -eq 'jogo' -or $q['acao'] -eq 'so_jogo') {
+            $jg = [string]$q['jogo']; if (-not $jogos.ContainsKey($jg)) { $jg = 'outro' }
+            $J = $jogos[$jg]; New-Item -ItemType Directory -Force -Path $J.pasta | Out-Null
+            $st = ObsWs @(@{ t = 'GetStreamStatus' })
+            $ped = @(); if (-not $st[0].responseData.outputActive) { $ped += @{ t = 'SetCurrentProgramScene'; d = @{ sceneName = $cenaSo } } }
+            $ped += @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $J.pasta } }; $ped += @{ t = 'StartRecord' }
+            $r = ObsWs $ped
+            $ok = [bool]$r[$r.Count - 1].requestStatus.result
+            if ($ok) { Set-Content -Path $estF -Value $jg -Encoding UTF8 }
+            Json $ctx @{ ok = $ok; jogo = $J.nome; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
           } elseif ($q['acao'] -eq 'parar') {
             $r = ObsWs @(@{ t = 'StopRecord' }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $pastaGrav } })
-            Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment }
-          } elseif ($q['acao'] -eq 'gravar') {
-            $r = ObsWs @(@{ t = 'StartRecord' }); Json $ctx @{ ok = [bool]$r[0].requestStatus.result; msg = [string]$r[0].requestStatus.comment }
+            $jg = ''; if (Test-Path $estF) { $jg = (Get-Content $estF -Raw).Trim(); Remove-Item $estF -Force }
+            $analise = ''
+            if ($jg -and $jogos.ContainsKey($jg) -and $jogos[$jg].bat) {
+              $J = $jogos[$jg]
+              # espera o OBS fechar o arquivo e roda o analisador minimizado (ele pula gravações com menos de 1 min sem mexer)
+              Start-Process cmd.exe -WorkingDirectory $J.pasta -WindowStyle Minimized -ArgumentList ('/c timeout /t 75 /nobreak >nul & call "' + $J.bat + '" auto')
+              $analise = $J.nome
+            }
+            Json $ctx @{ ok = [bool]$r[0].requestStatus.result; analise = $analise; arquivo = [string]$r[0].responseData.outputPath; msg = [string]$r[0].requestStatus.comment }
+          } elseif ($q['acao'] -eq 'qual') {
+            $jg = ''; if (Test-Path $estF) { $jg = (Get-Content $estF -Raw).Trim() }; Json $ctx @{ ok = $true; jogo = $jg }
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
@@ -323,7 +342,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 13 } }
+      default  { Json $ctx @{ ok = $true; versao = 14 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
