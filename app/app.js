@@ -284,6 +284,7 @@
   /* ícone oficial do app instalado na TV (o mesmo do menu da Samsung); se não achar ou não carregar, fica o desenho */
   var icFalhou = {};
   function iconeTV(a) {
+    if (!cfg.iconesOficiais) return '';  /* desligado: suspeita de causar o pixelado na TV (31/10) */
     if (!a.match || !appsTV.length) return '';
     for (var i = 0; i < appsTV.length; i++) for (var k = 0; k < a.match.length; k++) if (appsTV[i].name.indexOf(a.match[k]) >= 0 && appsTV[i].ic) {
       var u = appsTV[i].ic; if (u.charAt(0) === '/') u = 'file://' + u;
@@ -1520,6 +1521,7 @@
   setInterval(clima, 30 * 60000);
   document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); dadosSync(); } });
 
+  diagAdd('tela: ' + window.innerWidth + 'x' + window.innerHeight + ' · dpr ' + (window.devicePixelRatio || 1) + ' · zoom ' + (cfg.zoom || 100));
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
   setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(entradaTV, 7000); setInterval(entradaTV, 30000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
   renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV(); try { renderSugestao(); renderContinuar(); } catch (e) { diagAdd('sugestão: ' + e.message); }
