@@ -498,6 +498,14 @@
     var L = d && d.tarefas ? d.tarefas.filter(function (t) { var r = t.resp || []; return !t.ok && (t.cat || 'pessoal') === 'trabalho' && (!r.length || r.indexOf('DBA') >= 0); }) : [];
     el.innerHTML = !d ? '–' : L.length ? '<b>' + L.length + '</b> · ' + L.slice(0, 2).map(function (t) { var r = (t.resp || []).filter(function (x) { return x !== 'DBA'; }); return (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t) + (r.length ? ' <span style="opacity:.7">(' + esc(r.join(', ')) + ')</span>' : ''); }).join(' · ') : 'nada pendente ✓';
   }
+  /* Teste do Premium nos clipes: faz login no Google dentro do app da Central. Se o login ficar guardado,
+     o player embutido dos clipes passa a ser "você" e o YouTube não mostra anúncio (sem bloquear nada).
+     A senha é digitada pelo Daniel no teclado da TV; depois é só sair e abrir a Central de novo. */
+  function ytLogin() {
+    diagAdd('abrindo login do Google (teste do Premium nos clipes)'); gravar('yt-login-em', Date.now());
+    toast('Abrindo o login do Google. Depois de entrar, saia e abra a Central de novo.');
+    setTimeout(function () { location.href = 'https://accounts.google.com/ServiceLogin?service=youtube&hl=pt-BR&continue=' + encodeURIComponent('https://www.youtube.com/'); }, 2500);
+  }
   /* sábado, domingo e feriado: no lugar de Reunião/Trabalho, uma sugestão da fila do fim de semana (montada no app do PC) */
   var sugUlt = '';
   /* frase da sugestão a partir do que você já fez (animes do MAL e troféus da Estante) */
@@ -1318,6 +1326,7 @@
     }
     else if (c === 'despertador' && v === 'testar') iniciarDespertador(true);
     else if (c === 'clipe' && v === 'proximo') { clipeCmd('prox'); toast('Próximo clipe'); }
+    else if (c === 'youtube' && v === 'login') ytLogin();
     else if (c === 'pagina' && /^\d$/.test(String(v))) { if (+v < NPAG) irPara(+v); }
     else if (c === 'ping') toast('Celular conectado à Central');
     setTimeout(function () { celEstado(true); }, 1500);
@@ -1475,6 +1484,7 @@
     var dd = cfg.despertar, fer = feriado(new Date());
     var hsTxt = Object.keys(dd.horas || {}).map(function (k) { return ['dom','seg','ter','qua','qui','sex','sáb'][k] + ' ' + dd.horas[k]; }).join(', ');
     h += linhaCfg('Despertador (seg a sex' + (hsTxt ? '; ' + hsTxt : '') + ')', '<span class="op f' + (dd.on ? ' sel' : '') + '" data-cfg="desp|1">Ligado</span><span class="op f' + (!dd.on ? ' sel' : '') + '" data-cfg="desp|0">Desligado</span>' + ['05:30', '06:00', '06:30', '07:00'].map(function (v) { return '<span class="op f' + (dd.hora === v ? ' sel' : '') + '" data-cfg="dhora|' + v + '">' + v + '</span>'; }).join('') + '<span class="op f" data-cfg="dteste|1">Testar agora</span>');
+    h += linhaCfg('YouTube Premium nos clipes (teste)', '<span class="op f" data-cfg="ytlogin|1">Entrar na conta Google</span>');
     h += linhaCfg('Tamanho na tela', [100, 97, 94, 90, 85].map(function (v) { return '<span class="op f' + ((cfg.zoom || 100) === v ? ' sel' : '') + '" data-cfg="zoom|' + v + '">' + v + '%</span>'; }).join(''));
     h += linhaCfg('Animações', '<span class="op f' + (cfg.anim ? ' sel' : '') + '" data-cfg="anim|1">Ligadas</span><span class="op f' + (!cfg.anim ? ' sel' : '') + '" data-cfg="anim|0">Desligadas</span>');
     h += linhaCfg('Código do celular', '<span style="font-size:30px;letter-spacing:4px;color:#FFD36E;font-weight:800">' + codigoFmt() + '</span><span style="font-size:20px;color:#C9CFF0;margin-left:18px">Digite no app da Central no iPhone</span>');
@@ -1492,6 +1502,7 @@
       cfg.fundo[p[1]] = p[2];
       if (p[2] === 'img' && !imgOk[p[1]]) toast('Coloque a imagem em CentralTV\\fundos\\' + p[1] + '.jpg no PC e rode o instalador de novo.');
     }
+    if (p[0] === 'ytlogin') { ytLogin(); return; }
     if (p[0] === 'escuro') cfg.escuro = +p[1];
     if (p[0] === 'app') { cfg.ocultos[p[1]] = !cfg.ocultos[p[1]]; }
     if (p[0] === 'anim') cfg.anim = p[1] === '1';
