@@ -233,3 +233,14 @@ body.discreto .hoje2 .trab { display: none; }
 #p-inicio.com-clipe .apps-sec { margin-top: auto; }
 #p-inicio.com-clipe .apps-sec h2 { display: none; }
 #p-inicio.com-clipe .app { height: 150px; gap: 10px; }
+
+/* sugestão do dia (sábado, domingo e feriado): troca Reunião/Trabalho por um item da fila do fim de semana */
+.sug[hidden] { display: none; }
+.hoje2.fds { grid-template-columns: 1fr; }
+.hoje2.fds > .card:not(.sug) { display: none; }
+.sug { display: flex; align-items: center; gap: 26px; padding: 18px 26px !important; }
+.sug-capa { width: 112px; height: 158px; flex: none; border-radius: 14px; background: #24205A center/cover no-repeat; box-shadow: 0 8px 22px rgba(0,0,0,.45); }
+.sug-tx { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.sug-nome { font-size: 34px; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+body.discreto .hoje2.fds > .card:not(.sug) { display: flex; }
+body.discreto .hoje2.fds > .trab, body.discreto .sug { display: none !important; }

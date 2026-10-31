@@ -359,14 +359,22 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
 .sub[hidden] { display: none; }
 .sub .mi { font-size: 14px; min-height: 38px; }
 .menu-pe { margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.07); }
-.saude { display: flex; flex-direction: column; gap: 8px; }
-.sl { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 8px 10px; border-radius: 12px; background: rgba(20,18,52,calc(var(--vidro) + .05)); }
-.sl .sn { font-size: 13px; color: #D9D5F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sl .sv { font-size: 12px; color: var(--muted); }
-.sl.alerta .sv { color: var(--acc); font-weight: 700; }
-.sbar { display: block; height: 7px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
-.sbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #8FE3FF, #9CF2A8); }
-.sbar.alerta i { background: linear-gradient(90deg, #FFB37A, var(--acc)); }
+.saude { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.saude > .note { grid-column: 1 / -1; }
+.sc { display: flex; flex-direction: column; gap: 1px; padding: 6px 9px; border-radius: 10px; background: rgba(20,18,52,calc(var(--vidro) + .05)); min-width: 0; }
+.sc small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc b { font-size: 14px; white-space: nowrap; }
+.sc.alerta { box-shadow: inset 0 0 0 1.5px var(--acc); }
+.sc.alerta b { color: var(--acc); }
+.fs-lista { display: flex; flex-direction: column; gap: 6px; }
+.fs-it { display: flex; align-items: center; gap: 10px; padding: 5px 8px 5px 5px; border-radius: 10px; background: rgba(20,18,52,calc(var(--vidro) + .05)); }
+.fs-it i { width: 30px; height: 42px; flex: none; border-radius: 6px; background: #24205A center/cover no-repeat; }
+.fs-it span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fs-it b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-it small { font-size: 11px; color: var(--muted); }
+.fs-it button { background: none; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.fs-it button:hover { color: var(--acc); background: rgba(255,255,255,.08); }
+.btn.fs-on { box-shadow: inset 0 0 0 1.5px #FFD36E; color: #FFD36E; }
 </style>
 <div id="bg-app" aria-hidden="true"></div>
 
@@ -524,6 +532,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
         <h3 id="es-tit" style="margin-top:8px"></h3>
         <p class="note" id="es-info" style="margin:0"></p>
         <div class="row" id="es-status"></div>
+        <div class="row"><button class="btn" type="button" data-a="fsEs" id="fs-es">☆ Fim de semana</button></div>
         <div class="col" style="gap:6px" id="es-trof"></div>
       </section>
       <section data-s="anime" class="sec" style="display:flex;flex-direction:column;gap:10px">
@@ -539,7 +548,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
           <label class="f" for="le-tipo">Tipo<select class="sel" id="le-tipo"></select></label>
           <label class="f" for="le-link">Site onde você lê<input type="text" id="le-link" autocomplete="off" placeholder="https://…"></label>
           <label class="f" for="le-nota">Nota<input type="text" id="le-nota" autocomplete="off"></label>
-          <div class="row"><button class="btn" type="button" data-a="leApaga">Apagar</button></div>
+          <div class="row"><button class="btn" type="button" data-a="fsLe" id="fs-le">☆ Fim de semana</button><button class="btn" type="button" data-a="leApaga">Apagar</button></div>
         </form>
       </section>
       <section data-s="lanc" class="sec" style="display:flex;flex-direction:column;gap:10px">
@@ -562,6 +571,8 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
         <div class="tvst" id="tv-st"><p class="note">Carregando…</p></div>
         <h3 style="margin-top:10px">Este PC</h3>
         <div class="saude" id="saude"><p class="note" style="margin:0">Lendo o PC…</p></div>
+        <h3 style="margin-top:10px">Fim de semana na TV</h3>
+        <div class="fs-lista" id="fs-lista"></div>
         <h3 style="margin-top:10px">Anotar rápido</h3>
         <form id="hj-nova" class="col" style="gap:8px">
           <input type="text" id="hj-txt" placeholder="O que precisa fazer?" aria-label="Nova tarefa" autocomplete="off">
@@ -1088,16 +1099,17 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
   });
   try { ['tv', 'lazer', 'casa'].forEach(function (gs) { var v = localStorage.getItem('menu-' + gs); if (v === null) return; var ab = v === '1'; $('mg-' + gs).setAttribute('aria-expanded', ab); $('sub-' + gs).hidden = !ab; }); } catch (e) {}
   /* saúde do PC: discos, memória, processador e placa de vídeo */
-  function barra(pct, alerta) { return '<span class="sbar' + (alerta ? ' alerta' : '') + '"><i style="width:' + Math.min(100, Math.max(2, pct)) + '%"></i></span>'; }
+  function gb(v) { return v >= 1000 ? (v / 1024).toFixed(2).replace('.', ',') + ' TB' : Math.round(v) + ' GB'; }
+  function sc(rot, val, al, dica) { return '<span class="sc' + (al ? ' alerta' : '') + '" title="' + esc(dica || '') + '"><small>' + esc(rot) + '</small><b>' + val + '</b></span>'; }
   function saude() {
     var els = [$('saude'), $('saude2')].filter(function (x) { return x && x.offsetParent !== null; }); if (!els.length) return;
     fetch(AJ + '/saude?k=' + ajK()).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (d) {
-      var h = (d.discos || []).map(function (x) { var usado = x.total - x.livre, pct = x.total ? usado / x.total * 100 : 0, al = pct >= 90; return '<div class="sl' + (al ? ' alerta' : '') + '"><span class="sn"><b>' + esc(x.letra) + '</b> ' + esc(x.nome || '') + '</span>' + barra(pct, al) + '<span class="sv">' + x.livre + ' GB livres' + (al ? ' · quase cheio' : '') + '</span></div>'; }).join('');
+      var h = (d.discos || []).map(function (x) { var pct = x.total ? (x.total - x.livre) / x.total * 100 : 0, al = pct >= 90; return sc(x.letra + ' livre', gb(x.livre), al, (x.nome || x.letra) + ': ' + Math.round(pct) + '% usado' + (al ? ' · quase cheio' : '')); }).join('');
       var mp = d.memTotal ? (d.memTotal - d.memLivre) / d.memTotal * 100 : 0;
-      h += '<div class="sl"><span class="sn"><b>Memória</b></span>' + barra(mp, mp >= 90) + '<span class="sv">' + (d.memTotal - d.memLivre).toFixed(1) + ' de ' + d.memTotal + ' GB</span></div>';
-      h += '<div class="sl"><span class="sn"><b>Processador</b></span>' + barra(d.cpu || 0, d.cpu >= 90) + '<span class="sv">' + (d.cpu || 0) + '%</span></div>';
-      if (d.gpu) h += '<div class="sl"><span class="sn"><b>Placa de vídeo</b></span>' + barra(d.gpu.uso, d.gpu.temp >= 83) + '<span class="sv">' + d.gpu.uso + '% · ' + d.gpu.temp + ' °C</span></div>';
-      h += '<span class="note">Ligado há ' + (d.horasLigado >= 24 ? Math.floor(d.horasLigado / 24) + ' dia(s) e ' + Math.round(d.horasLigado % 24) + ' h' : d.horasLigado + ' h') + '</span>';
+      h += sc('Memória', Math.round(mp) + '%', mp >= 90, (d.memTotal - d.memLivre).toFixed(1) + ' de ' + d.memTotal + ' GB');
+      h += sc('Processador', (d.cpu || 0) + '%', d.cpu >= 90);
+      if (d.gpu) h += sc('Placa de vídeo', d.gpu.temp + ' °C', d.gpu.temp >= 83, (d.gpu.nome || '') + ' · uso ' + d.gpu.uso + '%');
+      var hl = d.horasLigado || 0; h += sc('Ligado há', hl >= 24 ? Math.floor(hl / 24) + 'd ' + Math.round(hl % 24) + 'h' : Math.round(hl) + 'h', hl >= 24 * 7, hl >= 24 * 7 ? 'Vale reiniciar' : '');
       els.forEach(function (el) { el.innerHTML = h; });
     }).catch(function () { els.forEach(function (el) { el.innerHTML = '<p class="note" style="margin:0">O ajudante não respondeu.</p>'; }); });
   }
@@ -1363,6 +1375,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     if (window.CAPAS) CAPAS.aplicar(el, L.map(function (j) { return { id: 'es-' + j.id, nome: j.name, wiki: j.wiki }; }));
     var j2 = (S.es && S.es.jogos || {})[esSel];
     if (!j2) return;
+    fsBotao($('fs-es'), 'es' + esSel);
     var p2 = progDe(esSel), T2 = j2.trophies || [];
     $('es-tit').textContent = j2.name;
     $('es-info').textContent = [j2.main && 'História ' + j2.main, j2.full && '100% ' + j2.full, j2.missables && 'Perdíveis: ' + j2.missables].filter(Boolean).join(' · ');
@@ -1542,6 +1555,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     leProx();
     var s3 = L.filter(function (x) { return x.id === leSel; })[0];
     $('le-form').hidden = !s3; $('le-vazio').hidden = !!s3;
+    fsBotao($('fs-le'), 'le' + leSel);
     if ((s3 && s3.id) !== leDetUlt) { leDetUlt = s3 && s3.id; detalhesLeit(s3); }
     if (s3 && document.activeElement.closest && !document.activeElement.closest('#le-form')) {
       $('le-nome').value = s3.nome; $('le-cap').value = s3.cap != null ? s3.cap : ''; $('le-total').value = s3.total || ''; $('le-link').value = s3.link || ''; $('le-nota').value = s3.nota || '';
@@ -1674,7 +1688,7 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
       '<p class="desc">' + esc(a.sin || 'Sem descrição.') + '</p>' +
       '<div class="row">' + AN_ST.map(function (s3) { return '<button class="chip" data-a="anStatus" data-v="' + s3[0] + '" aria-pressed="' + (a.st === s3[0]) + '">' + s3[1] + '</button>'; }).join('') + '</div>' +
       '<label class="f" for="an-score">Minha nota<select class="sel" id="an-score">' + ['—', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (n, i) { return '<option value="' + i + '"' + (a.score === i ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
-      '<div class="row"><a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a><button class="btn" data-a="anTirar" data-v="' + a.id + '">Tirar da lista</button></div><span class="note" id="an-msg"></span>';
+      '<div class="row"><a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a><button class="btn' + (fsTem('an' + a.id) ? ' fs-on' : '') + '" data-a="fsAn" data-v="' + a.id + '">' + (fsTem('an' + a.id) ? '★ No fim de semana' : '☆ Fim de semana') + '</button><button class="btn" data-a="anTirar" data-v="' + a.id + '">Tirar da lista</button></div><span class="note" id="an-msg"></span>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a, v = +b.dataset.v;
@@ -1730,7 +1744,28 @@ button.gen:hover { background: color-mix(in srgb, var(--acc) 40%, transparent); 
     bdg('anime', (MAL.anime || []).filter(function (x) { return x.st === 'watching'; }).length, true);
     bdg('leit', ((S.le && S.le.itens) || []).filter(function (x) { return x.status === 'lendo'; }).length, true);
   }
-  function desenhar() { badges(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
+  /* fila do fim de semana: a TV mostra um por dia no sábado, domingo e feriado (config.json → fimSemana) */
+  function fsL() { return (S.cfg && S.cfg.fimSemana) || []; }
+  function fsTem(k) { return fsL().some(function (x) { return x.k === k; }); }
+  function fsAlterna(it) {
+    if (fsTem(it.k)) { mudar('cfg', function (d) { d.fimSemana = (d.fimSemana || []).filter(function (x) { return x.k !== it.k; }); }); return; }
+    mudar('cfg', function (d) { d.fimSemana = (d.fimSemana || []).filter(function (x) { return x.k !== it.k; }); d.fimSemana.push(it); });
+  }
+  function fsBotao(el, k) { if (!el) return; var on = fsTem(k); el.classList.toggle('fs-on', on); el.textContent = on ? '★ No fim de semana' : '☆ Fim de semana'; }
+  function desenharFS() {
+    var el = $('fs-lista'); if (!el) return; var L = fsL();
+    el.innerHTML = L.length ? L.map(function (x) { return '<div class="fs-it"><i style="background-image:url(&quot;' + esc(x.capa || '') + '&quot;)"></i><span><b title="' + esc(x.nome) + '">' + esc(x.nome) + '</b><small>' + esc(x.tipo) + '</small></span><button data-a="fsTira" data-v="' + esc(x.k) + '" aria-label="Tirar da fila">×</button></div>'; }).join('') + '<p class="note" style="margin:0">A TV mostra um por dia, no lugar de Reunião e Trabalho, aos sábados, domingos e feriados.</p>'
+      : '<p class="note" style="margin:0">Vazia. Use o botão <b>☆ Fim de semana</b> num anime, mangá ou jogo da Estante, e a TV sugere um por dia nos sábados, domingos e feriados.</p>';
+    fsBotao($('fs-le'), 'le' + leSel); fsBotao($('fs-es'), 'es' + esSel);
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a;
+    if (a === 'fsTira') mudar('cfg', function (d) { d.fimSemana = (d.fimSemana || []).filter(function (x) { return x.k !== b.dataset.v; }); });
+    else if (a === 'fsAn') { var x = (MAL.anime || []).filter(function (y) { return y.id === +b.dataset.v; })[0]; if (x) fsAlterna({ k: 'an' + x.id, tipo: 'Anime', nome: x.en || x.t, capa: (x.img || '').replace('/r/50x70', ''), info: x.nota ? '★ ' + (+x.nota).toFixed(2) + ' no MAL' : '' }); }
+    else if (a === 'fsLe') { var it = ((S.le && S.le.itens) || []).filter(function (y) { return y.id === leSel; })[0]; if (!it) return; if (fsTem('le' + it.id)) { fsAlterna({ k: 'le' + it.id }); return; } capaLeitura(it, function (u) { fsAlterna({ k: 'le' + it.id, tipo: it.tipo || 'Mangá', nome: it.nome, capa: u || '', info: it.cap != null ? 'parou no cap. ' + Math.floor(+it.cap) : '' }); }); }
+    else if (a === 'fsEs') { var j = (S.es && S.es.jogos || {})[esSel]; if (!j) return; if (fsTem('es' + esSel)) { fsAlterna({ k: 'es' + esSel }); return; } var idJ = esSel, fim = function (u) { fsAlterna({ k: 'es' + idJ, tipo: 'Jogo', nome: j.name, capa: u || '' }); }; if (window.CAPAS) CAPAS.buscar({ id: 'es-' + idJ, nome: j.name, wiki: j.wiki }, fim); else fim(''); }
+  });
+  function desenhar() { badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }

@@ -438,6 +438,20 @@
     var L = d && d.tarefas ? d.tarefas.filter(function (t) { var r = t.resp || []; return !t.ok && (t.cat || 'pessoal') === 'trabalho' && (!r.length || r.indexOf('DBA') >= 0); }) : [];
     el.innerHTML = !d ? '–' : L.length ? '<b>' + L.length + '</b> · ' + L.slice(0, 2).map(function (t) { var r = (t.resp || []).filter(function (x) { return x !== 'DBA'; }); return (t.cli ? '<b>' + esc(t.cli) + '</b>: ' : '') + esc(t.t) + (r.length ? ' <span style="opacity:.7">(' + esc(r.join(', ')) + ')</span>' : ''); }).join(' · ') : 'nada pendente ✓';
   }
+  /* sábado, domingo e feriado: no lugar de Reunião/Trabalho, uma sugestão da fila do fim de semana (montada no app do PC) */
+  var sugUlt = '';
+  function renderSugestao() {
+    var box = $('sugestao'); if (!box) return;
+    var L = cfg.fimSemana || [], d = new Date(), folga = d.getDay() === 0 || d.getDay() === 6 || !!feriado(d);
+    var on = folga && L.length > 0, par = box.parentNode;
+    var n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000), it = on ? L[n % L.length] : null;
+    var chave = it ? it.k + '|' + it.capa : '';
+    par.classList.toggle('fds', on); box.hidden = !on;
+    if (!it || chave === sugUlt) return; sugUlt = chave;
+    $('sug-nome').textContent = it.nome;
+    $('sug-tipo').textContent = it.tipo + (it.info ? ' · ' + it.info : '');
+    $('sug-capa').style.backgroundImage = it.capa ? 'url("' + it.capa + '")' : '';
+  }
   function renderEstanteTV() {
     var el = $('tv-estante'); if (!el) return;
     var d = ler('dados-est', null); if (!d || !d.jogos) { el.parentNode.style.display = 'none'; return; }
@@ -462,6 +476,8 @@
       registrar('Ajustes do app do PC aplicados'); try { stSync('editor'); } catch (e2) {}
     }
     fundosRemotos(d.fundosRemotos || {});
+    var fs = d.fimSemana || []; if (JSON.stringify(fs) !== JSON.stringify(cfg.fimSemana || [])) { cfg.fimSemana = fs; gravar('cfg', cfg); registrar('Fila do fim de semana: ' + fs.length + ' item(ns)'); }
+    renderSugestao();
     var cl = d.clipes || {}; if (JSON.stringify(cl) !== JSON.stringify(cfg.clipes || {})) { cfg.clipes = cl; clipeFalhou = false; gravar('cfg', cfg); clipeAtualizar(); clipeCmd('vol'); if (clipeFr) clipeFr.contentWindow.postMessage(JSON.stringify({ cmd: 'vol', v: cl.vol || 100 }), '*'); registrar(cl.lista ? 'Clipes do YouTube ligados' : 'Clipes do YouTube desligados'); }
     var disc = d.discreto || {}, antes = JSON.stringify(cfg.discreto || {});
     cfg.discreto = { fundo: disc.fundo || '', musicas: disc.musicas || [] };
@@ -1427,14 +1443,14 @@
   var diaAtual = hojeISO();
   setInterval(function () {
     relogio();
-    if (hojeISO() !== diaAtual) { diaAtual = hojeISO(); renderTreino(); renderAcademia(); }
+    if (hojeISO() !== diaAtual) { diaAtual = hojeISO(); renderTreino(); renderAcademia(); try { renderSugestao(); } catch (e) {} }
   }, 10000);
   setInterval(clima, 30 * 60000);
   document.addEventListener('visibilitychange', function () { registrar(document.hidden ? 'Central em segundo plano' : 'Central na tela (' + window.innerWidth + 'x' + window.innerHeight + ')'); if (!document.hidden) { ajustarTela(); setTimeout(ajustarTela, 1500); setTimeout(checarDespertador, 1500); } if (!despAtivo) tocarMusica(); if (!document.hidden) { relogio(); carregarAppsTV(); carregarAgenda(); stAgendar('tela'); dadosSync(); } });
 
   registrar('Central abriu (' + window.innerWidth + 'x' + window.innerHeight + ')' + (window.CENTRAL_ORIGEM ? ' · ' + window.CENTRAL_ORIGEM : ''));
   setTimeout(dadosSync, 4000); setInterval(dadosSync, 5 * 60000); setTimeout(entradaTV, 7000); setInterval(entradaTV, 30000); setTimeout(function () { if (window.DADOS_GH) inventarioEnviar(); }, 9000);
-  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV();
+  renderTarefasTV(); renderEstanteTV(); renderTrabalhoTV(); renderLancTV(); try { renderSugestao(); } catch (e) { diagAdd('sugestão: ' + e.message); }
   [1000, 3000, 8000, 20000].forEach(function (t) { setTimeout(ajustarTela, t); });
   guardarCenas(); aplicarCfg(); testarImagens(aplicarCfg);
   renderTudo(); relogio(); clima(); carregarAppsTV(); carregarAgenda();
