@@ -80,6 +80,19 @@ while ($http.IsListening) {
   try {
     $q = $ctx.Request.QueryString
     "$(Get-Date -f HH:mm:ss) $($ctx.Request.Url.AbsolutePath)" | Out-Host
+    $cam = $ctx.Request.Url.AbsolutePath
+    # páginas do app (só para este PC: confere o Host; sem liberar para outros sites)
+    if ($cam -like '/app/*' -or $cam -like '/fundos/*') {
+      $hostOk = $ctx.Request.Headers['Host'] -eq "localhost:$porta"
+      $nome = [IO.Path]::GetFileName([Uri]::UnescapeDataString($cam))
+      $permitidos = @{ 'Central.html' = 'text/html; charset=utf-8'; 'icone.png' = 'image/png'; 'central.ico' = 'image/x-icon' }
+      if ($cam -like '/fundos/*') { $arq = Join-Path (Split-Path $aqui -Parent) ('fundos\' + $nome); $tipo = if ($nome -like '*.png') { 'image/png' } else { 'image/jpeg' }; $ok = $nome -match '^[\w-]+\.(jpg|png)$' }
+      else { $arq = Join-Path $aqui $nome; $tipo = $permitidos[$nome]; $ok = [bool]$tipo }
+      if (-not $hostOk -or -not $ok -or -not (Test-Path -LiteralPath $arq)) { $ctx.Response.StatusCode = 404; $ctx.Response.Close(); continue }
+      $bytes = [IO.File]::ReadAllBytes($arq)
+      if ($nome -eq 'Central.html') { $txt = [Text.Encoding]::UTF8.GetString($bytes).Replace('<head>', "<head><script>window.AJUDANTE_CHAVE='$chave';</script>"); $bytes = [Text.Encoding]::UTF8.GetBytes($txt) }
+      $r = $ctx.Response; $r.StatusCode = 200; $r.ContentType = $tipo; $r.Headers['Cache-Control'] = 'no-store'; $r.OutputStream.Write($bytes, 0, $bytes.Length); $r.Close(); continue
+    }
     if ($q['k'] -ne $chave) { Responder $ctx 403 'text/plain' ([Text.Encoding]::UTF8.GetBytes('chave')); continue }
     switch ($ctx.Request.Url.AbsolutePath) {
       '/apps'  { Json $ctx @{ apps = @(Lista $atalhos $true); pastas = @(Lista $base $false) } }
@@ -95,7 +108,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 2 } }
+      default  { Json $ctx @{ ok = $true; versao = 3 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

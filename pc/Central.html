@@ -813,9 +813,10 @@ header { align-items: center; }
   try { new ResizeObserver(escala).observe($('tv')); } catch (e) {}
 
   /* ---------- meus programas (ajudante no PC) ---------- */
-  var AJ = 'http://localhost:47803';
+  var AJ = location.protocol === 'http:' ? location.origin : 'http://localhost:47803';
   function ajK() { return window.AJUDANTE_CHAVE || ''; }
   function carregarChave(cb) {
+    if (location.protocol === 'http:' && window.AJUDANTE_CHAVE) { cb && cb(); return; }
     var sc = document.createElement('script'); sc.src = 'ajudante_chave.js?t=' + Date.now();
     sc.onload = sc.onerror = function () { sc.remove(); cb && cb(); }; document.head.appendChild(sc);
   }
