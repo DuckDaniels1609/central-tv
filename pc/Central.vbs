@@ -16,7 +16,7 @@ x.Open "GET", "http://localhost:47803/?k=" & k, False
 x.Send
 If Err.Number = 0 Then v = x.responseText
 Err.Clear
-If InStr(v, """versao"":35") > 0 Then
+If InStr(v, """versao"":36") > 0 Then
   ' tudo certo
 ElseIf InStr(v, "versao") > 0 Then
   Set x = CreateObject("MSXML2.XMLHTTP"): x.Open "GET", "http://localhost:47803/reiniciar?k=" & k, False: x.Send

@@ -414,7 +414,8 @@ header { align-items: center; }
 .cl-it .row { gap: 6px; }
 .cl-it .btn.sm { flex: 1; justify-content: center; }
 .cl-it .btn.apaga:hover { background: rgba(235,42,73,.35); }
-body.cl-on #meio-stream > :not(.banner):not(#cl-painel) { display: none !important; }
+body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important; }
+#meio-ctl { overflow-y: auto; gap: 14px; }
 .cel-imgs { display: flex; flex-direction: column; gap: 8px; }
 .cel-img { display: flex; align-items: center; gap: 10px; }
 .cel-img i { width: 36px; height: 64px; border-radius: 8px; background: rgba(255,255,255,.08) center/cover no-repeat; flex: none; }
@@ -431,6 +432,14 @@ body.cl-on #meio-stream > :not(.banner):not(#cl-painel) { display: none !importa
 .cr-selo { font-size: 12px; font-weight: 800; width: 28px; height: 28px; display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: #F47521; color: #fff; text-decoration: none; white-space: nowrap; }
 .cr-selo:hover { filter: brightness(1.1); }
 .cr-chip[aria-pressed="true"] { background: #F47521; color: #fff; }
+.obs-fonte { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.obs-fonte .chip { padding: 5px 10px; font-size: 12px; }
+.ctl-gr { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); width: 100%; }
+.ctl-gr .row { gap: 6px; flex-wrap: wrap; }
+#meio-ctl #obs-trocar { display: flex; flex-direction: column; gap: 10px; flex-basis: 100%; margin: 4px 0 0 !important; }
+#meio-ctl .obs-ar { flex-wrap: wrap; align-items: center; background: none; padding: 0 4px; }
+#meio-ctl .ctl-gr .row { justify-content: flex-start; margin: 0; }
+#meio-ctl .obs-grav { padding: 12px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -554,6 +563,7 @@ body.menu-mini .versao { display: none; }
       </div>
       <button class="mg mg-bt" id="mg-stream" aria-expanded="true">Stream <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="sub" id="sub-stream">
+        <button class="mi" data-sec="ctl"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Controle da stream</span></button>
         <button class="mi" data-sec="stream"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></svg><span>Cenas da stream</span><i class="bdg" id="bdg-stream"></i></button>
       </div>
       <button class="mg mg-bt" id="mg-casa" aria-expanded="true">PC e TV <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -631,18 +641,22 @@ body.menu-mini .versao { display: none; }
       </div>
       <span class="note" id="tvc-st"></span>
     </div>
-    <div class="col card meio" id="meio-stream" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cl-abrir" title="Ver os clipes do Valorant e os momentos do F9 e decidir o que manter">🎬 Revisar clipes<span class="bdg" id="bdg-clipes" style="margin-left:6px"></span></button><button class="btn" id="obs-audio" title="O Yeti Mic e o PC apontavam para aparelhos do computador antigo">Consertar áudio</button><button class="btn" id="obs-recarregar">Recarregar</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
+    <div class="col card meio" id="meio-ctl" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Controle da stream</h2><span>Gravar, ir ao vivo, câmera, amigos e cortes</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cl-abrir" title="Ver os clipes e decidir o que manter">🎬 Revisar clipes<span class="bdg" id="bdg-clipes" style="margin-left:6px"></span></button><button class="btn" id="obs-audio" title="Faz o microfone e o som do PC usarem os aparelhos padrão do Windows">Consertar áudio</button><button class="btn prim" id="obs-abrir">Abrir o OBS</button></div></div>
       <div class="obs-ar" id="obs-ar"><span class="obs-luz" id="obs-luz"></span><b id="obs-ar-tx">OBS fechado</b><div class="row" id="obs-trocar"></div></div>
       <div class="row obs-grav" id="obs-grav"></div>
-      <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
-      <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div><img class="obs-foto" id="obs-foto" alt="" hidden><span class="obs-selo" id="obs-selo" hidden>Imagem real do OBS</span></div>
       <span class="note" id="obs-nota"></span>
       <div class="cl-painel" id="cl-painel" hidden>
-        <div class="row" style="gap:8px;align-items:center"><button class="btn" id="cl-voltar">← Voltar às cenas</button><span class="note" id="cl-st" style="flex:1"></span><label class="row" style="gap:6px;font-size:13px"><input type="checkbox" id="cl-so-pend" checked> Só os que faltam revisar</label></div>
+        <div class="row" style="gap:8px;align-items:center"><button class="btn" id="cl-voltar">← Voltar</button><span class="note" id="cl-st" style="flex:1"></span><label class="row" style="gap:6px;font-size:13px"><input type="checkbox" id="cl-so-pend" checked> Só os que faltam revisar</label></div>
         <div class="row" id="cl-cats" style="gap:6px;flex-wrap:wrap"></div>
         <div id="cl-lista" class="cl-lista"></div>
       </div>
+    </div>
+    <div class="col card meio" id="meio-stream" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="obs-recarregar">Recarregar</button></div></div>
+      <div class="row" id="obs-cenas"><span class="lbl">Ver prévia:</span></div>
+      <div class="obs-palco-wrap" id="obs-wrap"><div class="obs-palco" id="obs-palco"></div><img class="obs-foto" id="obs-foto" alt="" hidden><span class="obs-selo" id="obs-selo" hidden>Imagem real do OBS</span></div>
+      <span class="note" id="obs-nota-prev"></span>
     </div>
     <div class="col card" id="meio-pc" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Meus programas</h2><span id="pc-st"></span></div><span class="note" style="position:relative">Botão direito num programa: mudar categoria ou fixar</span></div>
@@ -715,16 +729,18 @@ body.menu-mini .versao { display: none; }
         <h3>Como funciona</h3>
         <p class="note" style="margin:0">A ★ marca os que você quer jogar (os marcados aparecem no calendário e na TV). A lista é atualizada todo primeiro sábado do mês.</p>
       </section>
+      <section data-s="ctl" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Durante a live</h3>
+        <label class="row" style="gap:8px;font-size:13px">Atalho de marcar momento <input type="text" id="obs-tecla" class="in-txt" value="F9" style="width:110px;padding:6px 10px" aria-label="Atalho de marcar momento"></label>
+        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-auto" checked> Trocar de cena sozinho quando a partida começar</label>
+        <span class="note" id="obs-auto-info"></span>
+        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando; os momentos viram clipes na pasta Gravações da Stream › Momentos quando a gravação termina.</p>
+      </section>
       <section data-s="stream" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3 id="obs-cena-tit">Camadas</h3>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-ocultos"> Mostrar as camadas ocultas</label>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-contornos" checked> Mostrar contornos (alertas, câmera, jogo)</label>
         <div class="obs-camadas" id="obs-camadas"></div>
-        <h3 style="margin-top:8px">Durante a live</h3>
-        <label class="row" style="gap:8px;font-size:13px">Atalho de marcar momento <input type="text" id="obs-tecla" class="in-txt" value="F9" style="width:110px;padding:6px 10px" aria-label="Atalho de marcar momento"></label>
-        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" id="obs-auto" checked> Trocar de cena sozinho quando a partida começar</label>
-        <span class="note" id="obs-auto-info"></span>
-        <p class="note" style="margin:0">Só troca se você não mudou de cena desde que abriu o jogo. O atalho funciona enquanto o OBS estiver gravando; os momentos viram clipes na pasta Gravações da Stream › Momentos quando a gravação termina.</p>
         <h3 style="margin-top:8px">Como mudar</h3>
         <p class="note" style="margin:0">Me peça no chat (ex.: "aumenta a câmera no Jogos de Luta"). Eu faço uma cópia de segurança e edito com o OBS fechado; depois é só abrir o OBS de novo. A prévia lê o arquivo de cenas que o OBS salva, então mostra a última versão salva.</p>
       </section>
@@ -1390,7 +1406,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.3';
+  var VERSAO_PC = '2026-11-01.6';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1488,7 +1504,7 @@ body.menu-mini .versao { display: none; }
     });
     $('obs-camadas').innerHTML = linhas.join('') || '<p class="note">Cena vazia.</p>';
     obsMarcar();
-    $('obs-nota').textContent = m.aberto ? 'O OBS está aberto: mudanças feitas nele aparecem aqui depois que ele salvar (ao trocar de cena ou fechar). Clique em Recarregar.' : '';
+    $('obs-nota-prev').textContent = m.aberto ? 'O OBS está aberto: mudanças feitas nele aparecem aqui depois que ele salvar (ao trocar de cena ou fechar). Clique em Recarregar.' : '';
   }
   function obsMarcar() { Array.prototype.forEach.call(document.querySelectorAll('#obs-palco .obs-it'), function (e) { e.classList.toggle('sel', e.dataset.nome === OBS.sel); }); Array.prototype.forEach.call(document.querySelectorAll('.obs-ly'), function (e) { e.classList.toggle('sel', e.dataset.obsly === OBS.sel); }); }
   document.addEventListener('click', function (e) {
@@ -1528,7 +1544,7 @@ body.menu-mini .versao { display: none; }
   var JOGO_NOME = { sf6: 'Street Fighter 6', valorant: 'Valorant', outro: 'outro jogo' };
   setTimeout(function () { fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=qual').then(function (r) { return r.json(); }).then(function (j) { gravJogo = JOGO_NOME[j.jogo] || ''; }).catch(function () {}); }, 3000);
   function obsEstado() {
-    if (SEC !== 'stream' || document.hidden) return;
+    if ((SEC !== 'stream' && SEC !== 'ctl') || document.hidden) return;
     fetch(AJ + '/obs/estado?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsEst = j; obsDesenharAr(); }).catch(function () { obsEst = null; obsDesenharAr(); });
     fetch(AJ + '/obs/jogo?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsJogo = j; obsDesenharAr(); }).catch(function () {});
     fetch(AJ + '/obs/config?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { obsCfg = j; obsDesenharAr(); obsDesenharCfg(); }).catch(function () {});
@@ -1547,10 +1563,12 @@ body.menu-mini .versao { display: none; }
     if (j.erro) { tx.textContent = 'OBS aberto, mas não consegui falar com ele (' + j.erro + ')'; luz.className = 'obs-luz amarelo'; bt.innerHTML = ''; return; }
     tx.textContent = (j.aoVivo ? 'AO VIVO ' + (j.tempo || '').slice(0, 8) : 'Fora do ar') + (j.gravando ? ' · gravando' : '') + ' · no ar: ' + j.cena;
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
-    bt.innerHTML = (j.camera === null || j.camera === undefined ? '' : '<button class="btn obs-tr cam' + (j.camera ? ' on' : '') + '" data-obscam="1">' + (j.camera ? '📷 Câmera: ligada' : '📷 Câmera: oculta') + '</button>') +
-      (j.amigosMudo === null || j.amigosMudo === undefined ? '' : '<button class="btn obs-tr cam' + (j.amigosMudo ? '' : ' on') + '" data-obsamigos="1" title="Som do Discord na live e na gravação (trilha 1). A trilha 2 da gravação nunca tem os amigos.">' + (j.amigosMudo ? '🔇 Amigos: mutados' : '🎧 Amigos: no ar') + '</button>') +
-      nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') +
-      '';
+    var cam = j.camera === null || j.camera === undefined ? '' : '<button class="btn obs-tr cam' + (j.camera ? ' on' : '') + '" data-obscam="1">' + (j.camera ? '📷 Câmera: ligada' : '📷 Câmera: oculta') + '</button>';
+    var amg = j.amigosMudo === null || j.amigosMudo === undefined ? '' : '<button class="btn obs-tr cam' + (j.amigosMudo ? '' : ' on') + '" data-obsamigos="1" title="Som do Discord na live e na gravação (trilha 1). A trilha 2 da gravação nunca tem os amigos.">' + (j.amigosMudo ? '🔇 Amigos: mutados' : '🎧 Amigos: no ar') + '</button>';
+    var fnt = j.fonteModo ? [['auto', 'Auto'], ['valorant', 'Valorant'], ['sf6', 'SF6'], ['ps5', 'PS5'], ['tela', 'Tela']].map(function (f) { return '<button class="chip" data-obsfonte="' + f[0] + '" aria-pressed="' + (j.fonteModo === f[0]) + '" title="' + (f[0] === 'auto' ? 'Mostra o jogo aberto por último (ou o PS5, se nenhum estiver aberto)' : 'Deixa só esta imagem ligada nas cenas de jogo') + '">' + f[1] + (j.fonteModo === 'auto' && j.fonteAtual === f[0] ? ' ●' : '') + '</button>'; }).join('') : '';
+    bt.innerHTML = '<div class="ctl-gr"><span class="lbl">Cena no ar</span><div class="row">' + nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div></div>' +
+      (fnt ? '<div class="ctl-gr"><span class="lbl">Imagem do jogo</span><div class="row">' + fnt + '</div><span class="note">Só uma imagem fica ligada por vez, para uma janela parada não cobrir a outra de preto. "Auto" escolhe o jogo aberto por último.</span></div>' : '') +
+      (cam || amg ? '<div class="ctl-gr"><span class="lbl">Câmera e som</span><div class="row">' + cam + amg + '</div></div>' : '');
     var gb = $('obs-grav'), jg = obsJogo && obsJogo.jogo ? JOGO_NOME[obsJogo.jogo] : '';
     var info = '<span class="obs-jogo">' + (jg ? 'Jogo aberto: <b>' + esc(jg) + '</b>' + (obsJogo.placar ? ' · placar ao vivo ligado' : '') : 'Nenhum jogo com análise aberto') + '</span>';
     var enc = obsCfg && obsCfg.encerrarEm ? Math.max(0, Math.round(obsCfg.encerrarEm - Date.now() / 1000)) : null;
@@ -1583,10 +1601,14 @@ body.menu-mini .versao { display: none; }
       return;
     }
   });
-  setInterval(function () { if (SEC === 'stream' && obsCfg && obsCfg.encerrarEm) obsDesenharAr(); }, 1000);
+  setInterval(function () { if (SEC === 'ctl' && obsCfg && obsCfg.encerrarEm) obsDesenharAr(); }, 1000);
   document.addEventListener('change', function (e) {
     if (e.target.id === 'obs-tecla') { var v = e.target.value.trim().toUpperCase().replace(/\s+/g, ''); if (/^((CTRL|ALT|SHIFT)\+)*(F([1-9]|1[0-2])|[A-Z0-9])$/.test(v)) fetch(AJ + '/obs/config?k=' + ajK() + '&tecla=' + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (j) { obsCfg = Object.assign(obsCfg || {}, j); $('obs-nota').textContent = 'Atalho de marcar momento: ' + j.tecla + '.'; }); else $('obs-nota').textContent = 'Use algo como F9, F8 ou CTRL+F9.'; }
     if (e.target.id === 'obs-auto') fetch(AJ + '/obs/config?k=' + ajK() + '&auto=' + (e.target.checked ? 1 : 0)).then(function (r) { return r.json(); }).then(function (j) { obsCfg = Object.assign(obsCfg || {}, j); });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-obsfonte]'); if (!b) return;
+    fetch(AJ + '/obs/fonte?k=' + ajK() + '&modo=' + b.dataset.obsfonte).then(function (r) { return r.json(); }).then(function (j) { if (obsEst) { obsEst.fonteModo = j.modo; obsEst.fonteAtual = j.atual; } obsDesenharAr(); setTimeout(obsEstado, 600); }).catch(function () {});
   });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obsamigos]'); if (!b) return; b.disabled = true;
@@ -1635,19 +1657,19 @@ body.menu-mini .versao { display: none; }
     }).catch(function () { fotoOcupado = false; img.hidden = true; selo.hidden = true; });
   }
   setInterval(obsFoto, 2000);
-  document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="stream"]')) setTimeout(obsEstado, 100); });
+  document.addEventListener('click', function (e) { if (e.target.closest('.mi[data-sec="stream"], .mi[data-sec="ctl"]')) setTimeout(obsEstado, 100); });
   window.PC_ABRIR = function (f) { pcAbrir(f); };
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 35 && !sessionStorage.getItem('aj-reiniciou-35')) { sessionStorage.setItem('aj-reiniciou-35', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 36 && !sessionStorage.getItem('aj-reiniciou-36')) { sessionStorage.setItem('aj-reiniciou-36', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
-    var grp = { est: 'lazer', anime: 'lazer', leit: 'lazer', lanc: 'lazer', pc: 'casa', tvc: 'casa', stream: 'stream' }[sx]; if (sx === 'stream') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
+    var grp = { est: 'lazer', anime: 'lazer', leit: 'lazer', lanc: 'lazer', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });

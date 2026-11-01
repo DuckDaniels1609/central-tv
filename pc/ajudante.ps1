@@ -330,6 +330,26 @@ function CapturaJogo {
   Set-Content -Path $capOkF -Value ($log -join "`r`n") -Encoding UTF8
   return $log
 }
+# ---------- qual imagem de jogo fica ligada nas cenas (uma por vez, senão uma janela parada cobre a outra de preto) ----------
+$script:fonteModo = 'auto'; $script:fonteAplicada = ''
+$FONTES_JOGO = @{ valorant = @('Jogo: Valorant', 'Valorant'); sf6 = @('Jogo: Street Fighter 6'); ps5 = @('Elgato 4k ', 'PS5 (4K Capture)'); tela = @() }
+function JogoAlvo {
+  $p = @(Get-Process -Name 'StreetFighter6', 'VALORANT-Win64-Shipping' -ErrorAction SilentlyContinue | Sort-Object StartTime -Descending)
+  if (-not $p.Count) { return 'ps5' }
+  if ($p[0].ProcessName -eq 'StreetFighter6') { return 'sf6' } else { return 'valorant' }
+}
+function FonteAplicar($alvo) {
+  $todas = @(); foreach ($k in $FONTES_JOGO.Keys) { $todas += $FONTES_JOGO[$k] }; $todas += 'Jogo (tela cheia)'
+  $cenas = @(('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'), 'Main Right', 'Jogos de Luta')
+  foreach ($cena in $cenas) {
+    try {
+      $its = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0].responseData.sceneItems | Where-Object { $todas -contains $_.sourceName })
+      $ped = @($its | ForEach-Object { @{ t = 'SetSceneItemEnabled'; d = @{ sceneName = $cena; sceneItemId = [int]$_.sceneItemId; sceneItemEnabled = [bool]($FONTES_JOGO[$alvo] -contains $_.sourceName) } } })
+      if ($ped.Count) { $null = ObsWs $ped }
+    } catch {}
+  }
+  $script:fonteAplicada = $alvo
+}
 $script:tiqueEm = [DateTime]::MinValue
 function Tique {
   if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
@@ -343,6 +363,7 @@ function Tique {
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
+  if ($obs) { $alvoF = $script:fonteModo; if ($alvoF -eq 'auto') { $alvoF = JogoAlvo }; if ($alvoF -ne $script:fonteAplicada) { FonteAplicar $alvoF } } else { $script:fonteAplicada = '' }
   if ($grav -and ($jogo -eq 'sf6' -or $jogo -eq 'valorant')) { $script:jogoGrav = $jogo }
   if ($grav -and -not $script:gravAnt) { $script:dirGrav = ''; try { $script:dirGrav = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory } catch {} }
   if ($script:gravAnt -and -not $grav) {
@@ -538,7 +559,7 @@ while ($http.IsListening) {
             $r = ObsWs @(@{ t = 'GetCurrentProgramScene' }, @{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }, @{ t = 'GetSceneList' })
             $cam = $null; try { $ci = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $r[0].responseData.currentProgramSceneName } }))[0].responseData.sceneItems | Where-Object { $_.sourceName -in @('Camera', 'Webcam') }); if ($ci.Count) { $cam = [bool]$ci[0].sceneItemEnabled } } catch {}
             $amg = $null; try { $ra = (ObsWs @(@{ t = 'GetInputMute'; d = @{ inputName = 'Discord (amigos)' } }))[0]; if ($ra.requestStatus.result) { $amg = [bool]$ra.responseData.inputMuted } } catch {}
-            Json $ctx @{ amigosMudo = $amg; camera = $cam; aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
+            Json $ctx @{ fonteModo = $script:fonteModo; fonteAtual = $script:fonteAplicada; amigosMudo = $amg; camera = $cam; aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
           } catch { Json $ctx @{ aberto = $true; erro = $_.Exception.Message } }
         }
       }
@@ -613,6 +634,12 @@ while ($http.IsListening) {
         Json $ctx @{ tecla = $c.tecla; autoCena = [bool]$c.autoCena; cenas = $c.cenas; encerrarEm = $em }
       }
       '/obs/captura-jogo' { try { if (Test-Path $capOkF) { Remove-Item $capOkF -Force }; Json $ctx @{ ok = $true; log = @(CapturaJogo) } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
+      '/obs/fonte' {
+        # imagem do jogo nas cenas: auto (o jogo aberto por último) ou fixa (valorant, sf6, ps5, tela)
+        $m = [string]$q['modo']
+        if ($m -in @('auto', 'valorant', 'sf6', 'ps5', 'tela')) { $script:fonteModo = $m; $alvoF = $m; if ($m -eq 'auto') { $alvoF = JogoAlvo }; try { FonteAplicar $alvoF } catch {} }
+        Json $ctx @{ ok = $true; modo = $script:fonteModo; atual = $script:fonteAplicada }
+      }
       '/obs/amigos' {
         # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
         try {
@@ -689,7 +716,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 35 } }
+      default  { Json $ctx @{ ok = $true; versao = 36 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
