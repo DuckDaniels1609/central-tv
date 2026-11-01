@@ -475,9 +475,16 @@ while ($http.IsListening) {
       '/jikan' {
         # onde assistir (lista de streaming do MAL, pela API pública Jikan): só o número do anime
         $idA = [string]$q['id']; if ($idA -notmatch '^\d{1,7}$') { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('id')); continue }
-        $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8; $wc.Headers['User-Agent'] = 'CentralDoDaniel/1.0'
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8
+        $wc.Headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CentralDoDaniel/1.0'; $wc.Headers['Accept'] = 'application/json'
         try { $txt = $wc.DownloadString('https://api.jikan.moe/v4/anime/' + $idA + '/streaming'); Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes($txt)) }
-        catch { $cod = 502; try { $cod = [int]$_.Exception.InnerException.Response.StatusCode } catch {}; if ($cod -lt 400) { $cod = 502 }; Responder $ctx $cod 'text/plain' ([Text.Encoding]::UTF8.GetBytes('jikan')) }
+        catch {
+          $ex = $_.Exception; while ($ex.InnerException -and -not ($ex -is [Net.WebException])) { $ex = $ex.InnerException }
+          $cod = 502; try { if ($ex.Response) { $cod = [int]$ex.Response.StatusCode } } catch {}
+          if ($cod -lt 400) { $cod = 502 }
+          Responder $ctx $cod 'text/plain; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes([string]$ex.Message))
+        }
       }
       '/mal/status' { $h = MalLer; $nome = ''; if ($h['access']) { try { $nome = (MalChamar 'GET' '/v2/users/@me' '' | ConvertFrom-Json).name } catch { $nome = '' } }; Json $ctx @{ cid = [bool]$h['cid']; conectado = [bool]$nome; usuario = $nome } }
       '/mal/sair' { $h = MalLer; $h.Remove('access'); $h.Remove('refresh'); MalGravar $h; Json $ctx @{ ok = $true } }
@@ -663,7 +670,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 32 } }
+      default  { Json $ctx @{ ok = $true; versao = 33 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
