@@ -1384,7 +1384,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.20';
+  var VERSAO_PC = '2026-10-31.21';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -2389,13 +2389,19 @@ body.menu-mini .versao { display: none; }
     if (crFila.indexOf(id) < 0) crFila.push(id); crProx(); return c || null;
   }
   function crProx() {
-    if (crAt || !crFila.length) return; crAt = true; var id = crFila.shift();
-    fetch(ajBase() + '/jikan?k=' + (window.AJUDANTE_CHAVE || '') + '&id=' + id).then(function (r) { if (r.status === 429) { crFila.unshift(id); throw new Error('espera'); } if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 80)); }); return r.json(); }).then(function (j) {
-      var x = (j.data || []).filter(function (s2) { return /crunchyroll/i.test(s2.name || ''); })[0];
-      CR[id] = { u: x ? (x.url || 'https://www.crunchyroll.com/') : '', em: Date.now() };
-      try { localStorage.setItem('an-cr2', JSON.stringify(CR)); } catch (e) {} crInfo.ok++; if (x) crInfo.com++; crInfo.erro = '';
-      clearTimeout(crT); crT = setTimeout(function () { var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); }, 900);
-    }).catch(function (e) { crInfo.erro = e.message; var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); }).then(function () { setTimeout(function () { crAt = false; crProx(); }, 1200); });
+    /* AniList: até 50 animes por pedido (links oficiais de streaming de cada anime) */
+    if (crAt || !crFila.length) return; crAt = true; var ids = crFila.splice(0, 50);
+    var q = 'query($ids:[Int]){Page(perPage:50){media(idMal_in:$ids,type:ANIME){idMal externalLinks{site url type}}}}';
+    fetch('https://graphql.anilist.co', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ query: q, variables: { ids: ids } }) })
+      .then(function (r) { if (r.status === 429) { crFila = ids.concat(crFila); throw new Error('espera'); } if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (j) {
+        var M = ((j.data && j.data.Page && j.data.Page.media) || []), achou = {};
+        M.forEach(function (m) { var l = (m.externalLinks || []).filter(function (x) { return /crunchyroll/i.test(x.site || ''); })[0]; achou[m.idMal] = l ? (l.url || 'https://www.crunchyroll.com/') : ''; });
+        ids.forEach(function (id) { var u = achou[id] || ''; CR[id] = { u: u, em: Date.now() }; crInfo.ok++; if (u) crInfo.com++; });
+        crInfo.erro = ''; try { localStorage.setItem('an-cr2', JSON.stringify(CR)); } catch (e) {}
+        clearTimeout(crT); crT = setTimeout(function () { var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); }, 300);
+      }).catch(function (e) { crInfo.erro = e.message; var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); })
+      .then(function () { setTimeout(function () { crAt = false; crProx(); }, 2500); });
   }
   function crSelo(id) { var c = crDe(id); return c && c.u ? '<a class="cr-selo" href="' + esc(c.u) + '" target="_blank" rel="noopener" title="Assistir na Crunchyroll" aria-label="Assistir na Crunchyroll">▶</a>' : ''; }
   function desenharAnime() {
@@ -2432,7 +2438,7 @@ body.menu-mini .versao { display: none; }
     var x = (MAL.anime || []).filter(function (y) { return y.id === v; })[0];
     if (a === 'anSt') { anSt = b.dataset.v; anQ = ''; anGen = ''; $('an-busca').value = ''; desenharAnime(); }
     else if (a === 'anSel') { anSel = v; desenharAnime(); }
-    else if (a === 'anCR') { anCR = !anCR; (MAL.anime || []).filter(function (y) { return y.st === anSt; }).forEach(function (y) { crDe(y.id); }); desenharAnime(); }
+    else if (a === 'anCR') { anCR = !anCR; (MAL.anime || []).forEach(function (y) { crDe(y.id); }); desenharAnime(); }
     else if (a === 'anGenX') { anGen = ''; desenharAnime(); }
     else if (a === 'anGenSet') { anGen = b.dataset.g; desenharAnime(); }
     else if (a === 'anMais' && x) { var ep = x.ep + 1, c = { ep: ep }; if (x.st === 'plan_to_watch' || x.st === 'on_hold') c.st = 'watching'; if (x.eps && ep >= x.eps) c.st = 'completed'; anMuda(v, c); }
