@@ -1357,8 +1357,8 @@ body.menu-mini .versao { display: none; }
       return '<div class="cl-grupo"><h4>' + k[1] + ' <small>' + L.length + (so ? ' para revisar' : '') + '</small></h4><div class="cl-grade">' + L.map(card).join('') + '</div></div>';
     }).join('') || (tot ? '<p class="note">Nada aqui. 🎉 Desmarque "Só os que faltam revisar" para ver os mantidos.</p>' : '');
   }
-  var CL_CATS = [['comp', '🎬 Compilados'], ['multi', '🔥 Multi-abates'], ['mom', '😂 Momentos (F9)'], ['teste', '🧪 Testes'], ['outro', 'Outros']], clCatSel = 'todos';
-  function clCat(g, c) { var n = c.arq.toLowerCase(); if (/teste/i.test(g.grupo) || /teste/i.test(g.pasta)) return 'teste'; if (/momento/i.test(g.grupo)) return 'mom'; if (n.indexOf('compilado') === 0) return 'comp'; if (n.indexOf('multi') === 0) return 'multi'; return 'outro'; }
+  var CL_CATS = [['rod', '🎯 Rodadas (abates e mortes)'], ['comp', '🎬 Compilados'], ['multi', '🔥 Multi-abates'], ['mom', '😂 Momentos (F9)'], ['teste', '🧪 Testes'], ['outro', 'Outros']], clCatSel = 'todos';
+  function clCat(g, c) { var n = c.arq.toLowerCase(); if (/teste/i.test(g.grupo) || /teste/i.test(g.pasta)) return 'teste'; if (/momento/i.test(g.grupo)) return 'mom'; if (n.indexOf('rodadas') === 0) return 'rod'; if (n.indexOf('compilado') === 0) return 'comp'; if (n.indexOf('multi') === 0) return 'multi'; return 'outro'; }
   document.addEventListener('click', function (e) { var b = e.target.closest('[data-clcat]'); if (b) { clCatSel = b.dataset.clcat; clDesenhar(); } });
   function clAbrir(on) { document.body.classList.toggle('cl-on', on); $('cl-painel').hidden = !on; if (on) clCarregar(); else { $('cl-lista').innerHTML = ''; obsDesenhar(); } }
   document.addEventListener('click', function (e) {
@@ -1384,7 +1384,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.21';
+  var VERSAO_PC = '2026-10-31.22';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
