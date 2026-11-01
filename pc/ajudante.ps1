@@ -42,7 +42,8 @@ function ClipesRaizes {
   $g = 'F:\Grava' + [char]0x00E7 + [char]0x00F5 + 'es da Stream'
   @(@{ n = 'Valorant'; p = (Join-Path $g ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant\clipes')) },
     @{ n = 'Valorant (testes)'; p = (Join-Path $g 'Clipes Valorant') },
-    @{ n = 'Momentos (F9)'; p = (Join-Path $g 'Momentos') })
+    @{ n = 'Momentos (F9)'; p = (Join-Path $g 'Momentos') },
+    @{ n = 'Street Fighter 6'; p = (Join-Path $g ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6\partidas')) })
 }
 function NomeSimples($x) { return ($x -and $x -notmatch '[\\/:*?"<>|]' -and $x -notmatch '^\.') }
 function ClipePasta($r, $pasta) {
@@ -51,7 +52,7 @@ function ClipePasta($r, $pasta) {
   if (Test-Path -LiteralPath $d -PathType Container) { return $d } else { return $null }
 }
 function ClipeArq($r, $pasta, $arq) {
-  $d = ClipePasta $r $pasta; if (-not $d -or -not (NomeSimples $arq) -or [IO.Path]::GetExtension($arq).ToLower() -ne '.mp4') { return $null }
+  $d = ClipePasta $r $pasta; if (-not $d -or -not (NomeSimples $arq) -or [IO.Path]::GetExtension($arq).ToLower() -notin @('.mp4', '.mkv')) { return $null }
   $f = Join-Path $d $arq; if (Test-Path -LiteralPath $f -PathType Leaf) { return $f } else { return $null }
 }
 function RevisaoLer($d) { $f = Join-Path $d 'revisao.json'; try { if (Test-Path -LiteralPath $f) { return @((Get-Content -LiteralPath $f -Raw -Encoding UTF8 | ConvertFrom-Json).manter) } } catch {}; return @() }
@@ -62,7 +63,7 @@ function ClipesLista {
     if (-not (Test-Path -LiteralPath $raizes[$i].p)) { continue }
     $pastas = @(@{ nome = ''; d = $raizes[$i].p }) + @(Get-ChildItem -LiteralPath $raizes[$i].p -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '^[._]' } | ForEach-Object { @{ nome = $_.Name; d = $_.FullName } })
     foreach ($pa in $pastas) {
-      $vs = @(Get-ChildItem -LiteralPath $pa.d -Filter *.mp4 -File -ErrorAction SilentlyContinue | Sort-Object Name)
+      $vs = @(Get-ChildItem -LiteralPath $pa.d -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in @('.mp4', '.mkv') } | Sort-Object Name)
       if (-not $vs.Count) { continue }
       $man = RevisaoLer $pa.d
       $out += @{ r = $i; grupo = $raizes[$i].n; pasta = $pa.nome; quando = ($vs | Measure-Object -Property LastWriteTime -Maximum).Maximum.ToString('yyyy-MM-ddTHH:mm:ss');
@@ -75,7 +76,7 @@ function MandarVideo($ctx, $f) {
   $fs = [IO.File]::OpenRead($f)
   try {
     $tam = $fs.Length; $ini = [long]0; $fim = $tam - 1; $r = $ctx.Response
-    $r.Headers['Access-Control-Allow-Origin'] = '*'; $r.Headers['Accept-Ranges'] = 'bytes'; $r.ContentType = 'video/mp4'
+    $r.Headers['Access-Control-Allow-Origin'] = '*'; $r.Headers['Accept-Ranges'] = 'bytes'; $r.ContentType = 'video/mp4'; if ($f -like '*.mkv') { $r.ContentType = 'video/webm' }
     $rg = [string]$ctx.Request.Headers['Range']
     if ($rg -match 'bytes=(\d*)-(\d*)') {
       if ($matches[1]) { $ini = [long]$matches[1] }; if ($matches[2]) { $fim = [long]$matches[2] }
@@ -282,7 +283,7 @@ function CfgStream {
   return $c
 }
 function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | Out-Null; [IO.File]::WriteAllText($cfgStreamF, ($c | ConvertTo-Json -Depth 4), [Text.Encoding]::UTF8) }
-$script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false; $script:gravAnt = $false
+$script:jogoGrav = ''; $script:dirGrav = ''; $script:jogoAnt = ''; $script:cenaQuandoAbriu = ''; $script:autoPend = $false; $script:gravAnt = $false
 # Captura do jogo (e não da tela inteira): cria "Jogo: Street Fighter 6", "Jogo: Valorant" e "Jogo (tela cheia)"
 # nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
 $capOkF = Join-Path $aqui 'captura_jogo_ok4.txt'
@@ -342,10 +343,13 @@ function Tique {
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
+  if ($grav -and ($jogo -eq 'sf6' -or $jogo -eq 'valorant')) { $script:jogoGrav = $jogo }
+  if ($grav -and -not $script:gravAnt) { $script:dirGrav = ''; try { $script:dirGrav = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory } catch {} }
   if ($script:gravAnt -and -not $grav) {
-    $cm = Join-Path $SCR 'cortar_marcas.py'; $py = (PyDe $false)
-    $cv = Join-Path $PASTA_VAL '_analisador\cortar.py'
-    if ($py -and (Test-Path $cm)) { Start-Process cmd.exe -WindowStyle Minimized -ArgumentList ('/c timeout /t 15 /nobreak >nul & "' + $py + '" "' + $cm + '" & timeout /t 50 /nobreak >nul & "' + $py + '" "' + $cv + '"') }
+    # fim da gravação: momentos do F9 e, se foi SF6 ou Valorant, põe na pasta do jogo e corta
+    $pg = Join-Path $SCR 'pos_gravacao.py'; $py = (PyDe $false)
+    if ($py -and (Test-Path $pg)) { Start-Process $py -WindowStyle Minimized -ArgumentList ('"' + $pg + '" "' + $script:jogoGrav + '" "' + ($script:dirGrav -replace '/', '\') + '"') }
+    $script:jogoGrav = ''
   }
   $script:gravAnt = $grav
   # encerrar a live: depois da contagem, para a stream e a gravação
@@ -589,6 +593,13 @@ while ($http.IsListening) {
           } else { Json $ctx @{ ok = $false; msg = 'acao' } }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/obs/cortar' {
+        # botão "Cortar" da Central: pega a gravação mais recente, põe na pasta do jogo e roda o cortador
+        $jg = [string]$q['jogo']; $pg = Join-Path $SCR 'pos_gravacao.py'; $py = (PyDe $false)
+        if ($jg -notin @('sf6', 'valorant')) { Json $ctx @{ ok = $false; msg = 'jogo' }; continue }
+        if (-not $py -or -not (Test-Path $pg)) { Json $ctx @{ ok = $false; msg = 'Python ou pos_gravacao.py não encontrado (rode o Instalar ferramentas.bat)' }; continue }
+        Start-Process $py -WindowStyle Minimized -ArgumentList ('"' + $pg + '" "' + $jg + '"'); Json $ctx @{ ok = $true }
+      }
       '/obs/marcar' {
         $py = (PyDe $true); $sc = Join-Path $SCR 'atalho_momento.py'
         if ($py -and (Test-Path $sc)) { Start-Process $py -ArgumentList ('"' + $sc + '" --agora') -WindowStyle Hidden; Json $ctx @{ ok = $true } } else { Json $ctx @{ ok = $false; msg = 'Python ou o script não encontrado' } }
@@ -670,7 +681,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 33 } }
+      default  { Json $ctx @{ ok = $true; versao = 34 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

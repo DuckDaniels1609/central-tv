@@ -1350,15 +1350,15 @@ body.menu-mini .versao { display: none; }
     $('cl-st').textContent = tot ? tot + ' clipes · ' + pend + ' para revisar. "Apagar" manda para a Lixeira do Windows (dá para recuperar).' : 'Nenhum clipe por enquanto. Eles aparecem aqui depois de gravar Valorant ou marcar momentos com o F9.';
     var cats = {}; CL.forEach(function (g, gi) { g.clipes.forEach(function (c, ci) { var k = clCat(g, c); (cats[k] = cats[k] || []).push({ g: g, gi: gi, c: c, ci: ci }); }); });
     $('cl-cats').innerHTML = [['todos', 'Todos']].concat(CL_CATS).filter(function (k) { return k[0] === 'todos' || cats[k[0]]; }).map(function (k) { var n = k[0] === 'todos' ? tot : cats[k[0]].length; return '<button class="chip" data-clcat="' + k[0] + '" aria-pressed="' + (clCatSel === k[0]) + '">' + k[1] + ' <small>' + n + '</small></button>'; }).join('');
-    var card = function (x) { var c = x.c, g = x.g; return '<div class="cl-it' + (c.manter ? ' mantido' : '') + '"><video preload="metadata" controls src="' + esc(clUrl('video', g, '&arq=' + encodeURIComponent(c.arq))) + '#t=0.5"></video><div class="cl-pe"><b title="' + esc(c.arq) + '">' + esc(c.arq.replace(/\.mp4$/i, '')) + '</b><small>' + esc(g.pasta || g.grupo) + ' · ' + c.mb + ' MB' + (c.manter ? ' · ✓ mantido' : '') + '</small><div class="row"><button class="btn sm" data-cl="manter" data-g="' + x.gi + '" data-c="' + x.ci + '">' + (c.manter ? '↺ Desfazer' : '✓ Manter') + '</button><button class="btn sm apaga" data-cl="apagar" data-g="' + x.gi + '" data-c="' + x.ci + '">🗑 Apagar</button></div></div></div>'; };
+    var card = function (x) { var c = x.c, g = x.g; return '<div class="cl-it' + (c.manter ? ' mantido' : '') + '"><video preload="metadata" controls src="' + esc(clUrl('video', g, '&arq=' + encodeURIComponent(c.arq))) + '#t=0.5"></video><div class="cl-pe"><b title="' + esc(c.arq) + '">' + esc(c.arq.replace(/\.(mp4|mkv)$/i, '')) + '</b><small>' + esc(g.pasta || g.grupo) + ' · ' + c.mb + ' MB' + (c.manter ? ' · ✓ mantido' : '') + '</small><div class="row"><button class="btn sm" data-cl="manter" data-g="' + x.gi + '" data-c="' + x.ci + '">' + (c.manter ? '↺ Desfazer' : '✓ Manter') + '</button><button class="btn sm apaga" data-cl="apagar" data-g="' + x.gi + '" data-c="' + x.ci + '">🗑 Apagar</button></div></div></div>'; };
     $('cl-lista').innerHTML = CL_CATS.filter(function (k) { return cats[k[0]] && (clCatSel === 'todos' || clCatSel === k[0]); }).map(function (k) {
       var L = cats[k[0]].filter(function (x) { return !so || !x.c.manter; }); if (!L.length) return '';
       L.sort(function (a, b) { return (b.g.quando || '') < (a.g.quando || '') ? -1 : (b.g.quando || '') > (a.g.quando || '') ? 1 : a.ci - b.ci; });
       return '<div class="cl-grupo"><h4>' + k[1] + ' <small>' + L.length + (so ? ' para revisar' : '') + '</small></h4><div class="cl-grade">' + L.map(card).join('') + '</div></div>';
     }).join('') || (tot ? '<p class="note">Nada aqui. 🎉 Desmarque "Só os que faltam revisar" para ver os mantidos.</p>' : '');
   }
-  var CL_CATS = [['rod', '🎯 Rodadas (abates e mortes)'], ['comp', '🎬 Compilados'], ['multi', '🔥 Multi-abates'], ['mom', '😂 Momentos (F9)'], ['teste', '🧪 Testes'], ['outro', 'Outros']], clCatSel = 'todos';
-  function clCat(g, c) { var n = c.arq.toLowerCase(); if (/teste/i.test(g.grupo) || /teste/i.test(g.pasta)) return 'teste'; if (/momento/i.test(g.grupo)) return 'mom'; if (n.indexOf('rodadas') === 0) return 'rod'; if (n.indexOf('compilado') === 0) return 'comp'; if (n.indexOf('multi') === 0) return 'multi'; return 'outro'; }
+  var CL_CATS = [['sf6', '🥊 Lutas do SF6'], ['rod', '🎯 Rodadas (abates e mortes)'], ['comp', '🎬 Compilados'], ['multi', '🔥 Multi-abates'], ['mom', '😂 Momentos (F9)'], ['teste', '🧪 Testes'], ['outro', 'Outros']], clCatSel = 'todos';
+  function clCat(g, c) { var n = c.arq.toLowerCase(); if (/teste/i.test(g.grupo) || /teste/i.test(g.pasta)) return 'teste'; if (/momento/i.test(g.grupo)) return 'mom'; if (/street/i.test(g.grupo)) return 'sf6'; if (n.indexOf('rodadas') === 0) return 'rod'; if (n.indexOf('compilado') === 0) return 'comp'; if (n.indexOf('multi') === 0) return 'multi'; return 'outro'; }
   document.addEventListener('click', function (e) { var b = e.target.closest('[data-clcat]'); if (b) { clCatSel = b.dataset.clcat; clDesenhar(); } });
   function clAbrir(on) { document.body.classList.toggle('cl-on', on); $('cl-painel').hidden = !on; if (on) clCarregar(); else { $('cl-lista').innerHTML = ''; obsDesenhar(); } }
   document.addEventListener('click', function (e) {
@@ -1384,10 +1384,19 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.22';
+  var VERSAO_PC = '2026-11-01.1';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
+  /* botões "Cortar": pega a gravação mais recente, põe na pasta do jogo e roda o cortador */
+  function obsCortarBt() { return '<span class="sep2"></span><span class="lbl">Cortar a última gravação:</span><button class="btn obs-tr" data-obscortar="sf6">✂ Lutas do SF6</button><button class="btn obs-tr" data-obscortar="valorant">✂ Clipes do Valorant</button>'; }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-obscortar]'); if (!b) return;
+    var nome = b.dataset.obscortar === 'sf6' ? 'Street Fighter 6' : 'Valorant'; b.disabled = true;
+    fetch(AJ + '/obs/cortar?k=' + ajK() + '&jogo=' + b.dataset.obscortar).then(function (r) { return r.json(); }).then(function (j) {
+      $('obs-nota').textContent = j.ok ? 'Cortando a última gravação (' + nome + '). Abriu uma janela minimizada na barra de tarefas com o andamento; leva alguns minutos. Depois veja em "🎬 Revisar clipes".' : 'Não deu: ' + (j.msg || '');
+    }).catch(function () { $('obs-nota').textContent = 'O ajudante não respondeu.'; }).then(function () { setTimeout(function () { b.disabled = false; }, 5000); });
+  });
   function obsCarregar(forcar) {
     if (OBS.d && !forcar) { obsDesenhar(); return; }
     $('obs-st').textContent = 'Lendo o OBS…';
@@ -1526,7 +1535,7 @@ body.menu-mini .versao { display: none; }
     if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
     if (!j.aberto) {
       tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz'; bt.innerHTML = '';
-      var gbf = $('obs-grav'); if (gbf && !obsAbrindo) gbf.innerHTML = '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button><span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('');
+      var gbf = $('obs-grav'); if (gbf && !obsAbrindo) gbf.innerHTML = '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button><span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt();
       return;
     }
     if (j.erro) { tx.textContent = 'OBS aberto, mas não consegui falar com ele (' + j.erro + ')'; luz.className = 'obs-luz amarelo'; bt.innerHTML = ''; return; }
@@ -1541,8 +1550,8 @@ body.menu-mini .versao { display: none; }
     var marcar = j.gravando ? '<button class="btn obs-tr marca" data-obsmarca="1">⭐ Marcar momento (' + esc((obsCfg && obsCfg.tecla) || 'F9') + ')</button>' : '';
     if (gb && j.aoVivo) { gb.innerHTML = (enc !== null ? '<span class="obs-enc">Encerrando em ' + Math.floor(enc / 60) + ':' + ('0' + enc % 60).slice(-2) + '</span><button class="btn obs-tr" data-obsenc="cancelar">Cancelar</button><button class="btn obs-tr grav on" data-obsenc="ja">Encerrar já</button>'
         : '<button class="btn obs-tr grav on" data-obsenc="iniciar">🏁 Encerrar live (tela End + 3 min)</button>') + marcar + info + '<span class="note">Vai ao ar a cena que estiver selecionada. No fim: SF6 cortado partida a partida, Valorant com clipes de multi-abate, e os momentos do F9 viram clipes.</span>'; }
-    else if (gb) gb.innerHTML = (j.gravando ? marcar : '') + (j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, ' + (gravJogo === 'Street Fighter 6' ? 'as lutas são separadas e cortadas sozinhas.' : (gravJogo === 'Valorant' ? 'o vídeo fica inteiro e os multi-abates viram clipes.' : 'o vídeo fica salvo.')) + '</span>'
-      : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join(''));
+    else if (gb) gb.innerHTML = (j.gravando ? marcar : '') + (j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, o ajudante vê qual jogo estava aberto: SF6 tem as lutas cortadas, Valorant vira clipes (e o vídeo fica inteiro).' + '</span>'
+      : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt());
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obstroca]'); if (!b) return;
@@ -1617,7 +1626,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 33 && !sessionStorage.getItem('aj-reiniciou-33')) { sessionStorage.setItem('aj-reiniciou-33', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 34 && !sessionStorage.getItem('aj-reiniciou-34')) { sessionStorage.setItem('aj-reiniciou-34', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
