@@ -151,6 +151,12 @@ html, body { height: 100%; margin: 0; }
 .hj-grid.editando .bloco.oculto { display: flex; opacity: .45; }
 .hj-ocultos { grid-column: 1 / -1; }
 .bloco { background: var(--panel2); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; }
+.bloco > * { flex-shrink: 0; }   /* as linhas crescem com o texto; o bloco rola */
+.it .t, .tr .t { line-height: 1.3; overflow-wrap: break-word; }
+.it2 .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.it2 .tx small { font-size: 12px; color: var(--muted); }
+.it2 .tx small .dt { font-size: 12px; }
+.it .h { line-height: 1.2; }
 .bloco h3, .grupo h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .grupo h3 small { color: var(--muted); font-weight: 500; }
 .it, .tr { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: #1B1842; font-size: 15px; min-height: 44px; }
@@ -1384,7 +1390,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.1';
+  var VERSAO_PC = '2026-11-01.2';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1785,7 +1791,7 @@ body.menu-mini .versao { display: none; }
     el.innerHTML =
       '<section class="bloco" data-bl="agenda"><h3>Hoje na agenda' + BLCTL + '</h3>' + (reun.length ? reun.map(function (x) { return linhaItem(x); }).join('') : '<p class="note">Nada marcado para hoje.</p>') + '</section>' +
       '<section class="bloco" data-bl="tarefas"><h3>Tarefas para agora' + BLCTL + '</h3>' + (tar.length ? tar.map(function (t) {
-        var at = t.data && t.data < hj; return '<div class="it"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button><span class="h" style="color:' + cat(t.cat)[2] + '">' + cat(t.cat)[1] + '</span><span class="t">' + esc((t.cli ? t.cli + ': ' : '') + t.t) + '</span>' + (t.data ? '<span class="dt' + (at ? ' atraso' : '') + '">' + (at ? 'atrasada · ' : '') + dmy(t.data) + '</span>' : '') + '</div>';
+        var at = t.data && t.data < hj; return '<div class="it it2"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button><div class="tx"><span class="t">' + esc((t.cli ? t.cli + ': ' : '') + t.t) + '</span><small><b style="color:' + cat(t.cat)[2] + '">' + cat(t.cat)[1] + '</b>' + (t.data ? ' · <span class="dt' + (at ? ' atraso' : '') + '">' + (at ? 'atrasada · ' : '') + dmy(t.data) + '</span>' : '') + '</small></div></div>';
       }).join('') : '<p class="note">Nada pendente. ✓</p>') + '</section>' +
       '<section class="bloco" data-bl="proximos"><h3>Próximos 14 dias' + BLCTL + '</h3>' + (prox.length ? prox.slice(0, 14).map(function (p) { return '<div class="it"><span class="dia">' + dmy(p.dia) + '</span><i class="bolinha" style="background:' + CORES[p.x.k] + '"></i><span class="t">' + esc(p.x.t) + '</span></div>'; }).join('') : '<p class="note">Nada nos próximos dias.</p>') + '</section>';
     hjAplicar(); retroCuidar();
