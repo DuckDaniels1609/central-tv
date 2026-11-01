@@ -1384,7 +1384,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.18';
+  var VERSAO_PC = '2026-10-31.19';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -2381,7 +2381,8 @@ body.menu-mini .versao { display: none; }
     }
   });
   /* Crunchyroll: onde assistir (lista de streaming do MAL, pela API pública Jikan); guardado 30 dias */
-  var CR = {}; try { CR = JSON.parse(localStorage.getItem('an-cr') || '{}'); } catch (e) {}
+  var CR = {}; try { CR = JSON.parse(localStorage.getItem('an-cr2') || '{}'); } catch (e) {}
+  var crInfo = { ok: 0, com: 0, erro: '' };
   var crFila = [], crAt = false, crT, anCR = false;
   function crDe(id) {
     var c = CR[id]; if (c && Date.now() - c.em < (c.u ? 30 : 7) * 864e5) return c;
@@ -2389,12 +2390,12 @@ body.menu-mini .versao { display: none; }
   }
   function crProx() {
     if (crAt || !crFila.length) return; crAt = true; var id = crFila.shift();
-    fetch(ajBase() + '/jikan?k=' + (window.AJUDANTE_CHAVE || '') + '&id=' + id).then(function (r) { if (r.status === 429) { crFila.unshift(id); throw new Error('espera'); } if (!r.ok) throw new Error('http'); return r.json(); }).then(function (j) {
+    fetch(ajBase() + '/jikan?k=' + (window.AJUDANTE_CHAVE || '') + '&id=' + id).then(function (r) { if (r.status === 429) { crFila.unshift(id); throw new Error('espera'); } if (!r.ok) return r.text().then(function (t) { throw new Error('HTTP ' + r.status + ' ' + t.slice(0, 80)); }); return r.json(); }).then(function (j) {
       var x = (j.data || []).filter(function (s2) { return /crunchyroll/i.test(s2.name || ''); })[0];
       CR[id] = { u: x ? (x.url || 'https://www.crunchyroll.com/') : '', em: Date.now() };
-      try { localStorage.setItem('an-cr', JSON.stringify(CR)); } catch (e) {}
+      try { localStorage.setItem('an-cr2', JSON.stringify(CR)); } catch (e) {} crInfo.ok++; if (x) crInfo.com++; crInfo.erro = '';
       clearTimeout(crT); crT = setTimeout(function () { var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); }, 900);
-    }).catch(function () {}).then(function () { setTimeout(function () { crAt = false; crProx(); }, 1200); });
+    }).catch(function (e) { crInfo.erro = e.message; var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); }).then(function () { setTimeout(function () { crAt = false; crProx(); }, 1200); });
   }
   function crSelo(id) { var c = crDe(id); return c && c.u ? '<a class="cr-selo" href="' + esc(c.u) + '" target="_blank" rel="noopener" title="Assistir na Crunchyroll" aria-label="Assistir na Crunchyroll">▶</a>' : ''; }
   function desenharAnime() {
@@ -2402,7 +2403,7 @@ body.menu-mini .versao { display: none; }
     var L = MAL.anime || [];
     if (!MAL.ok && !L.length) { el.innerHTML = '<p class="note">Conecte o seu MyAnimeList em <b>Personalizar → MyAnimeList</b> para ver seus animes aqui.</p>'; $('an-resumo').textContent = ''; $('an-filtros').innerHTML = ''; $('an-det').innerHTML = '<p class="note" style="margin:0">Depois de conectar, clique na capa de um anime para ver a descrição, mudar o status e dar nota.</p>'; return; }
     var cont = {}; AN_ST.forEach(function (s2) { cont[s2[0]] = L.filter(function (x) { return x.st === s2[0]; }).length; });
-    $('an-resumo').textContent = L.length + ' animes na sua lista' + (MAL.usuario ? ' · ' + MAL.usuario : '');
+    $('an-resumo').textContent = L.length + ' animes na sua lista' + (MAL.usuario ? ' · ' + MAL.usuario : '') + ' · Crunchyroll: ' + crInfo.com + ' de ' + crInfo.ok + ' conferidos' + (crInfo.erro ? ' (erro: ' + crInfo.erro + ')' : '');
     var gens = {}; L.forEach(function (x) { (x.gen || []).forEach(function (g) { gens[g] = (gens[g] || 0) + 1; }); });
     var gl = Object.keys(gens).sort(function (a, b) { return genPt(a).localeCompare(genPt(b), 'pt'); });
     if (anSt === 'season') { desenharTemporada(L); return; }
