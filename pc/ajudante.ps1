@@ -294,7 +294,7 @@ function CapturaJogo {
     @{ n = 'Jogo: Valorant'; k = 'game_capture'; s = @{ capture_mode = 'window'; window = 'VALORANT::VALORANT-Win64-Shipping.exe'; priority = 2; capture_cursor = $false; anti_cheat_hook = $true } },
     @{ n = 'Jogo: Street Fighter 6'; k = 'game_capture'; s = @{ capture_mode = 'window'; window = 'Street Fighter 6::StreetFighter6.exe'; priority = 2; capture_cursor = $false; anti_cheat_hook = $true } }
   )
-  $cenas = @('Clean', ('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'), 'Main Right', 'Jogos de Luta')
+  $cenas = @(('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'), 'Main Right', 'Jogos de Luta')
   $log = @()
   $ex = @((ObsWs @(@{ t = 'GetInputList' }))[0].responseData.inputs | ForEach-Object { $_.inputName })
   foreach ($cena in $cenas) {
@@ -612,8 +612,9 @@ while ($http.IsListening) {
         try {
           if ($q['acao'] -eq 'iniciar') {
             New-Item -ItemType Directory -Force -Path $PASTA_LIVES | Out-Null
-            $r = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = 'Clean' } }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $PASTA_LIVES } }, @{ t = 'StartRecord' }, @{ t = 'StartStream' })
-            Json $ctx @{ ok = [bool]$r[3].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
+            # usa a cena que estiver no ar (Main Right / Jogos de Luta com câmera, Só gravação só o jogo)
+            $r = ObsWs @(@{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $PASTA_LIVES } }, @{ t = 'StartRecord' }, @{ t = 'StartStream' })
+            Json $ctx @{ ok = [bool]$r[2].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
           } elseif ($q['acao'] -eq 'parar') {
             $r = ObsWs @(@{ t = 'StopStream' }, @{ t = 'StopRecord' })
             Json $ctx @{ ok = [bool]$r[0].requestStatus.result -or [bool]$r[1].requestStatus.result; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
@@ -655,7 +656,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 30 } }
+      default  { Json $ctx @{ ok = $true; versao = 31 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
