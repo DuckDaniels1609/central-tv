@@ -1384,7 +1384,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.17';
+  var VERSAO_PC = '2026-10-31.18';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1617,7 +1617,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 31 && !sessionStorage.getItem('aj-reiniciou-31')) { sessionStorage.setItem('aj-reiniciou-31', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 32 && !sessionStorage.getItem('aj-reiniciou-32')) { sessionStorage.setItem('aj-reiniciou-32', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
@@ -2389,7 +2389,7 @@ body.menu-mini .versao { display: none; }
   }
   function crProx() {
     if (crAt || !crFila.length) return; crAt = true; var id = crFila.shift();
-    fetch('https://api.jikan.moe/v4/anime/' + id + '/streaming').then(function (r) { if (r.status === 429) { crFila.unshift(id); throw new Error('espera'); } if (!r.ok) throw new Error('http'); return r.json(); }).then(function (j) {
+    fetch(ajBase() + '/jikan?k=' + (window.AJUDANTE_CHAVE || '') + '&id=' + id).then(function (r) { if (r.status === 429) { crFila.unshift(id); throw new Error('espera'); } if (!r.ok) throw new Error('http'); return r.json(); }).then(function (j) {
       var x = (j.data || []).filter(function (s2) { return /crunchyroll/i.test(s2.name || ''); })[0];
       CR[id] = { u: x ? (x.url || 'https://www.crunchyroll.com/') : '', em: Date.now() };
       try { localStorage.setItem('an-cr', JSON.stringify(CR)); } catch (e) {}
