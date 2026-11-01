@@ -631,6 +631,7 @@ body.menu-mini .versao { display: none; }
       <span class="note" id="obs-nota"></span>
       <div class="cl-painel" id="cl-painel" hidden>
         <div class="row" style="gap:8px;align-items:center"><button class="btn" id="cl-voltar">← Voltar às cenas</button><span class="note" id="cl-st" style="flex:1"></span><label class="row" style="gap:6px;font-size:13px"><input type="checkbox" id="cl-so-pend" checked> Só os que faltam revisar</label></div>
+        <div class="row" id="cl-cats" style="gap:6px;flex-wrap:wrap"></div>
         <div id="cl-lista" class="cl-lista"></div>
       </div>
     </div>
@@ -1344,14 +1345,18 @@ body.menu-mini .versao { display: none; }
     var so = $('cl-so-pend').checked, tot = 0, pend = clPend();
     CL.forEach(function (g) { tot += g.clipes.length; });
     $('cl-st').textContent = tot ? tot + ' clipes · ' + pend + ' para revisar. "Apagar" manda para a Lixeira do Windows (dá para recuperar).' : 'Nenhum clipe por enquanto. Eles aparecem aqui depois de gravar Valorant ou marcar momentos com o F9.';
-    $('cl-lista').innerHTML = CL.map(function (g, gi) {
-      var L = g.clipes.map(function (c, ci) { return { c: c, ci: ci }; }).filter(function (x) { return !so || !x.c.manter; });
-      if (!L.length) return '';
-      var d = new Date(g.quando);
-      return '<div class="cl-grupo"><h4>' + esc(g.grupo) + (g.pasta ? ' · ' + esc(g.pasta) : '') + ' <small>' + d.toLocaleDateString('pt-BR') + ' · ' + g.clipes.length + ' clipes</small></h4><div class="cl-grade">' +
-        L.map(function (x) { var c = x.c; return '<div class="cl-it' + (c.manter ? ' mantido' : '') + '"><video preload="metadata" controls src="' + esc(clUrl('video', g, '&arq=' + encodeURIComponent(c.arq))) + '#t=0.5"></video><div class="cl-pe"><b title="' + esc(c.arq) + '">' + esc(c.arq.replace(/\.mp4$/i, '')) + '</b><small>' + c.mb + ' MB' + (c.manter ? ' · ✓ mantido' : '') + '</small><div class="row"><button class="btn sm" data-cl="manter" data-g="' + gi + '" data-c="' + x.ci + '">' + (c.manter ? '↺ Desfazer' : '✓ Manter') + '</button><button class="btn sm apaga" data-cl="apagar" data-g="' + gi + '" data-c="' + x.ci + '">🗑 Apagar</button></div></div></div>'; }).join('') + '</div></div>';
-    }).join('') || (tot ? '<p class="note">Tudo revisado. 🎉 Desmarque "Só os que faltam revisar" para ver os mantidos.</p>' : '');
+    var cats = {}; CL.forEach(function (g, gi) { g.clipes.forEach(function (c, ci) { var k = clCat(g, c); (cats[k] = cats[k] || []).push({ g: g, gi: gi, c: c, ci: ci }); }); });
+    $('cl-cats').innerHTML = [['todos', 'Todos']].concat(CL_CATS).filter(function (k) { return k[0] === 'todos' || cats[k[0]]; }).map(function (k) { var n = k[0] === 'todos' ? tot : cats[k[0]].length; return '<button class="chip" data-clcat="' + k[0] + '" aria-pressed="' + (clCatSel === k[0]) + '">' + k[1] + ' <small>' + n + '</small></button>'; }).join('');
+    var card = function (x) { var c = x.c, g = x.g; return '<div class="cl-it' + (c.manter ? ' mantido' : '') + '"><video preload="metadata" controls src="' + esc(clUrl('video', g, '&arq=' + encodeURIComponent(c.arq))) + '#t=0.5"></video><div class="cl-pe"><b title="' + esc(c.arq) + '">' + esc(c.arq.replace(/\.mp4$/i, '')) + '</b><small>' + esc(g.pasta || g.grupo) + ' · ' + c.mb + ' MB' + (c.manter ? ' · ✓ mantido' : '') + '</small><div class="row"><button class="btn sm" data-cl="manter" data-g="' + x.gi + '" data-c="' + x.ci + '">' + (c.manter ? '↺ Desfazer' : '✓ Manter') + '</button><button class="btn sm apaga" data-cl="apagar" data-g="' + x.gi + '" data-c="' + x.ci + '">🗑 Apagar</button></div></div></div>'; };
+    $('cl-lista').innerHTML = CL_CATS.filter(function (k) { return cats[k[0]] && (clCatSel === 'todos' || clCatSel === k[0]); }).map(function (k) {
+      var L = cats[k[0]].filter(function (x) { return !so || !x.c.manter; }); if (!L.length) return '';
+      L.sort(function (a, b) { return (b.g.quando || '') < (a.g.quando || '') ? -1 : (b.g.quando || '') > (a.g.quando || '') ? 1 : a.ci - b.ci; });
+      return '<div class="cl-grupo"><h4>' + k[1] + ' <small>' + L.length + (so ? ' para revisar' : '') + '</small></h4><div class="cl-grade">' + L.map(card).join('') + '</div></div>';
+    }).join('') || (tot ? '<p class="note">Nada aqui. 🎉 Desmarque "Só os que faltam revisar" para ver os mantidos.</p>' : '');
   }
+  var CL_CATS = [['comp', '🎬 Compilados'], ['multi', '🔥 Multi-abates'], ['mom', '😂 Momentos (F9)'], ['teste', '🧪 Testes'], ['outro', 'Outros']], clCatSel = 'todos';
+  function clCat(g, c) { var n = c.arq.toLowerCase(); if (/teste/i.test(g.grupo) || /teste/i.test(g.pasta)) return 'teste'; if (/momento/i.test(g.grupo)) return 'mom'; if (n.indexOf('compilado') === 0) return 'comp'; if (n.indexOf('multi') === 0) return 'multi'; return 'outro'; }
+  document.addEventListener('click', function (e) { var b = e.target.closest('[data-clcat]'); if (b) { clCatSel = b.dataset.clcat; clDesenhar(); } });
   function clAbrir(on) { document.body.classList.toggle('cl-on', on); $('cl-painel').hidden = !on; if (on) clCarregar(); else { $('cl-lista').innerHTML = ''; obsDesenhar(); } }
   document.addEventListener('click', function (e) {
     if (e.target.closest('#cl-abrir')) { clAbrir(!document.body.classList.contains('cl-on')); return; }
@@ -1376,7 +1381,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.14';
+  var VERSAO_PC = '2026-10-31.15';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
