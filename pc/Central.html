@@ -1408,7 +1408,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.7';
+  var VERSAO_PC = '2026-11-01.8';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1567,7 +1567,9 @@ body.menu-mini .versao { display: none; }
     nomes = nomes.filter(function (n) { return n !== 'Base'; });
     if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
     if (!j.aberto) {
-      tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz'; bt.innerHTML = '';
+      tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz';
+      bt.innerHTML = nomes.length ? '<div class="ctl-gr"><span class="lbl">Cena no ar</span><div class="row">' + nomes.map(function (n) { return '<button class="btn obs-tr" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div><span class="note">Clicar numa cena abre o OBS e já coloca ela no ar.</span></div>' +
+        '<div class="ctl-gr"><span class="lbl">Imagem do jogo · Câmera · Som · Camadas</span><span class="note">Esses botões aparecem quando o OBS estiver aberto (eles mostram o que está ligado agora).</span><div class="row"><button class="btn prim" data-obsabrir="1">Abrir o OBS</button></div></div>' : '';
       var gbf = $('obs-grav'); if (gbf && !obsAbrindo) gbf.innerHTML = '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button><span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt();
       return;
     }
@@ -1592,8 +1594,10 @@ body.menu-mini .versao { display: none; }
       : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt());
   }
   document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-obsabrir]')) { comObs(function () {}); return; }
     var b = e.target.closest('[data-obstroca]'); if (!b) return;
     var n = b.dataset.obstroca; b.disabled = true;
+    if (!(obsEst && obsEst.aberto && !obsEst.erro)) { comObs(function () { fetch(AJ + '/obs/cena?k=' + ajK() + '&nome=' + encodeURIComponent(n)).then(function () { setTimeout(obsEstado, 600); }); }); return; }
     fetch(AJ + '/obs/cena?k=' + ajK() + '&nome=' + encodeURIComponent(n)).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.ok) $('obs-nota').textContent = 'Não troquei: ' + (j.msg || 'erro'); else { if (obsEst) obsEst.cena = n; OBS.cena = n; obsDesenhar(); }
       obsDesenharAr(); setTimeout(obsEstado, 600);
