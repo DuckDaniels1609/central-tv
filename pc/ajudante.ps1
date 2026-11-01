@@ -640,6 +640,31 @@ while ($http.IsListening) {
         if ($m -in @('auto', 'valorant', 'sf6', 'ps5', 'tela')) { $script:fonteModo = $m; $alvoF = $m; if ($m -eq 'auto') { $alvoF = JogoAlvo }; try { FonteAplicar $alvoF } catch {} }
         Json $ctx @{ ok = $true; modo = $script:fonteModo; atual = $script:fonteAplicada }
       }
+      '/obs/camadas' {
+        # camadas da cena no ar (para mostrar/ocultar) e as fontes de som com mudo/ligado
+        try {
+          $cena = [string](ObsWs @(@{ t = 'GetCurrentProgramScene' }))[0].responseData.currentProgramSceneName
+          $its = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0].responseData.sceneItems)
+          $audK = @('wasapi_input_capture', 'wasapi_output_capture', 'wasapi_process_output_capture', 'coreaudio_input_capture', 'pulse_input_capture')
+          $vis = @($its | Where-Object { $audK -notcontains $_.inputKind } | ForEach-Object { @{ id = [int]$_.sceneItemId; nome = [string]$_.sourceName; on = [bool]$_.sceneItemEnabled } })
+          $aud = @($its | Where-Object { $audK -contains $_.inputKind -and $_.sceneItemEnabled } | ForEach-Object { [string]$_.sourceName })
+          $sons = @()
+          if ($aud.Count) { $rm = ObsWs @($aud | ForEach-Object { @{ t = 'GetInputMute'; d = @{ inputName = $_ } } }); for ($i = 0; $i -lt $aud.Count; $i++) { $sons += @{ nome = $aud[$i]; mudo = [bool]$rm[$i].responseData.inputMuted } } }
+          [array]::Reverse($vis)
+          Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @{ ok = $true; cena = $cena; camadas = @($vis); sons = @($sons) } -Depth 5 -Compress)))
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
+      '/obs/camada' {
+        try {
+          $cena = [string](ObsWs @(@{ t = 'GetCurrentProgramScene' }))[0].responseData.currentProgramSceneName
+          $r = (ObsWs @(@{ t = 'SetSceneItemEnabled'; d = @{ sceneName = $cena; sceneItemId = [int]$q['id']; sceneItemEnabled = ($q['on'] -eq '1') } }))[0]
+          Json $ctx @{ ok = [bool]$r.requestStatus.result; msg = [string]$r.requestStatus.comment }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
+      '/obs/mudo' {
+        try { $r = (ObsWs @(@{ t = 'ToggleInputMute'; d = @{ inputName = [string]$q['fonte'] } }))[0]; Json $ctx @{ ok = [bool]$r.requestStatus.result; mudo = [bool]$r.responseData.inputMuted; msg = [string]$r.requestStatus.comment } }
+        catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/amigos' {
         # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
         try {
@@ -716,7 +741,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 36 } }
+      default  { Json $ctx @{ ok = $true; versao = 37 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
