@@ -422,6 +422,9 @@ body.cl-on #meio-stream > :not(.banner):not(#cl-painel) { display: none !importa
 .retro .rt-nums b { font-size: 22px; line-height: 1.1; }
 .retro .rt-nums span { font-size: 12px; opacity: .8; }
 .retro .rt-dest { font-size: 13px; opacity: .9; display: flex; flex-direction: column; gap: 3px; }
+.cr-selo { font-size: 12px; font-weight: 800; width: 28px; height: 28px; display: inline-grid; place-items: center; flex: none; border-radius: 999px; background: #F47521; color: #fff; text-decoration: none; white-space: nowrap; }
+.cr-selo:hover { filter: brightness(1.1); }
+.cr-chip[aria-pressed="true"] { background: #F47521; color: #fff; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -1381,7 +1384,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-10-31.16';
+  var VERSAO_PC = '2026-10-31.17';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -2346,7 +2349,7 @@ body.menu-mini .versao { display: none; }
       return '<div class="lv' + (tempSel === x.id ? ' sel' : '') + '"><button class="lv-capa tem" data-a="tempSel" data-v="' + x.id + '" style="background-image:url(&quot;' + esc(x.img) + '&quot;)" aria-label="Detalhes de ' + esc(x.t) + '"><i class="tp">' + esc((x.tipo || '').toUpperCase()) + '</i></button>' +
         '<div class="lv-tx"><b title="' + esc(x.t) + '">' + esc(x.en || x.t) + '</b>' + (x.en && x.en !== x.t ? '<small class="sub2">' + esc(x.t) + '</small>' : '') +
         '<span class="cap">' + (x.nota ? '<span class="nota">★ ' + (+x.nota).toFixed(2) + '</span>' : '<span class="note">sem nota ainda</span>') + (x.sai ? ' <small>· ' + esc(x.sai) + '</small>' : '') + '</span>' +
-        '<div class="lv-bt">' + (m ? '<span class="ok-pill">' + esc(st) + '</span>' : '<button class="btn mais1" data-a="tempAdd" data-v="' + x.id + '" data-st="plan_to_watch">+ Lista</button>') + '<a class="btn ler" href="https://myanimelist.net/anime/' + x.id + '" target="_blank" rel="noopener">MAL</a></div></div></div>';
+        '<div class="lv-bt">' + (m ? '<span class="ok-pill">' + esc(st) + '</span>' : '<button class="btn mais1" data-a="tempAdd" data-v="' + x.id + '" data-st="plan_to_watch">+ Lista</button>') + crSelo(x.id) + '<a class="btn ler" href="https://myanimelist.net/anime/' + x.id + '" target="_blank" rel="noopener">MAL</a></div></div></div>';
     }).join('') || '<p class="note">Nada aqui.</p>';
     desenharTempDet(T.filter(function (x) { return x.id === tempSel; })[0], minha);
   }
@@ -2359,7 +2362,7 @@ body.menu-mini .versao { display: none; }
       '<p class="desc">' + esc(a.sin || 'Sem descrição.') + '</p>' +
       (m ? '<span class="ok-pill">Já está na sua lista: ' + esc((AN_ST.filter(function (s2) { return s2[0] === m.st; })[0] || [, ''])[1]) + '</span>'
          : '<div class="row">' + [['plan_to_watch', '+ Planejo ver'], ['watching', '+ Assistindo']].map(function (o) { return '<button class="btn' + (o[0] === 'plan_to_watch' ? ' prim' : '') + '" data-a="tempAdd" data-v="' + a.id + '" data-st="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div>') +
-      '<div class="row"><a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a></div><span class="note" id="an-msg"></span>';
+      '<div class="row">' + ((crDe(a.id) || {}).u ? '<a class="btn prim" href="' + esc(CR[a.id].u) + '" target="_blank" rel="noopener">▶ Assistir na Crunchyroll</a>' : '') + '<a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a></div><span class="note" id="an-msg"></span>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a;
@@ -2377,6 +2380,23 @@ body.menu-mini .versao { display: none; }
       }).catch(function (e2) { b.disabled = false; b.textContent = 'Tentar de novo'; var m2 = $('an-msg'); if (m2) m2.textContent = 'Não salvou no MAL (' + e2.message + ').'; });
     }
   });
+  /* Crunchyroll: onde assistir (lista de streaming do MAL, pela API pública Jikan); guardado 30 dias */
+  var CR = {}; try { CR = JSON.parse(localStorage.getItem('an-cr') || '{}'); } catch (e) {}
+  var crFila = [], crAt = false, crT, anCR = false;
+  function crDe(id) {
+    var c = CR[id]; if (c && Date.now() - c.em < (c.u ? 30 : 7) * 864e5) return c;
+    if (crFila.indexOf(id) < 0) crFila.push(id); crProx(); return c || null;
+  }
+  function crProx() {
+    if (crAt || !crFila.length) return; crAt = true; var id = crFila.shift();
+    fetch('https://api.jikan.moe/v4/anime/' + id + '/streaming').then(function (r) { if (r.status === 429) { crFila.unshift(id); throw new Error('espera'); } if (!r.ok) throw new Error('http'); return r.json(); }).then(function (j) {
+      var x = (j.data || []).filter(function (s2) { return /crunchyroll/i.test(s2.name || ''); })[0];
+      CR[id] = { u: x ? (x.url || 'https://www.crunchyroll.com/') : '', em: Date.now() };
+      try { localStorage.setItem('an-cr', JSON.stringify(CR)); } catch (e) {}
+      clearTimeout(crT); crT = setTimeout(function () { var g = $('an-grid'); if (g && g.offsetParent) desenharAnime(); }, 900);
+    }).catch(function () {}).then(function () { setTimeout(function () { crAt = false; crProx(); }, 1200); });
+  }
+  function crSelo(id) { var c = crDe(id); return c && c.u ? '<a class="cr-selo" href="' + esc(c.u) + '" target="_blank" rel="noopener" title="Assistir na Crunchyroll" aria-label="Assistir na Crunchyroll">▶</a>' : ''; }
   function desenharAnime() {
     var el = $('an-grid'); if (!el) return;
     var L = MAL.anime || [];
@@ -2387,14 +2407,15 @@ body.menu-mini .versao { display: none; }
     var gl = Object.keys(gens).sort(function (a, b) { return genPt(a).localeCompare(genPt(b), 'pt'); });
     if (anSt === 'season') { desenharTemporada(L); return; }
     $('an-filtros').innerHTML = abaTemp() + AN_ST.map(function (s2) { return '<button class="chip" data-a="anSt" data-v="' + s2[0] + '" aria-pressed="' + (anSt === s2[0]) + '">' + s2[1] + ' <small>' + cont[s2[0]] + '</small></button>'; }).join('') +
+      '<button class="chip cr-chip" data-a="anCR" aria-pressed="' + anCR + '">▶ Na Crunchyroll</button>' +
       '<span class="sep"></span><label class="gen-sel"><span>Gênero</span><select class="sel" id="an-gen" aria-label="Filtrar por gênero"><option value="">Todos</option>' + gl.map(function (g) { return '<option value="' + esc(g) + '"' + (anGen === g ? ' selected' : '') + '>' + esc(genPt(g)) + ' (' + gens[g] + ')</option>'; }).join('') + '</select></label>' +
       (anGen ? '<button class="chip" data-a="anGenX" aria-pressed="true">' + esc(genPt(anGen)) + ' ×</button>' : '') +
       '<label class="gen-sel"><span>Ordenar</span><select class="sel" id="an-ord" aria-label="Ordenar">' + [['recente', 'Mexidos por último'], ['mal', 'Nota do MAL'], ['minha', 'Minha nota'], ['nome', 'Nome'], ['ano', 'Ano']].map(function (o) { return '<option value="' + o[0] + '"' + (anOrd === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>';
-    var q = norm(anQ), vis = L.filter(function (x) { return (q ? norm(x.t + ' ' + x.en).indexOf(q) >= 0 : x.st === anSt) && (!anGen || (x.gen || []).indexOf(anGen) >= 0); }).sort(function (a, b) { if (anOrd === 'mal') return (b.nota || 0) - (a.nota || 0); if (anOrd === 'minha') return (b.score || 0) - (a.score || 0) || (b.nota || 0) - (a.nota || 0); if (anOrd === 'nome') return (a.en || a.t).localeCompare(b.en || b.t); if (anOrd === 'ano') return (b.ano || 0) - (a.ano || 0); return (b.em || '') < (a.em || '') ? -1 : 1; });
+    var q = norm(anQ), vis = L.filter(function (x) { return (q ? norm(x.t + ' ' + x.en).indexOf(q) >= 0 : x.st === anSt) && (!anGen || (x.gen || []).indexOf(anGen) >= 0) && (!anCR || ((CR[x.id] || {}).u)); }).sort(function (a, b) { if (anOrd === 'mal') return (b.nota || 0) - (a.nota || 0); if (anOrd === 'minha') return (b.score || 0) - (a.score || 0) || (b.nota || 0) - (a.nota || 0); if (anOrd === 'nome') return (a.en || a.t).localeCompare(b.en || b.t); if (anOrd === 'ano') return (b.ano || 0) - (a.ano || 0); return (b.em || '') < (a.em || '') ? -1 : 1; });
     el.innerHTML = vis.map(function (x) {
       return '<div class="lv' + (anSel === x.id ? ' sel' : '') + '"><button class="lv-capa tem" data-a="anSel" data-v="' + x.id + '" style="background-image:url(&quot;' + esc(x.img) + '&quot;)" aria-label="Detalhes de ' + esc(x.t) + '"><i class="tp">' + esc((x.tipo || '').toUpperCase()) + '</i></button>' +
         '<div class="lv-tx"><b title="' + esc(x.t) + '">' + esc(x.en || x.t) + '</b>' + (x.en && x.en !== x.t ? '<small class="sub2">' + esc(x.t) + '</small>' : '') + '<span class="cap">' + (x.st === 'completed' ? 'Completo ✓' : 'Ep. ' + x.ep + (x.eps ? ' <small>/ ' + x.eps + '</small>' : '')) + '</span>' +
-        '<div class="lv-bt">' + (x.st !== 'completed' ? '<button class="mini" data-a="anMenos" data-v="' + x.id + '" aria-label="Voltar um episódio">−</button><button class="btn mais1" data-a="anMais" data-v="' + x.id + '">+1</button>' : '') + (x.nota ? '<span class="nota" title="Nota média no MyAnimeList">★ ' + (+x.nota).toFixed(2) + '</span>' : '') + '<a class="btn ler" href="https://myanimelist.net/anime/' + x.id + '" target="_blank" rel="noopener">MAL</a></div></div></div>';
+        '<div class="lv-bt">' + (x.st !== 'completed' ? '<button class="mini" data-a="anMenos" data-v="' + x.id + '" aria-label="Voltar um episódio">−</button><button class="btn mais1" data-a="anMais" data-v="' + x.id + '">+1</button>' : '') + (x.nota ? '<span class="nota" title="Nota média no MyAnimeList">★ ' + (+x.nota).toFixed(2) + '</span>' : '') + crSelo(x.id) + '<a class="btn ler" href="https://myanimelist.net/anime/' + x.id + '" target="_blank" rel="noopener">MAL</a></div></div></div>';
     }).join('') || '<p class="note">Nada aqui.</p>';
     var a = L.filter(function (x) { return x.id === anSel; })[0], d = $('an-det');
     if (!a) { d.innerHTML = '<p class="note" style="margin:0">Clique na capa de um anime para ver a descrição, mudar o status e dar nota. Tudo vai direto para o seu MyAnimeList.</p>'; return; }
@@ -2403,13 +2424,14 @@ body.menu-mini .versao { display: none; }
       '<p class="desc">' + esc(a.sin || 'Sem descrição.') + '</p>' +
       '<div class="row">' + AN_ST.map(function (s3) { return '<button class="chip" data-a="anStatus" data-v="' + s3[0] + '" aria-pressed="' + (a.st === s3[0]) + '">' + s3[1] + '</button>'; }).join('') + '</div>' +
       '<label class="f" for="an-score">Minha nota<select class="sel" id="an-score">' + ['—', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (n, i) { return '<option value="' + i + '"' + (a.score === i ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
-      '<div class="row"><a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a><button class="btn' + (fsTem('an' + a.id) ? ' fs-on' : '') + '" data-a="fsAn" data-v="' + a.id + '">' + (fsTem('an' + a.id) ? '★ No fim de semana' : '☆ Fim de semana') + '</button><button class="btn" data-a="anTirar" data-v="' + a.id + '">Tirar da lista</button></div><span class="note" id="an-msg"></span>';
+      '<div class="row">' + ((crDe(a.id) || {}).u ? '<a class="btn prim" href="' + esc(CR[a.id].u) + '" target="_blank" rel="noopener">▶ Assistir na Crunchyroll</a>' : '') + '<a class="btn" href="https://myanimelist.net/anime/' + a.id + '" target="_blank" rel="noopener">Abrir no MyAnimeList</a><button class="btn' + (fsTem('an' + a.id) ? ' fs-on' : '') + '" data-a="fsAn" data-v="' + a.id + '">' + (fsTem('an' + a.id) ? '★ No fim de semana' : '☆ Fim de semana') + '</button><button class="btn" data-a="anTirar" data-v="' + a.id + '">Tirar da lista</button></div><span class="note" id="an-msg"></span>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a, v = +b.dataset.v;
     var x = (MAL.anime || []).filter(function (y) { return y.id === v; })[0];
     if (a === 'anSt') { anSt = b.dataset.v; anQ = ''; anGen = ''; $('an-busca').value = ''; desenharAnime(); }
     else if (a === 'anSel') { anSel = v; desenharAnime(); }
+    else if (a === 'anCR') { anCR = !anCR; (MAL.anime || []).filter(function (y) { return y.st === anSt; }).forEach(function (y) { crDe(y.id); }); desenharAnime(); }
     else if (a === 'anGenX') { anGen = ''; desenharAnime(); }
     else if (a === 'anGenSet') { anGen = b.dataset.g; desenharAnime(); }
     else if (a === 'anMais' && x) { var ep = x.ep + 1, c = { ep: ep }; if (x.st === 'plan_to_watch' || x.st === 'on_hold') c.st = 'watching'; if (x.eps && ep >= x.eps) c.st = 'completed'; anMuda(v, c); }
