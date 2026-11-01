@@ -143,7 +143,7 @@ function ObsWs($pedidos) {
       $saida += , $r.d
     }
     return , $saida
-  } finally { try { if ($ws.State -eq [System.Net.WebSockets.WebSocketState]::Open) { $ws.CloseAsync([System.Net.WebSockets.WebSocketCloseStatus]::NormalClosure, 'ok', (New-Object System.Threading.CancellationTokenSource 2000).Token).GetAwaiter().GetResult() } } catch {}; try { $ws.Dispose() } catch {} }
+  } finally { try { if ($ws.State -eq [System.Net.WebSockets.WebSocketState]::Open) { $null = $ws.CloseAsync([System.Net.WebSockets.WebSocketCloseStatus]::NormalClosure, 'ok', (New-Object System.Threading.CancellationTokenSource 2000).Token).GetAwaiter().GetResult() } } catch {}; try { $ws.Dispose() } catch {} }
 }
 function Lista($pasta, $soAtalhos) {
   Get-ChildItem -LiteralPath $pasta -Force | Where-Object { $_.Name -ne 'desktop.ini' -and $_.Name -ne 'Atalhos' -and (-not $soAtalhos -or $_.Extension -in '.lnk', '.url', '.exe') } |
@@ -741,7 +741,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 37 } }
+      default  { Json $ctx @{ ok = $true; versao = 38 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

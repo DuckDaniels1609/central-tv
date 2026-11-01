@@ -1408,7 +1408,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.8';
+  var VERSAO_PC = '2026-11-01.9';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1581,7 +1581,7 @@ body.menu-mini .versao { display: none; }
     var fnt = j.fonteModo ? [['auto', 'Auto'], ['valorant', 'Valorant'], ['sf6', 'SF6'], ['ps5', 'PS5'], ['tela', 'Tela']].map(function (f) { return '<button class="chip" data-obsfonte="' + f[0] + '" aria-pressed="' + (j.fonteModo === f[0]) + '" title="' + (f[0] === 'auto' ? 'Mostra o jogo aberto por último (ou o PS5, se nenhum estiver aberto)' : 'Deixa só esta imagem ligada nas cenas de jogo') + '">' + f[1] + (j.fonteModo === 'auto' && j.fonteAtual === f[0] ? ' ●' : '') + '</button>'; }).join('') : '';
     bt.innerHTML = '<div class="ctl-gr"><span class="lbl">Cena no ar</span><div class="row">' + nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div></div>' +
       (fnt ? '<div class="ctl-gr"><span class="lbl">Imagem do jogo</span><div class="row">' + fnt + '</div><span class="note">Só uma imagem fica ligada por vez, para uma janela parada não cobrir a outra de preto. "Auto" escolhe o jogo aberto por último.</span></div>' : '') +
-      (cam ? '<div class="ctl-gr"><span class="lbl">Câmera</span><div class="row">' + cam + '</div></div>' : '') +
+      (cam || amg ? '<div class="ctl-gr"><span class="lbl">Webcam e Discord</span><div class="row">' + cam + amg + '</div></div>' : '') +
       (obsCam && obsCam.cena === j.cena ? '<div class="ctl-gr"><span class="lbl">Som</span><div class="row">' + (obsCam.sons || []).map(function (x) { return '<button class="chip som' + (x.mudo ? '' : ' on') + '" data-obsmudo="' + esc(x.nome) + '" aria-pressed="' + !x.mudo + '">' + (x.mudo ? '🔇 ' : '🔊 ') + esc(x.nome) + '</button>'; }).join('') + '</div><span class="note">Clique para mutar ou ligar. "Discord (amigos)" fica só na trilha 1 da gravação; a trilha 2 nunca tem os amigos.</span></div>' +
         '<div class="ctl-gr"><span class="lbl">Camadas da cena no ar (' + esc(j.cena) + ')</span><div class="row">' + (obsCam.camadas || []).map(function (x) { return '<button class="chip camada" data-obscamada="' + x.id + '" data-on="' + (x.on ? 0 : 1) + '" aria-pressed="' + x.on + '">' + (x.on ? '👁 ' : '🚫 ') + esc(x.nome.trim()) + '</button>'; }).join('') + '</div><span class="note">Ligada = aparece na live/gravação. Em "Imagem do jogo: Auto", as imagens dos jogos são ligadas sozinhas.</span></div>' : '');
     var gb = $('obs-grav'), jg = obsJogo && obsJogo.jogo ? JOGO_NOME[obsJogo.jogo] : '';
@@ -1679,7 +1679,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 37 && !sessionStorage.getItem('aj-reiniciou-37')) { sessionStorage.setItem('aj-reiniciou-37', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 38 && !sessionStorage.getItem('aj-reiniciou-38')) { sessionStorage.setItem('aj-reiniciou-38', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
