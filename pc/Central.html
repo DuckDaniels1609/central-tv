@@ -1390,7 +1390,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.2';
+  var VERSAO_PC = '2026-11-01.3';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1548,6 +1548,7 @@ body.menu-mini .versao { display: none; }
     tx.textContent = (j.aoVivo ? 'AO VIVO ' + (j.tempo || '').slice(0, 8) : 'Fora do ar') + (j.gravando ? ' · gravando' : '') + ' · no ar: ' + j.cena;
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
     bt.innerHTML = (j.camera === null || j.camera === undefined ? '' : '<button class="btn obs-tr cam' + (j.camera ? ' on' : '') + '" data-obscam="1">' + (j.camera ? '📷 Câmera: ligada' : '📷 Câmera: oculta') + '</button>') +
+      (j.amigosMudo === null || j.amigosMudo === undefined ? '' : '<button class="btn obs-tr cam' + (j.amigosMudo ? '' : ' on') + '" data-obsamigos="1" title="Som do Discord na live e na gravação (trilha 1). A trilha 2 da gravação nunca tem os amigos.">' + (j.amigosMudo ? '🔇 Amigos: mutados' : '🎧 Amigos: no ar') + '</button>') +
       nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') +
       '';
     var gb = $('obs-grav'), jg = obsJogo && obsJogo.jogo ? JOGO_NOME[obsJogo.jogo] : '';
@@ -1586,6 +1587,13 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) {
     if (e.target.id === 'obs-tecla') { var v = e.target.value.trim().toUpperCase().replace(/\s+/g, ''); if (/^((CTRL|ALT|SHIFT)\+)*(F([1-9]|1[0-2])|[A-Z0-9])$/.test(v)) fetch(AJ + '/obs/config?k=' + ajK() + '&tecla=' + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (j) { obsCfg = Object.assign(obsCfg || {}, j); $('obs-nota').textContent = 'Atalho de marcar momento: ' + j.tecla + '.'; }); else $('obs-nota').textContent = 'Use algo como F9, F8 ou CTRL+F9.'; }
     if (e.target.id === 'obs-auto') fetch(AJ + '/obs/config?k=' + ajK() + '&auto=' + (e.target.checked ? 1 : 0)).then(function (r) { return r.json(); }).then(function (j) { obsCfg = Object.assign(obsCfg || {}, j); });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-obsamigos]'); if (!b) return; b.disabled = true;
+    fetch(AJ + '/obs/amigos?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) $('obs-nota').textContent = j.msg || 'Não consegui.'; else if (obsEst) obsEst.amigosMudo = j.mudo;
+      obsDesenharAr(); setTimeout(obsEstado, 500);
+    }).catch(function () { b.disabled = false; });
   });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obscam]'); if (!b) return; b.disabled = true;
@@ -1632,7 +1640,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 34 && !sessionStorage.getItem('aj-reiniciou-34')) { sessionStorage.setItem('aj-reiniciou-34', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 35 && !sessionStorage.getItem('aj-reiniciou-35')) { sessionStorage.setItem('aj-reiniciou-35', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

@@ -537,7 +537,8 @@ while ($http.IsListening) {
           try {
             $r = ObsWs @(@{ t = 'GetCurrentProgramScene' }, @{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }, @{ t = 'GetSceneList' })
             $cam = $null; try { $ci = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $r[0].responseData.currentProgramSceneName } }))[0].responseData.sceneItems | Where-Object { $_.sourceName -in @('Camera', 'Webcam') }); if ($ci.Count) { $cam = [bool]$ci[0].sceneItemEnabled } } catch {}
-            Json $ctx @{ camera = $cam; aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
+            $amg = $null; try { $ra = (ObsWs @(@{ t = 'GetInputMute'; d = @{ inputName = 'Discord (amigos)' } }))[0]; if ($ra.requestStatus.result) { $amg = [bool]$ra.responseData.inputMuted } } catch {}
+            Json $ctx @{ amigosMudo = $amg; camera = $cam; aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
           } catch { Json $ctx @{ aberto = $true; erro = $_.Exception.Message } }
         }
       }
@@ -612,6 +613,13 @@ while ($http.IsListening) {
         Json $ctx @{ tecla = $c.tecla; autoCena = [bool]$c.autoCena; cenas = $c.cenas; encerrarEm = $em }
       }
       '/obs/captura-jogo' { try { if (Test-Path $capOkF) { Remove-Item $capOkF -Force }; Json $ctx @{ ok = $true; log = @(CapturaJogo) } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
+      '/obs/amigos' {
+        # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
+        try {
+          $r = (ObsWs @(@{ t = 'ToggleInputMute'; d = @{ inputName = 'Discord (amigos)' } }))[0]
+          if ($r.requestStatus.result) { Json $ctx @{ ok = $true; mudo = [bool]$r.responseData.inputMuted } } else { Json $ctx @{ ok = $false; msg = 'Não achei a fonte "Discord (amigos)" no OBS.' } }
+        } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/camera' {
         # mostra/oculta a câmera (Webcam, Moldura e o grupo Camera) na cena que está no ar
         try {
@@ -681,7 +689,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 34 } }
+      default  { Json $ctx @{ ok = $true; versao = 35 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
