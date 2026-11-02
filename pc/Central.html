@@ -491,6 +491,10 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .es-tempo-n b { font-size: 16px; }
 .es-tempo-n span { font-size: 11px; color: var(--muted); }
 .es-sess { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.bk-card { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .1)); flex: none; }
+.bk-card:empty { display: none; }
+.bk-tx { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.bk-tx small { color: var(--muted); font-size: 12px; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -610,7 +614,7 @@ body.menu-mini .versao { display: none; }
         <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Estante</span><i class="bdg" id="bdg-est"></i></button>
         <button class="mi" data-sec="est" data-esf="jogando"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Jogando agora</span></button>
         <button class="mi" data-sec="sf6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v4M18 3v4M4 7h16v13H4z"/><path d="M9 14l2 2 4-4"/></svg><span>Treino SF6</span></button>
-        <button class="mi" data-sec="cht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Cheats do PS5</span></button>
+        <button class="mi" data-sec="cht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>PS5: cheats e saves</span></button>
         <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
       </div>
       <button class="mg mg-bt" id="mg-lazer" aria-expanded="true">Lazer <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -676,7 +680,8 @@ body.menu-mini .versao { display: none; }
       <div class="tr-cal" id="tr-cal"></div>
     </div>
     <div class="col card meio" id="meio-cht" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cheats do PS5</h2><span id="cht-st">Os cheats que criamos, prontos para o CheatRunner</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cht-recarregar">Atualizar</button></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>PS5: cheats e saves</h2><span id="cht-st">Os cheats que criamos, prontos para o CheatRunner</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cht-recarregar">Atualizar</button></div></div>
+      <div class="bk-card" id="bk-card"></div>
       <div class="cht-lista" id="cht-lista"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-est" hidden>
@@ -1481,7 +1486,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.15';
+  var VERSAO_PC = '2026-11-01.16';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1523,7 +1528,7 @@ body.menu-mini .versao { display: none; }
     }).join('') : '<p class="note">Nenhum cheat em F:\\PS5\\Cheats ainda.</p>';
   }
   document.addEventListener('click', function (e) {
-    if (e.target.id === 'cht-recarregar') { chtCarregar(); return; }
+    if (e.target.id === 'cht-recarregar') { chtCarregar(); bkCarregar(); return; }
     var b = e.target.closest('[data-cht]');
     if (b) { b.disabled = true; b.textContent = 'Enviando…';
       fetch(AJ + '/ps5cheats?k=' + ajK() + '&acao=enviar&arq=' + encodeURIComponent(b.dataset.cht)).then(function (r) { return r.json(); }).then(function (j) {
@@ -1532,7 +1537,21 @@ body.menu-mini .versao { display: none; }
       }).catch(function () { b.disabled = false; b.textContent = '⬆ Enviar para o PS5'; });
       return; }
     var m = e.target.closest('.mi[data-sec]');
-    if (m) { if (m.dataset.sec === 'cht') setTimeout(chtCarregar, 50); if (m.dataset.sec === 'est') { setTimeout(function () { if (window.esFiltroMenu) esFiltroMenu(m.dataset.esf || 'todos'); if (window.PS5_CARREGAR) PS5_CARREGAR(true); }, 30); } }
+    if (m) { if (m.dataset.sec === 'cht') { setTimeout(chtCarregar, 50); setTimeout(bkCarregar, 80); } if (m.dataset.sec === 'est') { setTimeout(function () { if (window.esFiltroMenu) esFiltroMenu(m.dataset.esf || 'todos'); if (window.PS5_CARREGAR) PS5_CARREGAR(true); }, 30); } }
+  });
+
+  /* backup dos saves do PS5 */
+  function bkCarregar() {
+    fetch(AJ + '/ps5/backup?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) {
+      var el = $('bk-card'); if (!el) return; var d = j.ultimo ? new Date(j.ultimo) : null;
+      el.innerHTML = '<div class="bk-tx"><b>💾 Backup dos saves</b><small>' + (j.andamento ? 'Fazendo backup agora… faltam ' + j.faltam + ' jogo(s)' : d ? 'Último: ' + d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + (j.jogos || []).length + ' jogos · ' + j.mb + ' MB' : 'Ainda não foi feito nenhum backup') + '</small><small>Sozinho 1 vez por semana (PS5 ligado e sem jogo aberto). Fica em F:\\PS5\\Backups de save (os 4 últimos).</small></div>' +
+        '<button class="btn" data-bk="1"' + (j.andamento ? ' disabled' : '') + '>Fazer backup agora</button>';
+      if (j.andamento) setTimeout(bkCarregar, 4000);
+    }).catch(function () {});
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-bk]'); if (!b) return; b.disabled = true;
+    fetch(AJ + '/ps5/backup?k=' + ajK() + '&acao=agora').then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) $('cht-st').textContent = 'Backup: ' + (j.msg || 'erro'); setTimeout(bkCarregar, 1500); });
   });
   function obsCarregar(forcar) {
     if (OBS.d && !forcar) { obsDesenhar(); return; }
@@ -1784,7 +1803,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 41 && !sessionStorage.getItem('aj-reiniciou-41')) { sessionStorage.setItem('aj-reiniciou-41', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 42 && !sessionStorage.getItem('aj-reiniciou-42')) { sessionStorage.setItem('aj-reiniciou-42', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
@@ -2166,7 +2185,7 @@ body.menu-mini .versao { display: none; }
     var h0 = new Date(); h0.setHours(0, 0, 0, 0); var hojeS = 0, semS = 0;
     S2.forEach(function (x) { var dur = x.fim - x.ini; if (x.ini * 1000 >= h0.getTime()) hojeS += dur; if (Date.now() / 1000 - x.ini < 7 * 86400) semS += dur; });
     if (!g && !S2.length) return null;
-    return { total: g ? g.tempo : 0, ultimo: g ? quando(g.ultimo) : null, hoje: hojeS, semana: semS, sessoes: S2.slice(-5).reverse(), jogando: !!(PS5J.atual && PS5J.atual.id === tid) };
+    return { total: g ? g.tempo * 60 : 0, ultimo: g ? quando(g.ultimo) : null, hoje: hojeS, semana: semS, sessoes: S2.slice(-5).reverse(), jogando: !!(PS5J.atual && PS5J.atual.id === tid) };
   }
   function desenharEst() {
     var el = $('es-grid'); if (!el) return;

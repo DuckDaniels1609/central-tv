@@ -403,6 +403,56 @@ function Ps5Explorar {
   foreach ($pth in @('/user/home/13b5b6f1/', '/user/home/13b5b6f1/savedata_prospero/', '/user/home/13b5b6f1/savedata/', '/user/home/13b5b6f1/savedata_prospero/PPSA36992/')) { try { $t = WfmList $pth; $out += "== WFM $pth ($($t.Length))"; $out += $t.Substring(0, [math]::Min(3000, $t.Length)) } catch { $out += "== WFM $pth ERRO $($_.Exception.Message)" } }
   [IO.File]::WriteAllText((Join-Path $aqui 'ps5_explorar.txt'), ($out -join "`r`n"), (New-Object Text.UTF8Encoding $false))
 }
+# ---------- backup dos saves do PS5 (só leitura no PS5): um jogo por tique, guarda os 4 últimos ----------
+$BK_RAIZ = 'F:\PS5\Backups de save'
+$BK_USER = '/user/home/13b5b6f1'
+$bkEstF = Join-Path $aqui 'ps5_backup.json'
+$script:bkFila = $null; $script:bkPasta = ''; $script:bkFeitos = @(); $script:bkBytes = 0; $script:bkVistoAuto = [DateTime]::MinValue
+function BkEstado { try { if (Test-Path $bkEstF) { return ([IO.File]::ReadAllText($bkEstF, [Text.Encoding]::UTF8) | ConvertFrom-Json) } } catch {}; return $null }
+function WfmBaixar($path, $dest) {
+  $rq = [Net.HttpWebRequest]::Create($WFM_URL + '/fs?path=' + [Uri]::EscapeDataString($path)); $rq.Timeout = 30000; $rq.ReadWriteTimeout = 30000
+  $rs = $rq.GetResponse(); try { $fs = [IO.File]::Create($dest); try { $rs.GetResponseStream().CopyTo($fs) } finally { $fs.Close() } } finally { $rs.Close() }
+  return (Get-Item -LiteralPath $dest).Length
+}
+function WfmCopiarPasta($path, $dest, $nivel) {
+  New-Item -ItemType Directory -Force -Path $dest | Out-Null; $tot = 0
+  $L = ((WfmList $path) | ConvertFrom-Json).entries
+  foreach ($e in @($L)) {
+    if ($e.type -eq 'd') { if ($nivel -lt 3) { $tot += WfmCopiarPasta $e.path (Join-Path $dest $e.name) ($nivel + 1) } }
+    else { $tot += WfmBaixar $e.path (Join-Path $dest $e.name) }
+  }
+  return $tot
+}
+function BkComecar {
+  if ($script:bkFila) { return 'ja' }
+  $tits = @(((WfmList ($BK_USER + '/savedata_prospero/')) | ConvertFrom-Json).entries | Where-Object { $_.type -eq 'd' } | ForEach-Object { $_.name })
+  $script:bkPasta = Join-Path $BK_RAIZ (Get-Date -f 'yyyy-MM-dd HHmm'); $script:bkFeitos = @(); $script:bkBytes = 0
+  $script:bkFila = [System.Collections.ArrayList]@($tits)
+  return 'ok'
+}
+function BkTique {
+  if ($script:bkFila -and $script:bkFila.Count) {
+    $t = [string]$script:bkFila[0]; $script:bkFila.RemoveAt(0)
+    $nome = $t; try { $g = @(((CrGet '/api/games' 8000) | ConvertFrom-Json).games | Where-Object { $_.titleId -eq $t }); if ($g.Count) { $nome = $t + ' - ' + ($g[0].titleName -replace '[\\/:*?"<>|]', '') } } catch {}
+    $dst = Join-Path $script:bkPasta $nome
+    try { $script:bkBytes += WfmCopiarPasta ($BK_USER + '/savedata_prospero/' + $t) $dst 0; $script:bkFeitos += $nome } catch { $script:bkFeitos += ($nome + ' (erro: ' + $_.Exception.Message + ')') }
+    try { $mt = @(((WfmList ($BK_USER + '/savedata_prospero_meta/')) | ConvertFrom-Json).entries | Where-Object { $_.name -like ($t + '*') }); foreach ($m in $mt) { if ($m.type -eq 'd') { $script:bkBytes += WfmCopiarPasta $m.path (Join-Path $dst ('_meta\' + $m.name)) 0 } else { New-Item -ItemType Directory -Force -Path (Join-Path $dst '_meta') | Out-Null; $script:bkBytes += WfmBaixar $m.path (Join-Path $dst ('_meta\' + $m.name)) } } } catch {}
+    if (-not $script:bkFila.Count) {
+      $script:bkFila = $null
+      $est = @{ ultimo = (Get-Date).ToString('o'); pasta = $script:bkPasta; jogos = @($script:bkFeitos); mb = [math]::Round($script:bkBytes / 1MB, 1) }
+      [IO.File]::WriteAllText($bkEstF, ($est | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false))
+      # guarda só os 4 backups mais novos
+      $todas = @(Get-ChildItem -LiteralPath $BK_RAIZ -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^\d{4}-\d{2}-\d{2} \d{4}$' } | Sort-Object Name -Descending)
+      if ($todas.Count -gt 4) { $todas[4..($todas.Count - 1)] | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue } }
+    }
+    return
+  }
+  # automático: uma vez por semana, com o PS5 ligado e sem jogo aberto
+  if (((Get-Date) - $script:bkVistoAuto).TotalMinutes -lt 30) { return }
+  $script:bkVistoAuto = Get-Date
+  $e = BkEstado; if ($e -and $e.ultimo -and ((Get-Date) - [DateTime]::Parse($e.ultimo)).TotalDays -lt 7) { return }
+  try { $st = (CrGet '/api/status' 2500) | ConvertFrom-Json; if ([string]$st.titleId -match '^[A-Z]{4}\d{5}$') { return }; $null = BkComecar } catch {}
+}
 $script:tiqueEm = [DateTime]::MinValue
 function Tique {
   if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
@@ -418,6 +468,7 @@ function Tique {
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
   if (-not $script:crTestado) { $script:crTestado = $true; try { CrTeste } catch {}; try { Ps5Explorar } catch {} }
   try { Ps5Tique } catch {}
+  try { BkTique } catch {}
   # pedido de envio deixado pelo Claude (pc\enviar_cheat.txt com o caminho dentro de F:\PS5\Cheats)
   $pedF = Join-Path $aqui 'enviar_cheat.txt'
   if (Test-Path $pedF) { $rel = ([IO.File]::ReadAllText($pedF)).Trim(); Remove-Item $pedF -Force -ErrorAction SilentlyContinue
@@ -763,6 +814,10 @@ while ($http.IsListening) {
         $o = SessLer
         Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @{ jogos = @($g | ForEach-Object { @{ id = [string]($_.titleId, $_.title_id | Where-Object { $_ } | Select-Object -First 1); nome = [string]($_.titleName, $_.title_name, $_.name | Where-Object { $_ } | Select-Object -First 1); tempo = [double]$_.playTime; ultimo = [string]$_.lastAccessTime; icone = [string]$_.iconUrl } }); sessoes = @($o.sessoes); atual = $o.atual } -Depth 5 -Compress)))
       }
+      '/ps5/backup' {
+        if ($q['acao'] -eq 'agora') { try { $r = BkComecar; Json $ctx @{ ok = $true; r = $r } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
+        else { $e = BkEstado; Json $ctx @{ ok = $true; ultimo = $(if ($e) { $e.ultimo } else { '' }); pasta = $(if ($e) { $e.pasta } else { '' }); jogos = @($(if ($e) { $e.jogos } else { @() })); mb = $(if ($e) { $e.mb } else { 0 }); andamento = [bool]$script:bkFila; faltam = $(if ($script:bkFila) { $script:bkFila.Count } else { 0 }) } }
+      }
       '/obs/amigos' {
         # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
         try {
@@ -839,7 +894,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 41 } }
+      default  { Json $ctx @{ ok = $true; versao = 42 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
