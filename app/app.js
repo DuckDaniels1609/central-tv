@@ -549,7 +549,7 @@
   function renderSugestao() {
     var box = $('sugestao'); if (!box) return;
     var L = cfg.fimSemana || [], d = new Date(), folga = d.getDay() === 0 || d.getDay() === 6 || !!feriado(d);
-    var on = folga && L.length > 0, par = box.parentNode;
+    var on = false && folga && L.length > 0, par = box.parentNode; /* teste do pixelado: sugestão desligada */
     var n = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000), it = on ? L[n % L.length] : null;
     var info = it ? sugInfo(it) : '', chave = it ? it.k + '|' + it.capa + '|' + info : '';
     par.classList.toggle('fds', on); box.hidden = !on;
