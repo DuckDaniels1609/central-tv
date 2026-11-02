@@ -442,6 +442,16 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 #meio-ctl .obs-grav { padding: 12px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); }
 .chip.som.on, .chip.camada[aria-pressed="true"] { background: #9CF2A8; color: #12301C; opacity: 1; }
 .chip.camada[aria-pressed="false"], .chip.som:not(.on) { opacity: .7; }
+.cht-lista { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.cht-it { padding: 14px 16px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .1)); display: flex; flex-direction: column; gap: 8px; }
+.cht-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cht-top > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+.cht-top small { color: var(--muted); font-size: 12px; }
+.cht-st { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
+.cht-st.ok { background: #9CF2A8; color: #12301C; }
+.cht-st.dif { background: #FFD36E; color: #3A2A00; }
+.cht-it details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.cht-it ol { margin: 6px 0 0; padding-left: 22px; font-size: 13px; line-height: 1.6; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -556,12 +566,17 @@ body.menu-mini .versao { display: none; }
         <button class="mi" data-sec="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Calendário</span><i class="bdg" id="bdg-cal"></i></button>
         <button class="mi" data-sec="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Projetos</span><i class="bdg" id="bdg-proj"></i></button>
       </div>
+      <button class="mg mg-bt" id="mg-games" aria-expanded="true">Games <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="sub" id="sub-games">
+        <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Estante</span><i class="bdg" id="bdg-est"></i></button>
+        <button class="mi" data-sec="est" data-esf="jogando"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Jogando agora</span></button>
+        <button class="mi" data-sec="cht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Cheats do PS5</span></button>
+        <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
+      </div>
       <button class="mg mg-bt" id="mg-lazer" aria-expanded="true">Lazer <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="sub" id="sub-lazer">
-        <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Estante</span><i class="bdg" id="bdg-est"></i></button>
         <button class="mi" data-sec="anime"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 2l-5 5-5-5M10 11l5 3-5 3z"/></svg><span>Animes</span><i class="bdg" id="bdg-anime"></i></button>
         <button class="mi" data-sec="leit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg><span>Mangás</span><i class="bdg" id="bdg-leit"></i></button>
-        <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
       </div>
       <button class="mg mg-bt" id="mg-stream" aria-expanded="true">Stream <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <div class="sub" id="sub-stream">
@@ -614,6 +629,10 @@ body.menu-mini .versao { display: none; }
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Projetos</h2><span id="pj-resumo"></span></div><div class="row"><button class="chip" data-pjmodo="cartoes">Cartões</button><button class="chip" data-pjmodo="colunas">Colunas</button></div></div>
       <div class="row" id="pj-chips" hidden></div>
       <div class="pj-grid" id="pj-grid"><p class="note">Carregando…</p></div>
+    </div>
+    <div class="col card meio" id="meio-cht" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cheats do PS5</h2><span id="cht-st">Os cheats que criamos, prontos para o CheatRunner</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cht-recarregar">Atualizar</button></div></div>
+      <div class="cht-lista" id="cht-lista"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-est" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Estante de Platinas</h2><span id="es-resumo"></span></div><div class="row" id="es-filtros" style="position:relative"></div></div>
@@ -701,6 +720,12 @@ body.menu-mini .versao { display: none; }
         <div class="row"><label class="btn" for="lk-icone-in">Usar uma imagem minha…</label><input type="file" id="lk-icone-in" accept="image/*" hidden><button class="btn" id="lk-icone-x">Ícone da Central</button></div>
         <span class="note" id="lk-icone-st"></span>
         <p class="note" style="margin:0">Fica salvo só neste PC. As imagens não saem do computador.</p>
+      </section>
+      <section data-s="cht" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Como usar</h3>
+        <p class="note" style="margin:0">Clique em <b>Enviar para o PS5</b> no jogo. O arquivo vai direto para o CheatRunner (192.168.7.5:9999).</p>
+        <p class="note" style="margin:0">Com o jogo aberto: <b>desligue</b> no CheatRunner o cheat que vai mudar, envie o arquivo novo e <b>ligue</b> de novo. Teste um cheat por vez.</p>
+        <p class="note" style="margin:0">"No PS5: igual" quer dizer que o CheatRunner já tem exatamente esta versão.</p>
       </section>
       <section data-s="est" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <button class="btn prim" id="es-ps5">Atualizar troféus do PS5</button>
@@ -1408,7 +1433,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.10';
+  var VERSAO_PC = '2026-11-01.11';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1428,6 +1453,38 @@ body.menu-mini .versao { display: none; }
     if (b) { b.disabled = true; fetch(AJ + '/obs/camada?k=' + ajK() + '&id=' + b.dataset.obscamada + '&on=' + b.dataset.on).then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) $('obs-nota').textContent = 'Não consegui: ' + (j.msg || ''); obsCamadas(); }).catch(function () { b.disabled = false; }); return; }
     b = e.target.closest('[data-obsmudo]');
     if (b) { b.disabled = true; fetch(AJ + '/obs/mudo?k=' + ajK() + '&fonte=' + encodeURIComponent(b.dataset.obsmudo)).then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) $('obs-nota').textContent = 'Não consegui: ' + (j.msg || ''); obsCamadas(); setTimeout(obsEstado, 300); }).catch(function () { b.disabled = false; }); }
+  });
+
+  /* ---------- Cheats do PS5 ---------- */
+  var CHT = null;
+  function chtCarregar() {
+    $('cht-st').textContent = 'Conferindo os cheats e o PS5…';
+    fetch(AJ + '/ps5cheats?k=' + ajK() + '&acao=lista').then(function (r) { return r.json(); }).then(function (j) { CHT = j; chtDesenhar(); })
+      .catch(function () { $('cht-st').textContent = 'O ajudante não respondeu.'; });
+  }
+  function chtDesenhar() {
+    if (!CHT) return;
+    var L = (CHT.jogos || []).slice().sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+    $('cht-st').textContent = (CHT.ps5 ? '🟢 PS5 ligado (CheatRunner respondendo)' : '⚪ PS5 desligado ou CheatRunner fechado') + ' · ' + L.length + ' jogo(s)';
+    var NO = { igual: ['ok', 'No PS5: igual ✓'], diferente: ['dif', 'No PS5: versão diferente'], nao: ['nao', 'Ainda não está no PS5'], '?': ['nao', 'PS5 não respondeu'] };
+    $('cht-lista').innerHTML = L.length ? L.map(function (g) {
+      var st = NO[g.noPs5] || NO['?'];
+      return '<div class="cht-it"><div class="cht-top"><div><b>' + esc(g.nome) + '</b><small>' + esc(g.id) + ' · v' + esc(g.versao) + ' · ' + g.mods.length + ' cheats · arquivo de ' + esc(g.mudou) + '</small></div><span class="cht-st ' + st[0] + '">' + st[1] + '</span>' +
+        '<button class="btn prim" data-cht="' + esc(g.arq) + '"' + (CHT.ps5 ? '' : ' disabled') + '>⬆ Enviar para o PS5</button></div>' +
+        '<details><summary>Ver os cheats</summary><ol>' + g.mods.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ol></details></div>';
+    }).join('') : '<p class="note">Nenhum cheat em F:\\PS5\\Cheats ainda.</p>';
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.id === 'cht-recarregar') { chtCarregar(); return; }
+    var b = e.target.closest('[data-cht]');
+    if (b) { b.disabled = true; b.textContent = 'Enviando…';
+      fetch(AJ + '/ps5cheats?k=' + ajK() + '&acao=enviar&arq=' + encodeURIComponent(b.dataset.cht)).then(function (r) { return r.json(); }).then(function (j) {
+        b.textContent = j.ok ? 'Enviado ✓' : 'Não deu'; $('cht-st').textContent = j.ok ? 'Enviado! No CheatRunner, ligue os cheats que quiser (com o jogo aberto: desligue o antigo antes).' : 'Não consegui enviar: ' + (j.msg || '');
+        setTimeout(chtCarregar, 1500);
+      }).catch(function () { b.disabled = false; b.textContent = '⬆ Enviar para o PS5'; });
+      return; }
+    var m = e.target.closest('.mi[data-sec]');
+    if (m) { if (m.dataset.sec === 'cht') setTimeout(chtCarregar, 50); if (m.dataset.sec === 'est') { setTimeout(function () { if (window.esFiltroMenu) esFiltroMenu(m.dataset.esf || 'todos'); }, 30); } }
   });
   function obsCarregar(forcar) {
     if (OBS.d && !forcar) { obsDesenhar(); return; }
@@ -1679,14 +1736,14 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 39 && !sessionStorage.getItem('aj-reiniciou-39')) { sessionStorage.setItem('aj-reiniciou-39', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 40 && !sessionStorage.getItem('aj-reiniciou-40')) { sessionStorage.setItem('aj-reiniciou-40', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
-    var grp = { est: 'lazer', anime: 'lazer', leit: 'lazer', lanc: 'lazer', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
+    var grp = { est: 'games', cht: 'games', anime: 'lazer', leit: 'lazer', lanc: 'games', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
@@ -2037,6 +2094,7 @@ body.menu-mini .versao { display: none; }
   }
   /* ========== ESTANTE (troféus) ========== */
   var esSel = null, esFiltro = 'todos';
+  window.esFiltroMenu = function (f) { esFiltro = f; desenharEst(); document.querySelectorAll('.mi[data-sec="est"]').forEach(function (x) { x.setAttribute('aria-pressed', (x.dataset.esf || 'todos') === f); }); };
   var GRAU = { platina: ['Platina', '#C8E4FF'], ouro: ['Ouro', '#FFD36E'], prata: ['Prata', '#D7DCE8'], bronze: ['Bronze', '#E0A27A'] };
   var STATUS = [['jogando', 'Jogando'], ['fila', 'Na fila'], ['zerado', 'Zerado'], ['platinado', 'Platinado']];
   function jogosEst() { var J = (S.es && S.es.jogos) || {}; return Object.keys(J).map(function (k) { return J[k]; }).sort(function (a, b) { return (a.order || 99) - (b.order || 99); }); }

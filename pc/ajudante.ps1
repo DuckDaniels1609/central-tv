@@ -354,6 +354,11 @@ function FonteAplicar($alvo) {
 $CR_URL = 'http://192.168.7.5:9999'
 $script:crTestado = $false
 function CrGet($cam) { $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8; return $wc.DownloadString($CR_URL + $cam) }
+function CrEnviar($rel) {
+  $f = Join-Path 'F:\PS5\Cheats' $rel; $b = [IO.File]::ReadAllBytes($f); $nome = [IO.Path]::GetFileName($f); $tid = $nome.Substring(0, 9)
+  $wc = New-Object System.Net.WebClient; $wc.Headers['Content-Type'] = 'application/octet-stream'
+  return [Text.Encoding]::UTF8.GetString($wc.UploadData($CR_URL + '/api/cheats/upload?titleId=' + $tid + '&filename=' + [Uri]::EscapeDataString($nome), 'POST', $b))
+}
 function CrTeste {
   $out = @("teste $(Get-Date -f 'yyyy-MM-dd HH:mm:ss')")
   foreach ($c in @('/', '/api/cheats?titleId=PPSA36992', '/api/cheats/state', '/api/logs')) {
@@ -378,6 +383,11 @@ function Tique {
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
   if (-not $script:crTestado) { $script:crTestado = $true; try { CrTeste } catch {} }
+  # pedido de envio deixado pelo Claude (pc\enviar_cheat.txt com o caminho dentro de F:\PS5\Cheats)
+  $pedF = Join-Path $aqui 'enviar_cheat.txt'
+  if (Test-Path $pedF) { $rel = ([IO.File]::ReadAllText($pedF)).Trim(); Remove-Item $pedF -Force -ErrorAction SilentlyContinue
+    $res = ''; if ($rel -match '\.\.' -or $rel -notmatch '^[^\\/:]+\\[A-Z]{4}\d{5}_[\d.]+\.json$') { $res = 'ERRO caminho invalido: ' + $rel } else { try { $res = 'OK ' + (CrEnviar $rel) } catch { $res = 'ERRO ' + $_.Exception.Message } }
+    [IO.File]::WriteAllText((Join-Path $aqui 'cheat_enviado.txt'), ((Get-Date -f 'yyyy-MM-dd HH:mm:ss') + ' ' + $rel + "`r`n" + $res), (New-Object Text.UTF8Encoding $false)) }
   if ($obs) { $alvoF = $script:fonteModo; if ($alvoF -eq 'auto') { $alvoF = JogoAlvo }; if ($alvoF -ne $script:fonteAplicada) { FonteAplicar $alvoF } } else { $script:fonteAplicada = '' }
   if ($grav -and ($jogo -eq 'sf6' -or $jogo -eq 'valorant')) { $script:jogoGrav = $jogo }
   if ($grav -and -not $script:gravAnt) { $script:dirGrav = ''; try { $script:dirGrav = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory } catch {} }
@@ -681,8 +691,35 @@ while ($http.IsListening) {
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/ps5cheats' {
-        # acao=teste: refaz o teste de acesso ao CheatRunner
-        try { CrTeste; Json $ctx @{ ok = $true } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+        # cheats prontos em F:\PS5\Cheats\<jogo>\TITLEID_VERSAO.json -> CheatRunner do PS5
+        $raiz = 'F:\PS5\Cheats'
+        switch ([string]$q['acao']) {
+          'lista' {
+            $L = @()
+            foreach ($f in @(Get-ChildItem -LiteralPath $raiz -Recurse -Depth 1 -Filter *.json -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^[A-Z]{4}\d{5}_[\d.]+\.json$' })) {
+              try {
+                $j = [IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8) | ConvertFrom-Json
+                $rel = $f.FullName.Substring($raiz.Length + 1)
+                $no = 'nao'; try { $rj = (CrGet ('/api/cheats?titleId=' + $j.id)) | ConvertFrom-Json; if ($rj.mods) { $no = 'diferente'; if (@($rj.mods).Count -eq @($j.mods).Count -and (($rj.mods | ConvertTo-Json -Depth 6 -Compress) -eq ($j.mods | ConvertTo-Json -Depth 6 -Compress))) { $no = 'igual' } } } catch { $no = '?' }
+                $L += @{ arq = $rel; pasta = $f.Directory.Name; nome = [string]$j.name; id = [string]$j.id; versao = [string]$j.version; mods = @($j.mods | ForEach-Object { [string]$_.name }); mudou = $f.LastWriteTime.ToString('dd/MM HH:mm'); noPs5 = $no }
+              } catch {}
+            }
+            $ps5 = $true; try { $null = CrGet '/api/status' } catch { $ps5 = $false }
+            Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @{ ps5 = $ps5; jogos = @($L) } -Depth 5 -Compress)))
+          }
+          'enviar' {
+            $rel = [string]$q['arq']
+            if ($rel -match '\.\.' -or $rel -notmatch '^[^\\/:]+\\[A-Z]{4}\d{5}_[\d.]+\.json$') { Json $ctx @{ ok = $false; msg = 'arquivo' }; continue }
+            $f = Join-Path $raiz $rel; if (-not (Test-Path -LiteralPath $f)) { Json $ctx @{ ok = $false; msg = 'arquivo não encontrado' }; continue }
+            try {
+              $b = [IO.File]::ReadAllBytes($f); $nome = [IO.Path]::GetFileName($f); $tid = $nome.Substring(0, 9)
+              $wc = New-Object System.Net.WebClient; $wc.Headers['Content-Type'] = 'application/octet-stream'
+              $resp = $wc.UploadData($CR_URL + '/api/cheats/upload?titleId=' + $tid + '&filename=' + [Uri]::EscapeDataString($nome), 'POST', $b)
+              Json $ctx @{ ok = $true; resposta = [Text.Encoding]::UTF8.GetString($resp) }
+            } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+          }
+          default { try { CrTeste; Json $ctx @{ ok = $true } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
+        }
       }
       '/obs/amigos' {
         # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
@@ -760,7 +797,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 39 } }
+      default  { Json $ctx @{ ok = $true; versao = 40 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
