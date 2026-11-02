@@ -452,6 +452,25 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .cht-st.dif { background: #FFD36E; color: #3A2A00; }
 .cht-it details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .cht-it ol { margin: 6px 0 0; padding-left: 22px; font-size: 13px; line-height: 1.6; }
+.tr-resumo { display: flex; gap: 10px; flex-wrap: wrap; }
+.tr-resumo > div { flex: 1; min-width: 120px; padding: 10px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); display: flex; flex-direction: column; }
+.tr-resumo > div.larga { flex: 3; }
+.tr-resumo b { font-size: 20px; }
+.tr-resumo span { font-size: 12px; color: var(--muted); }
+.tr-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; flex: 1; min-height: 0; overflow-y: auto; align-content: start; }
+.tr-cal .ds { text-align: center; font-size: 12px; color: var(--muted); font-weight: 700; }
+.tr-d { font: inherit; color: inherit; text-align: left; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: rgba(20,18,52,calc(var(--vidro) + .1)); padding: 8px; min-height: 84px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+.tr-d .n { font-weight: 800; font-size: 14px; }
+.tr-d .t { font-size: 12px; line-height: 1.25; }
+.tr-d .m { font-size: 11px; color: var(--muted); margin-top: auto; }
+.tr-d.hoje { border-color: var(--acc); }
+.tr-d.sel { outline: 2px solid var(--acc); }
+.tr-d.feito { background: color-mix(in srgb, #9CF2A8 22%, transparent); }
+.tr-d.feito .m { color: #9CF2A8; font-weight: 700; }
+.tr-d.perdeu { opacity: .55; }
+.tr-plano ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+.tr-plano .note { display: block; }
+#tr-nota { width: 100%; margin-top: 6px; border-radius: 12px; padding: 10px; font: inherit; background: rgba(0,0,0,.25); color: inherit; border: 1px solid rgba(255,255,255,.12); resize: vertical; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -570,6 +589,7 @@ body.menu-mini .versao { display: none; }
       <div class="sub" id="sub-games">
         <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Estante</span><i class="bdg" id="bdg-est"></i></button>
         <button class="mi" data-sec="est" data-esf="jogando"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Jogando agora</span></button>
+        <button class="mi" data-sec="sf6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v4M18 3v4M4 7h16v13H4z"/><path d="M9 14l2 2 4-4"/></svg><span>Treino SF6</span></button>
         <button class="mi" data-sec="cht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Cheats do PS5</span></button>
         <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
       </div>
@@ -629,6 +649,11 @@ body.menu-mini .versao { display: none; }
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Projetos</h2><span id="pj-resumo"></span></div><div class="row"><button class="chip" data-pjmodo="cartoes">Cartões</button><button class="chip" data-pjmodo="colunas">Colunas</button></div></div>
       <div class="row" id="pj-chips" hidden></div>
       <div class="pj-grid" id="pj-grid"><p class="note">Carregando…</p></div>
+    </div>
+    <div class="col card meio" id="meio-sf6" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Treino de Street Fighter 6</h2><span id="tr-sub">Carregando…</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" data-trmes="-1">‹</button><b id="tr-mes" style="min-width:140px;text-align:center"></b><button class="btn" data-trmes="1">›</button></div></div>
+      <div class="tr-resumo" id="tr-resumo"></div>
+      <div class="tr-cal" id="tr-cal"></div>
     </div>
     <div class="col card meio" id="meio-cht" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cheats do PS5</h2><span id="cht-st">Os cheats que criamos, prontos para o CheatRunner</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cht-recarregar">Atualizar</button></div></div>
@@ -721,6 +746,7 @@ body.menu-mini .versao { display: none; }
         <span class="note" id="lk-icone-st"></span>
         <p class="note" style="margin:0">Fica salvo só neste PC. As imagens não saem do computador.</p>
       </section>
+      <section data-s="sf6" class="sec" style="display:flex;flex-direction:column;gap:10px" id="tr-dia"></section>
       <section data-s="cht" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Como usar</h3>
         <p class="note" style="margin:0">Clique em <b>Enviar para o PS5</b> no jogo. O arquivo vai direto para o CheatRunner (192.168.7.5:9999).</p>
@@ -1433,7 +1459,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.11';
+  var VERSAO_PC = '2026-11-01.12';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1743,7 +1769,7 @@ body.menu-mini .versao { display: none; }
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
-    var grp = { est: 'games', cht: 'games', anime: 'lazer', leit: 'lazer', lanc: 'games', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
+    var grp = { est: 'games', cht: 'games', sf6: 'games', anime: 'lazer', leit: 'lazer', lanc: 'games', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
@@ -1785,7 +1811,7 @@ body.menu-mini .versao { display: none; }
 (function () {
   'use strict';
   var BASE = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/';
-  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json', an: 'animes.json', rt: 'retro.json' };
+  var ARQ = { tar: 'tarefas.json', ev: 'eventos.json', ag: 'agenda.json', cli: 'clientes.json', pj: 'projetos.json', cfg: 'config.json', est: 'estado.json', st: 'tv-status.json', es: 'estante.json', ln: 'lancamentos.json', le: 'leitura.json', an: 'animes.json', rt: 'retro.json', tr: 'treino.json' };
   var S = {}, SHA = {};
   var $ = function (id) { return document.getElementById(id); };
   function tok() { try { return localStorage.getItem('gh-token') || ''; } catch (e) { return ''; } }
@@ -2675,7 +2701,45 @@ body.menu-mini .versao { display: none; }
     else if (a === 'fsLe') { var it = ((S.le && S.le.itens) || []).filter(function (y) { return y.id === leSel; })[0]; if (!it) return; if (fsTem('le' + it.id)) { fsAlterna({ k: 'le' + it.id }); return; } capaLeitura(it, function (u) { fsAlterna({ k: 'le' + it.id, tipo: it.tipo || 'Mangá', nome: it.nome, capa: u || '', info: it.cap != null ? 'parou no cap. ' + Math.floor(+it.cap) : '' }); }); }
     else if (a === 'fsEs') { var j = (S.es && S.es.jogos || {})[esSel]; if (!j) return; if (fsTem('es' + esSel)) { fsAlterna({ k: 'es' + esSel }); return; } var idJ = esSel, fim = function (u) { fsAlterna({ k: 'es' + idJ, tipo: 'Jogo', nome: j.name, capa: u || '' }); }; if (window.CAPAS) CAPAS.buscar({ id: 'es-' + idJ, nome: j.name, wiki: j.wiki }, fim); else fim(''); }
   });
-  function desenhar() { clearTimeout(pendT); pendT = setTimeout(pendentesCelular, 1500); badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
+  /* ---------- Treino de SF6 (treino.json) ---------- */
+  var trMes = null, trSel = null;
+  var MESES_TR = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  function desenharTreino() {
+    var T = S.tr; if (!$('tr-cal')) return;
+    if (!T || !T.plano) { $('tr-sub').textContent = 'Sem plano ainda.'; $('tr-cal').innerHTML = ''; return; }
+    var hj = hoje(); if (!trMes) trMes = hj.slice(0, 7) < '2026-11' ? '2026-11' : hj.slice(0, 7); if (!trSel) trSel = T.plano[hj] ? hj : Object.keys(T.plano).sort()[0];
+    var y = +trMes.slice(0, 4), m = +trMes.slice(5, 7) - 1, F = T.feito || {};
+    $('tr-mes').textContent = MESES_TR[m] + ' ' + y; $('tr-sub').textContent = T.meta || '';
+    var dias = Object.keys(T.plano).filter(function (d) { return d.slice(0, 7) === trMes; }), feitos = dias.filter(function (d) { return F[d] && d <= hj; }), min = feitos.reduce(function (a, d) { return a + (+F[d].min || 0); }, 0);
+    var passados = dias.filter(function (d) { return d <= hj; }).length, seq = 0; for (var dd = new Date(); ; dd.setDate(dd.getDate() - 1)) { var k = iso(dd); if (F[k]) seq++; else if (k !== hj) break; if (seq > 400) break; }
+    var sem = (T.semanas || []).filter(function (w) { return hj >= w.ini && hj <= w.fim; })[0];
+    $('tr-resumo').innerHTML = '<div><b>' + feitos.length + '/' + passados + '</b><span>dias treinados até hoje</span></div><div><b>' + min + ' min</b><span>no mês</span></div><div><b>' + seq + '</b><span>dias seguidos</span></div>' + (sem ? '<div class="larga"><b>' + esc(sem.nome) + '</b><span>foco desta semana</span></div>' : '');
+    var ini = new Date(y, m, 1), h = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (x) { return '<div class="ds">' + x + '</div>'; }).join('');
+    for (var i = 0; i < ini.getDay(); i++) h += '<div></div>';
+    for (var d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
+      var k2 = trMes + '-' + ('0' + d).slice(-2), p = T.plano[k2], f = F[k2], cls = 'tr-d' + (k2 === hj ? ' hoje' : '') + (k2 === trSel ? ' sel' : '') + (f ? ' feito' : (p && k2 < hj ? ' perdeu' : ''));
+      h += '<button class="' + cls + '" data-trdia="' + k2 + '"><span class="n">' + d + '</span>' + (p ? '<span class="t">' + esc(p.t) + '</span><span class="m">' + (f ? '✓ ' + f.min + ' min' : p.min + ' min') + '</span>' : '') + '</button>';
+    }
+    $('tr-cal').innerHTML = h; trDia();
+  }
+  function trDia() {
+    var el = $('tr-dia'), T = S.tr; if (!el || !T) return; var p = T.plano[trSel], f = (T.feito || {})[trSel];
+    var dt = trSel.split('-');
+    var nd = DIAS[new Date(+dt[0], +dt[1] - 1, +dt[2]).getDay()]; el.innerHTML = '<h3>' + nd.charAt(0).toUpperCase() + nd.slice(1) + ', ' + dt[2] + '/' + dt[1] + '</h3>' + (p ? '<div class="tr-plano"><b>' + esc(p.t) + '</b> <span class="note">· ' + p.min + ' min</span>' + (p.semana ? '<span class="note">' + esc(p.semana) + '</span>' : '') + '<ul>' + (p.tarefas || []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '<p class="note">Sem treino planejado.</p>') +
+      '<h3 style="margin-top:6px">Quanto treinou?</h3><div class="row" style="gap:6px;flex-wrap:wrap">' + [30, 45, 60, 90].map(function (n) { return '<button class="chip" data-trmin="' + n + '" aria-pressed="' + !!(f && +f.min === n) + '">' + n + ' min</button>'; }).join('') + (f ? '<button class="chip" data-trmin="0">Desmarcar</button>' : '') + '</div>' +
+      '<label class="f" for="tr-nota">Anotação do dia<textarea id="tr-nota" rows="3" placeholder="O que funcionou, o que errou…">' + esc((f && f.nota) || '') + '</textarea></label>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-trmes]');
+    if (b) { var y = +trMes.slice(0, 4), m = +trMes.slice(5, 7) - 1 + (+b.dataset.trmes), d = new Date(y, m, 1); trMes = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); desenharTreino(); return; }
+    b = e.target.closest('[data-trdia]'); if (b) { trSel = b.dataset.trdia; desenharTreino(); return; }
+    b = e.target.closest('[data-trmin]');
+    if (b) { var n = +b.dataset.trmin, dia = trSel; mudar('tr', function (d) { d.feito = d.feito || {}; if (!n) delete d.feito[dia]; else d.feito[dia] = { min: n, nota: (d.feito[dia] && d.feito[dia].nota) || '', em: new Date().toISOString() }; }); return; }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'tr-nota') { var v = e.target.value, dia = trSel; mudar('tr', function (d) { d.feito = d.feito || {}; d.feito[dia] = d.feito[dia] || { min: 0 }; d.feito[dia].nota = v; }); }
+  });
+  function desenhar() { clearTimeout(pendT); pendT = setTimeout(pendentesCelular, 1500); desenharTreino(); badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }
