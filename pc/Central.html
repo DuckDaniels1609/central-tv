@@ -443,6 +443,17 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .chip.som.on, .chip.camada[aria-pressed="true"] { background: #9CF2A8; color: #12301C; opacity: 1; }
 .chip.camada[aria-pressed="false"], .chip.som:not(.on) { opacity: .7; }
 .cht-lista { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.e7-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; overflow: auto; align-content: start; }
+.e7-it { padding: 12px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.e7-it.aberto { grid-column: 1 / -1; }
+.e7-top { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.e7-top b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.e7-top small { color: var(--muted); font-size: 12px; display: block; }
+.e7-nb { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(255,211,110,.18); color: #FFD36E; white-space: nowrap; }
+.e7-alvo { font-size: 13px; line-height: 1.5; }
+.e7-tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+.e7-tab th, .e7-tab td { padding: 4px 6px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.08); }
+.e7-tab th:first-child, .e7-tab td:first-child { text-align: left; }
 .cht-it { padding: 14px 16px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .1)); display: flex; flex-direction: column; gap: 8px; }
 .cht-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cht-top > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
@@ -615,6 +626,7 @@ body.menu-mini .versao { display: none; }
         <button class="mi" data-sec="est" data-esf="jogando"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Jogando agora</span></button>
         <button class="mi" data-sec="sf6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v4M18 3v4M4 7h16v13H4z"/><path d="M9 14l2 2 4-4"/></svg><span>Treino SF6</span></button>
         <button class="mi" data-sec="cht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>PS5: cheats e saves</span></button>
+        <button class="mi" data-sec="e7"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.8 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><span>Epic Seven: builds</span></button>
         <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
       </div>
       <button class="mg mg-bt" id="mg-lazer" aria-expanded="true">Lazer <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -678,6 +690,11 @@ body.menu-mini .versao { display: none; }
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Treino de Street Fighter 6</h2><span id="tr-sub">Carregando…</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" data-trmes="-1">‹</button><b id="tr-mes" style="min-width:140px;text-align:center"></b><button class="btn" data-trmes="1">›</button></div></div>
       <div class="tr-resumo" id="tr-resumo"></div>
       <div class="tr-cal" id="tr-cal"></div>
+    </div>
+    <div class="col card meio" id="meio-e7" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Epic Seven: builds</h2><span id="e7-st">Builds do servidor Hero Journal</span></div><input type="search" id="e7-busca" class="in-txt" placeholder="Procurar personagem…" aria-label="Procurar personagem" style="width:260px;position:relative"></div>
+      <div class="row" id="e7-filtros"></div>
+      <div class="e7-lista" id="e7-lista"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-cht" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>PS5: cheats e saves</h2><span id="cht-st">Os cheats que criamos, prontos para o CheatRunner</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cht-recarregar">Atualizar</button></div></div>
@@ -1486,7 +1503,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.16';
+  var VERSAO_PC = '2026-11-02.1';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1506,6 +1523,49 @@ body.menu-mini .versao { display: none; }
     if (b) { b.disabled = true; fetch(AJ + '/obs/camada?k=' + ajK() + '&id=' + b.dataset.obscamada + '&on=' + b.dataset.on).then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) $('obs-nota').textContent = 'Não consegui: ' + (j.msg || ''); obsCamadas(); }).catch(function () { b.disabled = false; }); return; }
     b = e.target.closest('[data-obsmudo]');
     if (b) { b.disabled = true; fetch(AJ + '/obs/mudo?k=' + ajK() + '&fonte=' + encodeURIComponent(b.dataset.obsmudo)).then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) $('obs-nota').textContent = 'Não consegui: ' + (j.msg || ''); obsCamadas(); setTimeout(obsEstado, 300); }).catch(function () { b.disabled = false; }); }
+  });
+
+
+  /* ---------- Epic Seven: builds (e7.json, lido do Discord Hero Journal) ---------- */
+  var E7 = null, E7F = 'todos', E7A = '';
+  var E7C = { Knight: 'Cavaleiro', Mage: 'Mago', Warrior: 'Guerreiro', Thief: 'Ladino', 'Soul Weaver': 'Tecelão', Ranger: 'Arqueiro' };
+  function e7Carregar() {
+    if (E7) { e7Desenhar(); return; }
+    ghGet('e7.json').then(function (d) { E7 = d || { herois: [] }; e7Desenhar(); }).catch(function () { $('e7-lista').innerHTML = '<p class="note">Não consegui ler as builds.</p>'; });
+  }
+  function e7Med(b, k) { var v = b.map(function (x) { return x[k]; }).filter(function (x) { return x != null; }); if (!v.length) return null; return Math.round(v.reduce(function (a, c) { return a + c; }, 0) / v.length); }
+  function e7Alvo(b) {
+    var L = [['spd', 'Velocidade', ''], ['atk', 'Ataque', ''], ['hp', 'Vida', ''], ['def', 'Defesa', ''], ['cc', 'Crítico', '%'], ['cd', 'Dano crítico', '%'], ['eff', 'Eficácia', '%'], ['er', 'Resistência', '%']];
+    return L.map(function (x) { var m = e7Med(b, x[0]); return m ? x[1] + ' ~' + m.toLocaleString('pt-BR') + x[2] : ''; }).filter(Boolean).join(' · ');
+  }
+  function e7Desenhar() {
+    if (!E7) return;
+    var q = ($('e7-busca').value || '').toLowerCase().trim(), H = E7.herois || [];
+    var com = H.filter(function (h) { return h.b && h.b.length; }).length;
+    $('e7-st').textContent = H.length + ' personagens · ' + com + ' com build lida · fonte: ' + (E7.fonte || 'Discord');
+    var cls = ['todos'].concat(Object.keys(E7C)).concat(['com build']);
+    $('e7-filtros').innerHTML = cls.map(function (c) { return '<button class="chip" data-e7f="' + c + '" aria-pressed="' + (E7F === c) + '">' + (c === 'todos' ? 'Todos' : c === 'com build' ? 'Com build' : E7C[c]) + '</button>'; }).join('');
+    var L = H.filter(function (h) { return (E7F === 'todos' || (E7F === 'com build' ? h.b && h.b.length : h.c === E7F)) && (!q || h.n.toLowerCase().indexOf(q) >= 0 || h.slug.indexOf(q) >= 0); });
+    L.sort(function (a, b) { return a.n.localeCompare(b.n); });
+    $('e7-lista').innerHTML = L.length ? L.map(function (h) {
+      var b = h.b || [], ab = E7A === h.id;
+      var det = '';
+      if (ab && b.length) det = '<div class="e7-alvo"><b>Média:</b> ' + esc(e7Alvo(b)) + '</div><table class="e7-tab"><tr><th>Jogador</th><th>Vel.</th><th>Atq.</th><th>Vida</th><th>Def.</th><th>Crít.</th><th>D. crít.</th><th>Efic.</th><th>Res.</th></tr>' +
+        b.map(function (x) { return '<tr><td>' + esc(x.quem || '') + (x.data ? ' <small>' + esc(x.data.split('-').reverse().join('/')) + '</small>' : '') + (x.art ? '<br><small>' + esc(x.art) + '</small>' : '') + '</td><td>' + (x.spd || '') + '</td><td>' + (x.atk || '') + '</td><td>' + (x.hp || '') + '</td><td>' + (x.def || '') + '</td><td>' + (x.cc != null ? x.cc + '%' : '') + '</td><td>' + (x.cd != null ? x.cd + '%' : '') + '</td><td>' + (x.eff != null ? x.eff + '%' : '') + '</td><td>' + (x.er != null ? x.er + '%' : '') + '</td></tr>'; }).join('') + '</table>';
+      else if (ab) det = '<p class="note">Ainda não li as builds desse. Abra no Discord ou peça para o Claude ler.</p>';
+      return '<div class="e7-it' + (ab ? ' aberto' : '') + '"><div class="e7-top" data-e7="' + h.id + '" style="cursor:pointer"><div style="min-width:0"><b>' + esc(h.n) + '</b><small>' + esc(E7C[h.c] || h.c) + '</small></div>' +
+        (b.length ? '<span class="e7-nb">' + b.length + ' build' + (b.length > 1 ? 's' : '') + '</span>' : '') +
+        '<button class="btn" data-e7dc="' + h.id + '" title="Abrir o canal no Discord">Discord</button></div>' +
+        (!ab && b.length ? '<div class="e7-alvo" style="color:var(--muted)">' + esc(e7Alvo(b).split(' · ').slice(0, 3).join(' · ')) + '</div>' : '') + det + '</div>';
+    }).join('') : '<p class="note">Nenhum personagem com esse nome.</p>';
+  }
+  document.addEventListener('input', function (e) { if (e.target.id === 'e7-busca') e7Desenhar(); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-e7dc]');
+    if (b) { location.href = 'discord://-/channels/' + (E7.servidor || '') + '/' + b.dataset.e7dc; return; }
+    b = e.target.closest('[data-e7f]'); if (b) { E7F = b.dataset.e7f; e7Desenhar(); return; }
+    b = e.target.closest('[data-e7]'); if (b) { E7A = E7A === b.dataset.e7 ? '' : b.dataset.e7; e7Desenhar(); return; }
+    var m = e.target.closest('.mi[data-sec="e7"]'); if (m) setTimeout(e7Carregar, 30);
   });
 
   /* ---------- Cheats do PS5 ---------- */
@@ -1810,7 +1870,7 @@ body.menu-mini .versao { display: none; }
   function mostrarSec(sx) {
     SEC = sx;
     if (['clip', 'visual', 'apps', 'desp', 'mus', 'disc', 'cel'].indexOf(sx) >= 0) { $('mg-tv').setAttribute('aria-expanded', 'true'); $('sub-tv').hidden = false; }
-    var grp = { est: 'games', cht: 'games', sf6: 'games', anime: 'lazer', leit: 'lazer', lanc: 'games', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
+    var grp = { est: 'games', cht: 'games', e7: 'games', sf6: 'games', anime: 'lazer', leit: 'lazer', lanc: 'games', pc: 'casa', tvc: 'casa', stream: 'stream', ctl: 'stream' }[sx]; if (sx === 'stream' || sx === 'ctl') setTimeout(obsCarregar, 30); if (grp) { $('mg-' + grp).setAttribute('aria-expanded', 'true'); $('sub-' + grp).hidden = false; }
     document.querySelectorAll('.mi').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.sec === sx); });
     document.querySelectorAll('#painel [data-s]').forEach(function (el) { el.hidden = el.dataset.s !== sx; });
     var mx = sx === 'look' ? 'hoje' : sx, temMeio = !!$('meio-' + mx); document.querySelectorAll('[id^="meio-"]').forEach(function (m) { m.hidden = temMeio ? m.id !== 'meio-' + mx : m.id !== 'meio-tv'; });
