@@ -350,6 +350,20 @@ function FonteAplicar($alvo) {
   }
   $script:fonteAplicada = $alvo
 }
+# ---------- CheatRunner do PS5 (192.168.7.5:9999): teste de acesso e envio de cheats ----------
+$CR_URL = 'http://192.168.7.5:9999'
+$script:crTestado = $false
+function CrGet($cam) { $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8; return $wc.DownloadString($CR_URL + $cam) }
+function CrTeste {
+  $out = @("teste $(Get-Date -f 'yyyy-MM-dd HH:mm:ss')")
+  foreach ($c in @('/', '/api/cheats?titleId=PPSA36992', '/api/cheats/state', '/api/logs')) {
+    try { $t = CrGet $c; $out += "== $c OK ($($t.Length) bytes)"; $out += $t.Substring(0, [math]::Min(4000, $t.Length)) } catch { $out += "== $c ERRO: $($_.Exception.Message)" }
+  }
+  try { $h = CrGet '/'; [IO.File]::WriteAllText((Join-Path $aqui 'cheatrunner_index.html'), $h, (New-Object Text.UTF8Encoding $false))
+    foreach ($m in [regex]::Matches($h, '<script[^>]+src="([^"]+)"')) { $src = $m.Groups[1].Value; if ($src -notmatch '^https?:') { try { $js = CrGet ('/' + $src.TrimStart('/')); [IO.File]::WriteAllText((Join-Path $aqui ('cheatrunner_' + ($src -replace '[^\w.]', '_'))), $js, (New-Object Text.UTF8Encoding $false)) } catch {} } }
+  } catch {}
+  [IO.File]::WriteAllText((Join-Path $aqui 'cheatrunner_teste.txt'), ($out -join "`r`n"), (New-Object Text.UTF8Encoding $false))
+}
 $script:tiqueEm = [DateTime]::MinValue
 function Tique {
   if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
@@ -363,6 +377,7 @@ function Tique {
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
+  if (-not $script:crTestado) { $script:crTestado = $true; try { CrTeste } catch {} }
   if ($obs) { $alvoF = $script:fonteModo; if ($alvoF -eq 'auto') { $alvoF = JogoAlvo }; if ($alvoF -ne $script:fonteAplicada) { FonteAplicar $alvoF } } else { $script:fonteAplicada = '' }
   if ($grav -and ($jogo -eq 'sf6' -or $jogo -eq 'valorant')) { $script:jogoGrav = $jogo }
   if ($grav -and -not $script:gravAnt) { $script:dirGrav = ''; try { $script:dirGrav = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory } catch {} }
@@ -665,6 +680,10 @@ while ($http.IsListening) {
         try { $r = (ObsWs @(@{ t = 'ToggleInputMute'; d = @{ inputName = [string]$q['fonte'] } }))[0]; Json $ctx @{ ok = [bool]$r.requestStatus.result; mudo = [bool]$r.responseData.inputMuted; msg = [string]$r.requestStatus.comment } }
         catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
+      '/ps5cheats' {
+        # acao=teste: refaz o teste de acesso ao CheatRunner
+        try { CrTeste; Json $ctx @{ ok = $true } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
+      }
       '/obs/amigos' {
         # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
         try {
@@ -741,7 +760,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 38 } }
+      default  { Json $ctx @{ ok = $true; versao = 39 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
