@@ -471,6 +471,11 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .tr-plano ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
 .tr-plano .note { display: block; }
 #tr-nota { width: 100%; margin-top: 6px; border-radius: 12px; padding: 10px; font: inherit; background: rgba(0,0,0,.25); color: inherit; border: 1px solid rgba(255,255,255,.12); resize: vertical; }
+.tr-chk { float: right; width: 20px; height: 20px; border-radius: 6px; border: 2px solid rgba(255,255,255,.35); display: inline-grid; place-items: center; font-size: 13px; line-height: 1; }
+.tr-chk.on { background: #9CF2A8; border-color: #9CF2A8; color: #12301C; }
+.tr-chk:hover { border-color: var(--acc); }
+.tr-meta { width: 100%; justify-content: center; padding: 12px; font-size: 15px; }
+.tr-meta.on { background: #9CF2A8; color: #12301C; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -1459,7 +1464,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.12';
+  var VERSAO_PC = '2026-11-01.13';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -2713,12 +2718,12 @@ body.menu-mini .versao { display: none; }
     var dias = Object.keys(T.plano).filter(function (d) { return d.slice(0, 7) === trMes; }), feitos = dias.filter(function (d) { return F[d] && d <= hj; }), min = feitos.reduce(function (a, d) { return a + (+F[d].min || 0); }, 0);
     var passados = dias.filter(function (d) { return d <= hj; }).length, seq = 0; for (var dd = new Date(); ; dd.setDate(dd.getDate() - 1)) { var k = iso(dd); if (F[k]) seq++; else if (k !== hj) break; if (seq > 400) break; }
     var sem = (T.semanas || []).filter(function (w) { return hj >= w.ini && hj <= w.fim; })[0];
-    $('tr-resumo').innerHTML = '<div><b>' + feitos.length + '/' + passados + '</b><span>dias treinados até hoje</span></div><div><b>' + min + ' min</b><span>no mês</span></div><div><b>' + seq + '</b><span>dias seguidos</span></div>' + (sem ? '<div class="larga"><b>' + esc(sem.nome) + '</b><span>foco desta semana</span></div>' : '');
+    $('tr-resumo').innerHTML = '<div><b>' + feitos.length + '/' + passados + '</b><span>dias com a meta cumprida</span></div><div><b>' + min + ' min</b><span>no mês</span></div><div><b>' + seq + '</b><span>dias seguidos</span></div>' + (sem ? '<div class="larga"><b>' + esc(sem.nome) + '</b><span>foco desta semana</span></div>' : '');
     var ini = new Date(y, m, 1), h = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(function (x) { return '<div class="ds">' + x + '</div>'; }).join('');
     for (var i = 0; i < ini.getDay(); i++) h += '<div></div>';
     for (var d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
       var k2 = trMes + '-' + ('0' + d).slice(-2), p = T.plano[k2], f = F[k2], cls = 'tr-d' + (k2 === hj ? ' hoje' : '') + (k2 === trSel ? ' sel' : '') + (f ? ' feito' : (p && k2 < hj ? ' perdeu' : ''));
-      h += '<button class="' + cls + '" data-trdia="' + k2 + '"><span class="n">' + d + '</span>' + (p ? '<span class="t">' + esc(p.t) + '</span><span class="m">' + (f ? '✓ ' + f.min + ' min' : p.min + ' min') + '</span>' : '') + '</button>';
+      h += '<button class="' + cls + '" data-trdia="' + k2 + '"><span class="n">' + d + (p && k2 <= hj ? '<span class="tr-chk' + (f ? ' on' : '') + '" data-trok="' + k2 + '" title="Cumpri a meta">' + (f ? '✓' : '') + '</span>' : '') + '</span>' + (p ? '<span class="t">' + esc(p.t) + '</span><span class="m">' + (f ? 'Meta cumprida' + (+f.min ? ' · ' + f.min + ' min' : '') : p.min + ' min') + '</span>' : '') + '</button>';
     }
     $('tr-cal').innerHTML = h; trDia();
   }
@@ -2726,18 +2731,21 @@ body.menu-mini .versao { display: none; }
     var el = $('tr-dia'), T = S.tr; if (!el || !T) return; var p = T.plano[trSel], f = (T.feito || {})[trSel];
     var dt = trSel.split('-');
     var nd = DIAS[new Date(+dt[0], +dt[1] - 1, +dt[2]).getDay()]; el.innerHTML = '<h3>' + nd.charAt(0).toUpperCase() + nd.slice(1) + ', ' + dt[2] + '/' + dt[1] + '</h3>' + (p ? '<div class="tr-plano"><b>' + esc(p.t) + '</b> <span class="note">· ' + p.min + ' min</span>' + (p.semana ? '<span class="note">' + esc(p.semana) + '</span>' : '') + '<ul>' + (p.tarefas || []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '<p class="note">Sem treino planejado.</p>') +
-      '<h3 style="margin-top:6px">Quanto treinou?</h3><div class="row" style="gap:6px;flex-wrap:wrap">' + [30, 45, 60, 90].map(function (n) { return '<button class="chip" data-trmin="' + n + '" aria-pressed="' + !!(f && +f.min === n) + '">' + n + ' min</button>'; }).join('') + (f ? '<button class="chip" data-trmin="0">Desmarcar</button>' : '') + '</div>' +
+      '<button class="btn tr-meta' + (f ? ' on' : '') + '" data-trok="' + trSel + '">' + (f ? '✓ Meta cumprida (clique para desmarcar)' : '☐ Cumpri a meta de hoje') + '</button>' +
+      '<h3 style="margin-top:6px">Quanto tempo? <span class="note" style="text-transform:none;letter-spacing:0">(opcional)</span></h3><div class="row" style="gap:6px;flex-wrap:wrap">' + [30, 45, 60, 90].map(function (n) { return '<button class="chip" data-trmin="' + n + '" aria-pressed="' + !!(f && +f.min === n) + '">' + n + ' min</button>'; }).join('') + '</div>' +
       '<label class="f" for="tr-nota">Anotação do dia<textarea id="tr-nota" rows="3" placeholder="O que funcionou, o que errou…">' + esc((f && f.nota) || '') + '</textarea></label>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-trmes]');
     if (b) { var y = +trMes.slice(0, 4), m = +trMes.slice(5, 7) - 1 + (+b.dataset.trmes), d = new Date(y, m, 1); trMes = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); desenharTreino(); return; }
+    b = e.target.closest('[data-trok]');
+    if (b) { var dk = b.dataset.trok; trSel = dk; mudar('tr', function (d) { d.feito = d.feito || {}; if (d.feito[dk]) delete d.feito[dk]; else d.feito[dk] = { ok: true, min: 0, nota: '', em: new Date().toISOString() }; }); return; }
     b = e.target.closest('[data-trdia]'); if (b) { trSel = b.dataset.trdia; desenharTreino(); return; }
     b = e.target.closest('[data-trmin]');
-    if (b) { var n = +b.dataset.trmin, dia = trSel; mudar('tr', function (d) { d.feito = d.feito || {}; if (!n) delete d.feito[dia]; else d.feito[dia] = { min: n, nota: (d.feito[dia] && d.feito[dia].nota) || '', em: new Date().toISOString() }; }); return; }
+    if (b) { var n = +b.dataset.trmin, dia = trSel; mudar('tr', function (d) { d.feito = d.feito || {}; d.feito[dia] = { ok: true, min: n, nota: (d.feito[dia] && d.feito[dia].nota) || '', em: new Date().toISOString() }; }); return; }
   });
   document.addEventListener('change', function (e) {
-    if (e.target.id === 'tr-nota') { var v = e.target.value, dia = trSel; mudar('tr', function (d) { d.feito = d.feito || {}; d.feito[dia] = d.feito[dia] || { min: 0 }; d.feito[dia].nota = v; }); }
+    if (e.target.id === 'tr-nota') { var v = e.target.value, dia = trSel; mudar('tr', function (d) { d.feito = d.feito || {}; d.feito[dia] = d.feito[dia] || { ok: true, min: 0 }; d.feito[dia].nota = v; }); }
   });
   function desenhar() { clearTimeout(pendT); pendT = setTimeout(pendentesCelular, 1500); desenharTreino(); badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
