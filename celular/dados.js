@@ -43,7 +43,7 @@
     etapaMove: function (d, a) { var p = d.projetos[a.p]; if (!p || !p.etapas[a.i] || p.etapas[a.i].t !== a.t) return; var j = a.i + a.dir; if (j < 0 || j >= p.etapas.length) return; var x = p.etapas.splice(a.i, 1)[0]; p.etapas.splice(j, 0, x); },
     projNovo: function (d, a) { if (!d.projetos[a.id]) d.projetos[a.id] = { nome: a.nome, objetivo: a.obj || '', ordem: a.ordem, status: 'ativo', etapas: [] }; },
     projCampo: function (d, a) { var p = d.projetos[a.p]; if (p) p[a.campo] = a.v; },
-    trofeu: function (d, a) { var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {}; if (a.ok) g.done[a.t] = true; else delete g.done[a.t]; },
+    trofeu: function (d, a) { var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {}; if (a.ok) g.done[a.t] = a.em || true; else delete g.done[a.t]; },
     importa: function (d, a) {
       var g = d.progresso[a.g] || (d.progresso[a.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {};
       a.ids.forEach(function (t) { g.done[t] = true; });
@@ -629,7 +629,7 @@
     }
     else if (a === 'tr') {
       var g = b.dataset.g, t = b.dataset.t, dn = ((S.est.progresso[g] || {}).done || {});
-      op('est', 'trofeu', { g: g, t: t, ok: !dn[t] });
+      op('est', 'trofeu', { g: g, t: t, ok: !dn[t], em: Date.now() });
     }
     else if (a === 'tarOk') { var t0 = (S.tar.tarefas || []).filter(function (x) { return x.id === b.dataset.id; })[0]; if (t0) op('tar', 'tarOk', { id: t0.id, ok: !t0.ok, em: Date.now() }); }
     else if (a === 'tarFiltro') { catFiltro = b.dataset.v; gravar('cd-cat-filtro', catFiltro); render(); }

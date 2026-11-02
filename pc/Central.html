@@ -476,6 +476,15 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .tr-chk:hover { border-color: var(--acc); }
 .tr-meta { width: 100%; justify-content: center; padding: 12px; font-size: 15px; }
 .tr-meta.on { background: #9CF2A8; color: #12301C; }
+.es-ult { padding: 12px 14px; border-radius: 14px; background: rgba(20,18,52,calc(var(--vidro) + .1)); display: flex; flex-direction: column; gap: 8px; flex: none; }
+.es-ult h3 { margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+.es-ult h3 small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.es-ult-l { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.es-ult-it { font: inherit; color: inherit; text-align: left; display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; border: 0; background: rgba(255,255,255,.05); cursor: pointer; min-width: 0; }
+.es-ult-it i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.es-ult-it span { display: flex; flex-direction: column; min-width: 0; }
+.es-ult-it b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.es-ult-it small { font-size: 11px; color: var(--muted); }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -666,6 +675,7 @@ body.menu-mini .versao { display: none; }
     </div>
     <div class="col card meio" id="meio-est" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Estante de Platinas</h2><span id="es-resumo"></span></div><div class="row" id="es-filtros" style="position:relative"></div></div>
+      <div class="es-ult" id="es-ult"></div>
       <div class="jg-grid" id="es-grid"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-anime" hidden>
@@ -1464,7 +1474,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.13';
+  var VERSAO_PC = '2026-11-01.14';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -2136,6 +2146,11 @@ body.menu-mini .versao { display: none; }
     var tot = 0, fe = 0;
     L.forEach(function (j) { var p = progDe(j.id); tot += (j.trophies || []).length; fe += Object.keys(p.done || {}).length; });
     $('es-resumo').textContent = L.length + ' jogos · ' + fe + ' de ' + tot + ' troféus';
+    /* últimos troféus: os que têm data (marcados aqui, no celular ou importados do PS5 a partir de 01/11/2026) */
+    var ult = []; L.forEach(function (j) { var dn = progDe(j.id).done || {}; (j.trophies || []).forEach(function (t) { var v = dn[t.id]; if (typeof v === 'number') ult.push({ j: j, t: t, em: v }); }); });
+    ult.sort(function (a, b) { return b.em - a.em; });
+    var semana = ult.filter(function (x) { return Date.now() - x.em < 7 * 864e5; }).length;
+    $('es-ult').innerHTML = '<h3>🏆 Últimos troféus <small>' + (ult.length ? semana + ' nos últimos 7 dias' : '') + '</small></h3>' + (ult.length ? '<div class="es-ult-l">' + ult.slice(0, 8).map(function (x) { var g = GRAU[x.t.type] || GRAU.bronze; return '<button class="es-ult-it" data-a="esSel" data-v="' + esc(x.j.id) + '"><i style="background:' + g[1] + '"></i><span><b>' + esc(x.t.name) + '</b><small>' + esc(x.j.short || x.j.name) + ' · ' + g[0] + ' · ' + new Date(x.em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + '</small></span></button>'; }).join('') + '</div>' : '<p class="note" style="margin:0">Os troféus marcados daqui pra frente (aqui, no celular ou ao importar do PS5) aparecem aqui com a data. Os antigos não tinham data guardada.</p>');
     $('es-filtros').innerHTML = [['todos', 'Todos']].concat(STATUS).map(function (s2) { return '<button class="chip" data-a="esFiltro" data-v="' + s2[0] + '" aria-pressed="' + (esFiltro === s2[0]) + '">' + s2[1] + '</button>'; }).join('');
     el.innerHTML = L.filter(function (j) { return esFiltro === 'todos' || (progDe(j.id).status || 'fila') === esFiltro; }).map(function (j) {
       var p = progDe(j.id), T = j.trophies || [], n = T.filter(function (t) { return p.done && p.done[t.id]; }).length, plat = T.some(function (t) { return t.type === 'platina' && p.done && p.done[t.id]; });
@@ -2195,7 +2210,7 @@ body.menu-mini .versao { display: none; }
       mudar('es', function (d) {
         planos.forEach(function (p) {
           var g = d.progresso[p.g] || (d.progresso[p.g] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {};
-          p.ids.forEach(function (t) { g.done[t] = true; });
+          var agoraT = Date.now(); p.ids.forEach(function (t) { if (!g.done[t]) g.done[t] = agoraT; });
           if (p.ids.length && (!g.status || g.status === 'fila')) g.status = 'jogando';
           if (p.npwr && d.jogos[p.g] && !d.jogos[p.g].npwr) d.jogos[p.g].npwr = p.npwr;
         });
@@ -2768,7 +2783,7 @@ body.menu-mini .versao { display: none; }
     else if (a === 'esSel') { esSel = b.dataset.v; desenharEst(); }
     else if (a === 'esFiltro') { esFiltro = b.dataset.v; desenharEst(); }
     else if (a === 'esStatus') { var gS = esSel, vS = b.dataset.v; mudar('es', function (d) { var g = d.progresso[gS] || (d.progresso[gS] = { custom: [], done: {}, notes: '', status: 'fila' }); g.status = vS; }); }
-    else if (a === 'trof') { var gT = esSel, tT = b.dataset.v, okT = !(progDe(gT).done || {})[tT]; mudar('es', function (d) { var g = d.progresso[gT] || (d.progresso[gT] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {}; if (okT) g.done[tT] = true; else delete g.done[tT]; }); }
+    else if (a === 'trof') { var gT = esSel, tT = b.dataset.v, okT = !(progDe(gT).done || {})[tT]; mudar('es', function (d) { var g = d.progresso[gT] || (d.progresso[gT] = { custom: [], done: {}, notes: '', status: 'fila' }); g.done = g.done || {}; if (okT) g.done[tT] = Date.now(); else delete g.done[tT]; }); }
     else if (a === 'lnSo') { lnSo = !lnSo; desenharLanc(); }
     else if (a === 'lnMeu') { var idL = b.dataset.v, jL = ((S.ln && S.ln.jogos) || []).filter(function (x) { return x.id === idL; })[0], vL = !(jL && jL.meu); mudar('ln', function (d) { (d.jogos || []).forEach(function (j) { if (j.id === idL) j.meu = vL; }); }); }
     else if (a === 'etOk') { var i1 = +b.dataset.i, P1 = S.pj.projetos[pjSel], e1 = P1.etapas[i1], v1 = !e1.ok, k1 = pjSel, t1 = e1.t; mudar('pj', function (d) { var pp = d.projetos[k1]; if (pp && pp.etapas[i1] && pp.etapas[i1].t === t1) pp.etapas[i1].ok = v1; }); }
