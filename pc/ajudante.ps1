@@ -353,7 +353,12 @@ function FonteAplicar($alvo) {
 # ---------- CheatRunner do PS5 (192.168.7.5:9999): teste de acesso e envio de cheats ----------
 $CR_URL = 'http://192.168.7.5:9999'
 $script:crTestado = $false
-function CrGet($cam) { $wc = New-Object System.Net.WebClient; $wc.Encoding = [Text.Encoding]::UTF8; return $wc.DownloadString($CR_URL + $cam) }
+function HttpTexto($url, $ms) {
+  # GET com tempo limite curto (o WebClient espera 100 s quando o PS5 está desligado e trava o ajudante)
+  $rq = [Net.HttpWebRequest]::Create($url); $rq.Timeout = $ms; $rq.ReadWriteTimeout = $ms
+  $rs = $rq.GetResponse(); try { $sr = New-Object IO.StreamReader($rs.GetResponseStream(), [Text.Encoding]::UTF8); return $sr.ReadToEnd() } finally { $rs.Close() }
+}
+function CrGet($cam, $ms = 4000) { return (HttpTexto ($CR_URL + $cam) $ms) }
 function CrEnviar($rel) {
   $f = Join-Path 'F:\PS5\Cheats' $rel; $b = [IO.File]::ReadAllBytes($f); $nome = [IO.Path]::GetFileName($f); $tid = $nome.Substring(0, 9)
   $wc = New-Object System.Net.WebClient; $wc.Headers['Content-Type'] = 'application/octet-stream'
@@ -369,6 +374,35 @@ function CrTeste {
   } catch {}
   [IO.File]::WriteAllText((Join-Path $aqui 'cheatrunner_teste.txt'), ($out -join "`r`n"), (New-Object Text.UTF8Encoding $false))
 }
+# ---------- PS5: tempo de jogo (sessões) e exploração para o backup de saves ----------
+$WFM_URL = 'http://192.168.7.5:8888'
+$sessF = Join-Path $aqui 'ps5_sessoes.json'
+$script:ps5Visto = [DateTime]::MinValue
+function WfmList($path) { return (HttpTexto ($WFM_URL + '/api/list?path=' + [Uri]::EscapeDataString($path)) 6000) }
+function SessLer { try { if (Test-Path $sessF) { return ([IO.File]::ReadAllText($sessF, [Text.Encoding]::UTF8) | ConvertFrom-Json) } } catch {}; return [pscustomobject]@{ sessoes = @(); atual = $null } }
+function SessGravar($o) { [IO.File]::WriteAllText($sessF, ($o | ConvertTo-Json -Depth 5 -Compress), (New-Object Text.UTF8Encoding $false)) }
+function Ps5Tique {
+  if (((Get-Date) - $script:ps5Visto).TotalSeconds -lt 55) { return }
+  $script:ps5Visto = Get-Date
+  $tid = ''; $on = $true
+  try { $st = (CrGet '/api/status' 2500) | ConvertFrom-Json; $tid = [string]$st.titleId; if (-not $tid) { $tid = [string]$st.title_id } } catch { $on = $false }
+  if ($tid -notmatch '^[A-Z]{4}\d{5}$') { $tid = '' }
+  $o = SessLer; $agora = [DateTimeOffset]::Now.ToUnixTimeSeconds(); $mud = $false
+  $L = @($o.sessoes | Where-Object { $_ })
+  if ($o.atual -and ($o.atual.id -ne $tid)) {
+    $fim = [long]$o.atual.visto; if ($on) { $fim = $agora }
+    if ($fim - [long]$o.atual.ini -ge 60) { $L += [pscustomobject]@{ id = $o.atual.id; ini = [long]$o.atual.ini; fim = $fim } }
+    $o.atual = $null; $mud = $true
+  }
+  if ($tid) { if (-not $o.atual) { $o.atual = [pscustomobject]@{ id = $tid; ini = $agora; visto = $agora } } else { $o.atual.visto = $agora }; $mud = $true }
+  if ($mud) { if ($L.Count -gt 2000) { $L = $L[($L.Count - 2000)..($L.Count - 1)] }; $o = [pscustomobject]@{ sessoes = @($L); atual = $o.atual }; SessGravar $o }
+}
+function Ps5Explorar {
+  $out = @("explorar $(Get-Date -f 'yyyy-MM-dd HH:mm:ss')")
+  foreach ($c in @('/api/status', '/api/games', '/api/activity', '/api/launch/status')) { try { $t = CrGet $c; $out += "== CR $c ($($t.Length))"; $out += $t.Substring(0, [math]::Min(3000, $t.Length)) } catch { $out += "== CR $c ERRO $($_.Exception.Message)" } }
+  foreach ($pth in @('/user/home/13b5b6f1/', '/user/home/13b5b6f1/savedata_prospero/', '/user/home/13b5b6f1/savedata/', '/user/home/13b5b6f1/savedata_prospero/PPSA36992/')) { try { $t = WfmList $pth; $out += "== WFM $pth ($($t.Length))"; $out += $t.Substring(0, [math]::Min(3000, $t.Length)) } catch { $out += "== WFM $pth ERRO $($_.Exception.Message)" } }
+  [IO.File]::WriteAllText((Join-Path $aqui 'ps5_explorar.txt'), ($out -join "`r`n"), (New-Object Text.UTF8Encoding $false))
+}
 $script:tiqueEm = [DateTime]::MinValue
 function Tique {
   if (((Get-Date) - $script:tiqueEm).TotalSeconds -lt 4) { return }
@@ -382,7 +416,8 @@ function Tique {
   # atalho de "marcar momento" (F9 por padrão): ligado enquanto estiver gravando
   if ($grav) { if (-not (ProcRodando $atalhoPid)) { ProcIniciar (Join-Path $SCR 'atalho_momento.py') $atalhoPid } } elseif (Test-Path $atalhoPid) { ProcParar $atalhoPid }
   if ($obs -and -not (Test-Path $capOkF) -and ((Get-Date) - (Get-Process obs64 | Select-Object -First 1).StartTime).TotalSeconds -gt 20) { try { $null = CapturaJogo } catch { Set-Content -Path (Join-Path $aqui 'captura_jogo_erro.txt') -Value $_.Exception.Message } }
-  if (-not $script:crTestado) { $script:crTestado = $true; try { CrTeste } catch {} }
+  if (-not $script:crTestado) { $script:crTestado = $true; try { CrTeste } catch {}; try { Ps5Explorar } catch {} }
+  try { Ps5Tique } catch {}
   # pedido de envio deixado pelo Claude (pc\enviar_cheat.txt com o caminho dentro de F:\PS5\Cheats)
   $pedF = Join-Path $aqui 'enviar_cheat.txt'
   if (Test-Path $pedF) { $rel = ([IO.File]::ReadAllText($pedF)).Trim(); Remove-Item $pedF -Force -ErrorAction SilentlyContinue
@@ -721,6 +756,13 @@ while ($http.IsListening) {
           default { try { CrTeste; Json $ctx @{ ok = $true } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
         }
       }
+      '/ps5/jogos' {
+        # jogos do PS5 (tempo total do console) + sessões registradas pelo ajudante
+        $g = @(); try { $g = @(((CrGet '/api/games' 10000) | ConvertFrom-Json)) } catch {}
+        if ($g.Count -eq 1 -and $g[0].games) { $g = @($g[0].games) }
+        $o = SessLer
+        Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @{ jogos = @($g | ForEach-Object { @{ id = [string]($_.titleId, $_.title_id | Where-Object { $_ } | Select-Object -First 1); nome = [string]($_.titleName, $_.title_name, $_.name | Where-Object { $_ } | Select-Object -First 1); tempo = [double]$_.playTime; ultimo = [string]$_.lastAccessTime; icone = [string]$_.iconUrl } }); sessoes = @($o.sessoes); atual = $o.atual } -Depth 5 -Compress)))
+      }
       '/obs/amigos' {
         # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
         try {
@@ -797,7 +839,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 40 } }
+      default  { Json $ctx @{ ok = $true; versao = 41 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

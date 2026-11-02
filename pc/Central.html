@@ -485,6 +485,12 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .es-ult-it span { display: flex; flex-direction: column; min-width: 0; }
 .es-ult-it b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .es-ult-it small { font-size: 11px; color: var(--muted); }
+.jt-tempo { color: #9CF2A8 !important; }
+.es-tempo-n { display: flex; gap: 8px; }
+.es-tempo-n > div { flex: 1; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.05); display: flex; flex-direction: column; }
+.es-tempo-n b { font-size: 16px; }
+.es-tempo-n span { font-size: 11px; color: var(--muted); }
+.es-sess { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); line-height: 1.6; }
 .obs-grav { gap: 8px; align-items: center; flex-wrap: wrap; }
 .obs-tr.marca { border-color: #FFD36E; color: #FFD36E; }
 .obs-enc { font-weight: 800; color: #FF8FA6; font-size: 14px; }
@@ -773,6 +779,7 @@ body.menu-mini .versao { display: none; }
         <span class="note" id="es-ps5-st">Lê os troféus direto do PS5 (ligado, no Wi-Fi de casa, com o jailbreak ativo).</span>
         <h3 id="es-tit" style="margin-top:8px"></h3>
         <p class="note" id="es-info" style="margin:0"></p>
+        <div class="es-tempo" id="es-tempo"></div>
         <div class="row" id="es-status"></div>
         <div class="row"><button class="btn" type="button" data-a="fsEs" id="fs-es">☆ Fim de semana</button></div>
         <div class="col" style="gap:6px" id="es-trof"></div>
@@ -1474,7 +1481,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-01.14';
+  var VERSAO_PC = '2026-11-01.15';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1525,7 +1532,7 @@ body.menu-mini .versao { display: none; }
       }).catch(function () { b.disabled = false; b.textContent = '⬆ Enviar para o PS5'; });
       return; }
     var m = e.target.closest('.mi[data-sec]');
-    if (m) { if (m.dataset.sec === 'cht') setTimeout(chtCarregar, 50); if (m.dataset.sec === 'est') { setTimeout(function () { if (window.esFiltroMenu) esFiltroMenu(m.dataset.esf || 'todos'); }, 30); } }
+    if (m) { if (m.dataset.sec === 'cht') setTimeout(chtCarregar, 50); if (m.dataset.sec === 'est') { setTimeout(function () { if (window.esFiltroMenu) esFiltroMenu(m.dataset.esf || 'todos'); if (window.PS5_CARREGAR) PS5_CARREGAR(true); }, 30); } }
   });
   function obsCarregar(forcar) {
     if (OBS.d && !forcar) { obsDesenhar(); return; }
@@ -1777,7 +1784,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 40 && !sessionStorage.getItem('aj-reiniciou-40')) { sessionStorage.setItem('aj-reiniciou-40', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 41 && !sessionStorage.getItem('aj-reiniciou-41')) { sessionStorage.setItem('aj-reiniciou-41', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
@@ -2140,6 +2147,27 @@ body.menu-mini .versao { display: none; }
   var STATUS = [['jogando', 'Jogando'], ['fila', 'Na fila'], ['zerado', 'Zerado'], ['platinado', 'Platinado']];
   function jogosEst() { var J = (S.es && S.es.jogos) || {}; return Object.keys(J).map(function (k) { return J[k]; }).sort(function (a, b) { return (a.order || 99) - (b.order || 99); }); }
   function progDe(id) { return ((S.es && S.es.progresso) || {})[id] || { done: {}, status: 'fila' }; }
+
+  /* ---------- tempo de jogo no PS5 (console + sessões do ajudante) ---------- */
+  var PS5J = null, ps5JEm = 0;
+  function ps5Carregar(forcar) {
+    if (!forcar && Date.now() - ps5JEm < 50000) return; ps5JEm = Date.now();
+    fetch(ajBase() + '/ps5/jogos?k=' + (window.AJUDANTE_CHAVE || '')).then(function (r) { return r.json(); }).then(function (j) { PS5J = j; desenharEst(); }).catch(function () {});
+  }
+  setInterval(function () { var g = $('es-grid'); if (g && g.offsetParent) ps5Carregar(); }, 15000);
+  function hm(seg) { seg = Math.round(seg || 0); var h = Math.floor(seg / 3600), m = Math.round((seg % 3600) / 60); return h ? h + 'h' + (m ? ' ' + m + 'min' : '') : m + 'min'; }
+  function quando(v) { if (!v) return null; var n = +v; var d = isNaN(n) ? new Date(v) : new Date(n < 1e12 ? n * 1000 : n); return isNaN(d) ? null : d; }
+  window.PS5_CARREGAR = ps5Carregar;
+  function tempoDe(tid) {
+    if (!PS5J || !tid) return null;
+    var g = (PS5J.jogos || []).filter(function (x) { return x.id === tid; })[0];
+    var S2 = (PS5J.sessoes || []).filter(function (x) { return x.id === tid; }).slice();
+    if (PS5J.atual && PS5J.atual.id === tid) S2.push({ id: tid, ini: PS5J.atual.ini, fim: Math.max(PS5J.atual.visto, PS5J.atual.ini), agora: true });
+    var h0 = new Date(); h0.setHours(0, 0, 0, 0); var hojeS = 0, semS = 0;
+    S2.forEach(function (x) { var dur = x.fim - x.ini; if (x.ini * 1000 >= h0.getTime()) hojeS += dur; if (Date.now() / 1000 - x.ini < 7 * 86400) semS += dur; });
+    if (!g && !S2.length) return null;
+    return { total: g ? g.tempo : 0, ultimo: g ? quando(g.ultimo) : null, hoje: hojeS, semana: semS, sessoes: S2.slice(-5).reverse(), jogando: !!(PS5J.atual && PS5J.atual.id === tid) };
+  }
   function desenharEst() {
     var el = $('es-grid'); if (!el) return;
     var L = jogosEst(); if (!esSel && L.length) esSel = L[0].id;
@@ -2155,7 +2183,7 @@ body.menu-mini .versao { display: none; }
     el.innerHTML = L.filter(function (j) { return esFiltro === 'todos' || (progDe(j.id).status || 'fila') === esFiltro; }).map(function (j) {
       var p = progDe(j.id), T = j.trophies || [], n = T.filter(function (t) { return p.done && p.done[t.id]; }).length, plat = T.some(function (t) { return t.type === 'platina' && p.done && p.done[t.id]; });
       return '<button class="jg" data-a="esSel" data-v="' + esc(j.id) + '" aria-pressed="' + (esSel === j.id) + '"><span class="capa" data-capa="es-' + esc(j.id) + '"><b>' + esc((j.short || j.name).slice(0, 2)) + '</b></span><span class="jt"><b>' + esc(j.short || j.name) + '</b><small>' + esc((STATUS.filter(function (x) { return x[0] === (p.status || 'fila'); })[0] || [, ''])[1]) + (j.tbd ? ' · ainda não saiu' : '') + '</small>' +
-        (T.length ? '<span class="bar"><i style="width:' + Math.round(n / T.length * 100) + '%"></i></span><small>' + n + ' de ' + T.length + (plat ? ' · platinado ✓' : '') + '</small>' : '') + '</span></button>';
+        (T.length ? '<span class="bar"><i style="width:' + Math.round(n / T.length * 100) + '%"></i></span><small>' + n + ' de ' + T.length + (plat ? ' · platinado ✓' : '') + '</small>' : '') + (function () { var tp = tempoDe(j.titleId); return tp && (tp.total || tp.semana) ? '<small class="jt-tempo">' + (tp.jogando ? '🟢 jogando agora · ' : '⏱ ') + hm(tp.total || tp.semana) + '</small>' : ''; })() + '</span></button>';
     }).join('') || '<p class="note">Nenhum jogo aqui.</p>';
     if (window.CAPAS) CAPAS.aplicar(el, L.map(function (j) { return { id: 'es-' + j.id, nome: j.name, wiki: j.wiki }; }));
     var j2 = (S.es && S.es.jogos || {})[esSel];
@@ -2164,6 +2192,11 @@ body.menu-mini .versao { display: none; }
     var p2 = progDe(esSel), T2 = j2.trophies || [];
     $('es-tit').textContent = j2.name;
     $('es-info').textContent = [j2.main && 'História ' + j2.main, j2.full && '100% ' + j2.full, j2.missables && 'Perdíveis: ' + j2.missables].filter(Boolean).join(' · ');
+    var tp2 = tempoDe(j2.titleId);
+    $('es-tempo').innerHTML = !j2.titleId ? '' : !tp2 ? '<span class="note">⏱ Tempo de jogo aparece quando o PS5 estiver ligado.</span>' :
+      '<div class="es-tempo-n"><div><b>' + hm(tp2.total) + '</b><span>no PS5 (total)</span></div><div><b>' + hm(tp2.hoje) + '</b><span>hoje</span></div><div><b>' + hm(tp2.semana) + '</b><span>7 dias</span></div></div>' +
+      (tp2.ultimo ? '<span class="note">Última vez: ' + tp2.ultimo.toLocaleDateString('pt-BR') + (tp2.jogando ? ' · 🟢 jogando agora' : '') + '</span>' : (tp2.jogando ? '<span class="note">🟢 jogando agora</span>' : '')) +
+      (tp2.sessoes.length ? '<ul class="es-sess">' + tp2.sessoes.map(function (x) { var d = new Date(x.ini * 1000); return '<li>' + d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · ' + hm(x.fim - x.ini) + (x.agora ? ' (agora)' : '') + '</li>'; }).join('') + '</ul>' : '');
     $('es-status').innerHTML = STATUS.map(function (s3) { return '<button class="chip" data-a="esStatus" data-v="' + s3[0] + '" aria-pressed="' + ((p2.status || 'fila') === s3[0]) + '">' + s3[1] + '</button>'; }).join('');
     $('es-trof').innerHTML = T2.map(function (t) {
       var ok = p2.done && p2.done[t.id], g = GRAU[t.type] || GRAU.bronze;
