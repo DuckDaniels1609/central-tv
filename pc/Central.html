@@ -189,6 +189,11 @@ html, body { height: 100%; margin: 0; }
 .c-t { font-weight: 700; }
 .c-cli { color: #D9D5F2; max-width: 280px; }
 .c-resp { white-space: nowrap; }
+.st-b { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 0; cursor: pointer; white-space: nowrap; }
+.st-b.proposta { background: #4A3A10; color: #FFD36E; } .st-b.andamento { background: #123A4A; color: #8FE3FF; }
+.rel { padding: 14px 16px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .15)); display: flex; flex-direction: column; gap: 10px; }
+.rel pre { margin: 0; white-space: pre-wrap; font: 14px/1.55 inherit; font-family: inherit; background: rgba(0,0,0,.2); padding: 12px 14px; border-radius: 10px; max-height: 50vh; overflow: auto; }
+.rel .assunto { font-size: 13px; color: var(--muted); }
 .c-dt { width: 160px; }
 .rb { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #2E2870; color: var(--muted); margin-right: 4px; }
 .rb.eu { background: color-mix(in srgb, var(--acc) 30%, transparent); color: #FFF; }
@@ -669,7 +674,8 @@ body.menu-mini .versao { display: none; }
       <div class="hj-grid" id="hj-corpo"><p class="note">Carregando…</p></div>
     </div>
     <div class="col card meio" id="meio-tar" hidden>
-      <div class="banner slim"><div class="banner-tx"><h2>Tarefas</h2><span id="tar-resumo"></span></div></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Tarefas</h2><span id="tar-resumo"></span></div><button class="btn" data-a="relVer" style="position:relative">📧 Relatório de trabalho</button></div>
+      <div class="rel" id="tar-rel" hidden></div>
       <form id="tar-nova" class="nova">
         <input type="text" id="tar-txt" placeholder="Nova tarefa…" aria-label="Nova tarefa" autocomplete="off">
         <input type="text" id="tar-cli" list="cliLista" placeholder="Cliente (opcional)" aria-label="Cliente" autocomplete="off">
@@ -1507,7 +1513,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-02.2';
+  var VERSAO_PC = '2026-11-03.1';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -2098,7 +2104,7 @@ body.menu-mini .versao { display: none; }
   /* ---------- TAREFAS ---------- */
   var filtro = 'todas', soDBA = false, catNova = 'trabalho', respNova = ['DBA'];
   function desenharTar() {
-    var el = $('tar-lista'); if (!el) return;
+    var el = $('tar-lista'); if (!el) return; relDesenhar();
     var L = ((S.tar && S.tar.tarefas) || []), hj = hoje();
     $('tar-cats').innerHTML = CATS.map(function (c) { return '<button class="chip" data-a="catNova" data-v="' + c[0] + '" aria-pressed="' + (catNova === c[0]) + '">' + c[1] + '</button>'; }).join('');
     $('tar-resp').innerHTML = catNova === 'trabalho' ? ['DBA', 'MSS', 'PAA'].map(function (r) { return '<button class="chip" data-a="respNova" data-v="' + r + '" aria-pressed="' + (respNova.indexOf(r) >= 0) + '">' + r + '</button>'; }).join('') : '';
@@ -2110,15 +2116,15 @@ body.menu-mini .versao { display: none; }
     var grupos = CATS.filter(function (c) { return filtro === 'todas' || filtro === c[0]; });
     var corpo = grupos.map(function (c) {
       var g = abertas.filter(function (t) { return (t.cat || 'pessoal') === c[0]; }).sort(function (a, b) { return (a.data || '9') < (b.data || '9') ? -1 : 1; });
-      return '<tbody><tr class="gh" style="--c:' + c[2] + '"><td colspan="6"><span class="gtag">' + c[1] + '</span><span class="gn">' + g.length + (g.length === 1 ? ' tarefa' : ' tarefas') + '</span></td></tr>' + (g.length ? g.map(function (t) {
+      return '<tbody><tr class="gh" style="--c:' + c[2] + '"><td colspan="7"><span class="gtag">' + c[1] + '</span><span class="gn">' + g.length + (g.length === 1 ? ' tarefa' : ' tarefas') + '</span></td></tr>' + (g.length ? g.map(function (t) {
         var at = t.data && t.data < hj;
         return '<tr class="lin"><td class="c-chk"><button class="chk" data-a="ok" data-id="' + t.id + '" aria-label="Concluir"></button></td><td class="c-t">' + esc(t.t) + '</td>' +
-          '<td class="c-cli">' + (t.cli ? esc(t.cli) : '<span class="vz">—</span>') + '</td><td class="c-resp">' + ((t.resp || []).length ? t.resp.map(function (r) { return '<span class="rb' + (r === 'DBA' ? ' eu' : '') + '">' + esc(r) + '</span>'; }).join('') : '<span class="vz">—</span>') + '</td>' +
+          '<td class="c-cli">' + (t.cli ? esc(t.cli) : '<span class="vz">—</span>') + '</td><td class="c-st">' + ((t.cat || 'pessoal') === 'trabalho' ? '<button class="st-b ' + (t.st || 'andamento') + '" data-a="st" data-id="' + t.id + '" title="Clique para trocar">' + (t.st === 'proposta' ? 'Proposta' : 'Em andamento') + '</button>' : '') + '</td><td class="c-resp">' + ((t.resp || []).length ? t.resp.map(function (r) { return '<span class="rb' + (r === 'DBA' ? ' eu' : '') + '">' + esc(r) + '</span>'; }).join('') : '<span class="vz">—</span>') + '</td>' +
           '<td class="c-dt"><input type="date" class="dt-in' + (at ? ' atraso' : '') + '" data-a="data" data-id="' + t.id + '" value="' + (t.data || '') + '" aria-label="Prazo"></td>' +
           '<td class="c-x"><button class="x" data-a="tarApaga" data-id="' + t.id + '" aria-label="Excluir">×</button></td></tr>';
-      }).join('') : '<tr class="lin vazia"><td></td><td colspan="5" class="vz">Nenhuma tarefa aqui.</td></tr>') + '</tbody>';
+      }).join('') : '<tr class="lin vazia"><td></td><td colspan="6" class="vz">Nenhuma tarefa aqui.</td></tr>') + '</tbody>';
     }).join('');
-    el.innerHTML = '<table class="tbl"><thead><tr><th class="c-chk"></th><th>Tarefa</th><th>Cliente</th><th>Resp.</th><th>Prazo</th><th class="c-x"></th></tr></thead>' + corpo + '</table>';
+    el.innerHTML = '<table class="tbl"><thead><tr><th class="c-chk"></th><th>Tarefa</th><th>Cliente</th><th>Status</th><th>Resp.</th><th>Prazo</th><th class="c-x"></th></tr></thead>' + corpo + '</table>';
     $('tar-filtros').innerHTML = [['todas', 'Todas']].concat(CATS).map(function (c) { return '<button class="chip" data-a="filtro" data-v="' + c[0] + '" aria-pressed="' + (filtro === c[0]) + '">' + c[1] + '</button>'; }).join('') +
       '<button class="chip" data-a="soDBA" aria-pressed="' + soDBA + '">Só as minhas (DBA)</button>';
     var feitas = L.filter(function (t) { return t.ok; }).sort(function (a, b) { return (b.feita || 0) - (a.feita || 0); });
@@ -2886,6 +2892,27 @@ body.menu-mini .versao { display: none; }
   });
   function desenhar() { clearTimeout(pendT); pendT = setTimeout(pendentesCelular, 1500); desenharTreino(); badges(); desenharFS(); desenharAnime(); desenharHoje(); desenharTar(); desenharCal(); desenharProj(); desenharTV(); desenharEst(); desenharLanc(); desenharTVC(); desenharLeit(); }
 
+  /* ---------- relatório de trabalho (formato do e-mail "Assuntos") ---------- */
+  function relMontar() {
+    var L = ((S.tar && S.tar.tarefas) || []).filter(function (t) { return (t.cat || 'pessoal') === 'trabalho'; });
+    var d = new Date(), seg = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)).getTime();
+    var lin = function (t) { var n = t.cliN || t.cli || ''; return '•\t' + (n && t.t ? n + ' – ' + t.t : n || t.t); };
+    var ord = function (a, b) { return (a.criada || 0) - (b.criada || 0); };
+    var prop = L.filter(function (t) { return !t.ok && t.st === 'proposta'; }).sort(ord);
+    var and = L.filter(function (t) { return !t.ok && t.st !== 'proposta'; }).sort(ord);
+    var conc = L.filter(function (t) { return t.ok && (t.feita || 0) >= seg; }).sort(function (a, b) { return (a.feita || 0) - (b.feita || 0); });
+    var bloco = function (tit, X) { return tit + ':\n\n' + (X.length ? X.map(lin).join('\n') : '•\t(nenhum)') + '\n'; };
+    var sd = new Date(seg), dm = ('0' + sd.getDate()).slice(-2) + '/' + ('0' + (sd.getMonth() + 1)).slice(-2);
+    return { assunto: 'Assuntos – semana de ' + dm, corpo: 'Assuntos\n\n' + bloco('Propostas', prop) + '\n' + bloco('Em andamento', and) + '\n' + bloco('Concluídos na semana', conc) };
+  }
+  var relAberto = false;
+  function relDesenhar() {
+    var el = $('tar-rel'); if (!el) return; el.hidden = !relAberto; if (!relAberto) return;
+    var r = relMontar(), para = (S.cfg && S.cfg.relEmail) || '';
+    el.innerHTML = '<div class="row" style="justify-content:space-between"><b>Rascunho do relatório</b><span class="assunto">Para: ' + esc(para || '(sem e-mail na config)') + ' · Assunto: ' + esc(r.assunto) + '</span></div><pre>' + esc(r.corpo) + '</pre>' +
+      '<div class="row"><a class="btn prim" href="mailto:' + encodeURIComponent(para) + '?subject=' + encodeURIComponent(r.assunto) + '&body=' + encodeURIComponent(r.corpo) + '">Abrir no e-mail</a><button class="btn" data-a="relCopiar">Copiar texto</button><button class="btn" data-a="relVer">Fechar</button></div>';
+  }
+
   /* ---------- ações ---------- */
   function achaTar(id) { return ((S.tar && S.tar.tarefas) || []).filter(function (t) { return t.id === id; })[0]; }
   document.addEventListener('click', function (e) {
@@ -2894,6 +2921,9 @@ body.menu-mini .versao { display: none; }
     if (a === 'ok') { var t = achaTar(id); if (!t) return; var v = !t.ok, em = Date.now(); mudar('tar', function (d) { (d.tarefas || []).forEach(function (x) { if (x.id === id) { x.ok = v; if (v) x.feita = em; else delete x.feita; } }); }); }
     else if (a === 'tarApaga') { if (b.dataset.conf) mudar('tar', function (d) { d.tarefas = (d.tarefas || []).filter(function (x) { return x.id !== id; }); }); else { b.dataset.conf = '1'; b.textContent = 'excluir?'; b.classList.add('conf'); setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = '×'; b.classList.remove('conf'); } }, 3000); } }
     else if (a === 'evApaga') { if (b.dataset.conf) mudar('ev', function (d) { d.eventos = (d.eventos || []).filter(function (x) { return x.id !== id; }); }); else { b.dataset.conf = '1'; b.textContent = 'apagar?'; b.classList.add('conf'); setTimeout(function () { if (b.isConnected) { delete b.dataset.conf; b.textContent = '×'; b.classList.remove('conf'); } }, 3000); } }
+    else if (a === 'st') { mudar('tar', function (d) { (d.tarefas || []).forEach(function (x) { if (x.id === id) x.st = x.st === 'proposta' ? 'andamento' : 'proposta'; }); }); }
+    else if (a === 'relVer') { relAberto = !relAberto; relDesenhar(); }
+    else if (a === 'relCopiar') { var r = relMontar(); try { navigator.clipboard.writeText(r.corpo); b.textContent = 'Copiado ✓'; } catch (x) {} }
     else if (a === 'catNova') { catNova = b.dataset.v; desenharTar(); }
     else if (a === 'respNova') { var r = b.dataset.v, ix = respNova.indexOf(r); if (ix >= 0) respNova.splice(ix, 1); else respNova.push(r); desenharTar(); }
     else if (a === 'filtro') { filtro = b.dataset.v; desenharTar(); }
