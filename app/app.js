@@ -1273,7 +1273,7 @@
         stHttp('POST', base + '?locationId=' + ST.locationId, JSON.stringify(regra), H, function (st, j) {
           if ((st === 200 || st === 201) && j && j.id) {
             gravar('st-regra', { chave: chave, id: j.id, em: Date.now() });
-            registrar('SmartThings: TV liga ' + DIAS[alvo.dow].slice(0, 3) + ' ' + chave.split(' ')[1] + ' (Rio)');
+            registrar('SmartThings: TV liga ' + DIAS[alvo.dow].slice(0, 3) + ' ' + chave.split(' ')[1] + ' (Rio)'); tzAlarme();
           } else registrar('SmartThings: erro ao programar (' + st + ')');
           stOcupado = false;
         });
@@ -1361,17 +1361,37 @@
   function stAgendar(motivo) { clearTimeout(stTimer); stTimer = setTimeout(function () { stSync(motivo); }, 4000); }
   function agendarAlarmeSistema() {
     try { gravar('st-regra', null); stAgendar('config'); } catch (e) {}
+    tzAlarme();
+  }
+  /* 04/11: o alarme do Tizen ficava SEMPRE na hora base (06:00) mesmo com despertar extra mais tarde.
+     Ele acordava a Central em segundo plano antes da hora e a TV ficava "meio ligada"; aí o "ligar"
+     do SmartThings não acendia a tela (ter 07:00 e qua 06:30 falharam). Agora é um alarme só,
+     1 minuto DEPOIS do mesmo horário do SmartThings, e é refeito a cada sincronização. */
+  function tzAlarme() {
     try {
       if (!window.tizen || !tizen.alarm || !tizen.AlarmAbsolute) return;
-      var D2 = cfg.despertar, meuId = tizen.application.getCurrentApplication().appInfo.id;
+      var meuId = tizen.application.getCurrentApplication().appInfo.id;
       tizen.alarm.getAll().forEach(function (al) { try { tizen.alarm.remove(al); } catch (e) {} });
-      if (!D2.on || !D2.dias.length || (cfg.modo && cfg.modo !== 'normal')) return;
-      var NOMES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'], p = (D2.hora || '06:00').split(':');
-      var d = new Date(); d.setHours(+p[0], +p[1] || 0, 0, 0); if (d <= new Date()) d.setDate(d.getDate() + 1);
-      tizen.alarm.add(new tizen.AlarmAbsolute(d, D2.dias.map(function (x) { return NOMES[x]; })), meuId);
-    } catch (e) {}
+      var alvo = proximoDespertar(); if (!alvo) return;
+      var d = new Date(alvo.data.getFullYear(), alvo.data.getMonth(), alvo.data.getDate(), alvo.h, alvo.m + 1, 0);
+      tizen.alarm.add(new tizen.AlarmAbsolute(d), meuId);
+      registrar('Alarme da TV: ' + d.toLocaleString());
+    } catch (e) { registrar('Alarme da TV: erro ' + (e && e.message)); }
   }
-  function checarDespertador() { if (deveDespertar(new Date())) iniciarDespertador(false); }
+  /* reforço: se a Central estiver viva em segundo plano na hora do despertar, ela mesma pede ao SmartThings para ligar a TV */
+  var stLigouEm = '';
+  function stLigarAgora() {
+    var hj = new Date(), a = despertarNoDia(hj); if (!a || !ST || !document.hidden) return;
+    var min = hj.getHours() * 60 + hj.getMinutes(), alvoMin = a.h * 60 + a.m, chave = hojeISO() + ' ' + (min - alvoMin);
+    if (min < alvoMin || min > alvoMin + 4 || stLigouEm === chave || ler('desp-feito', '') === hojeISO()) return;
+    stLigouEm = chave;
+    stToken(function (tok) {
+      if (!tok) return;
+      stHttp('POST', 'https://api.smartthings.com/v1/devices/' + ST.deviceId + '/commands', JSON.stringify({ commands: [{ component: 'main', capability: 'switch', command: 'on' }] }),
+        { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' }, function (st) { registrar('Despertar: pedi ao SmartThings para ligar a TV (' + st + ')'); });
+    });
+  }
+  function checarDespertador() { try { stLigarAgora(); } catch (e) {} if (deveDespertar(new Date())) iniciarDespertador(false); }
 
   function renderDots() {
     Array.prototype.forEach.call(document.querySelectorAll('.dots'), function (el) {
