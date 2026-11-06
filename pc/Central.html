@@ -466,7 +466,10 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .e7-builds { display: flex; flex-direction: column; gap: 12px; }
 .e7-b { padding: 10px; border-radius: 12px; background: rgba(0,0,0,.18); display: flex; flex-direction: column; gap: 8px; }
 .e7-bh { font-size: 13px; color: var(--muted); }
-.e7-img { width: 100%; border-radius: 8px; display: block; }
+.e7-img { width: 100%; border-radius: 8px; display: block; cursor: zoom-in; }
+.e7-zoom { position: fixed; inset: 0; z-index: 9999; background: rgba(5,4,20,.88); display: flex; align-items: center; justify-content: center; cursor: zoom-out; padding: 32px; }
+.e7-zoom img { max-width: 100%; max-height: 100%; width: min(1600px, 100%); object-fit: contain; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.e7-zoom span { position: absolute; top: 18px; right: 26px; font-size: 14px; color: #ccc; }
 .e7-st { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 10px; }
 .e7-st span { display: flex; flex-direction: column; }
 .e7-st small { font-size: 11px; color: var(--muted); }
@@ -1523,7 +1526,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-06.2';
+  var VERSAO_PC = '2026-11-06.3';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1610,6 +1613,12 @@ body.menu-mini .versao { display: none; }
       }).join('') : '<p class="note">No builds read for this hero. Open the channel on Discord.</p>') + '</div>');
   }
   document.addEventListener('input', function (e) { if (e.target.id === 'e7-busca') e7Desenhar(); });
+  function e7ZoomFecha() { var z = document.querySelector('.e7-zoom'); if (z) z.remove(); }
+  document.addEventListener('click', function (e) {
+    var im = e.target.closest('img.e7-img'); if (im && im.src) { e7ZoomFecha(); var z = document.createElement('div'); z.className = 'e7-zoom'; z.innerHTML = '<span>click or Esc to close</span><img alt="">'; z.querySelector('img').src = im.src; document.body.appendChild(z); return; }
+    if (e.target.closest('.e7-zoom')) e7ZoomFecha();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.querySelector('.e7-zoom')) { e7ZoomFecha(); e.stopPropagation(); } }, true);
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e7dc]');
     if (b) { location.href = 'discord://-/channels/' + (E7.servidor || '') + '/' + b.dataset.e7dc; return; }
