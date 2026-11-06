@@ -702,7 +702,8 @@ body.menu-mini .versao { display: none; }
       <div class="tr-cal" id="tr-cal"></div>
     </div>
     <div class="col card meio" id="meio-e7" hidden>
-      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Epic Seven builds</h2><span id="e7-st">Builds from the Hero Journal server</span></div><input type="search" id="e7-busca" class="in-txt" placeholder="Search hero…" aria-label="Search hero" style="width:260px;position:relative"></div>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Epic Seven builds</h2><span id="e7-st">Builds from the Hero Journal server</span></div><input type="search" id="e7-busca" class="in-txt" placeholder="Search hero or boss…" aria-label="Search" style="width:260px;position:relative"></div>
+      <div class="row" id="e7-abas"><button class="chip" data-e7v="b" aria-pressed="true">Builds</button><button class="chip" data-e7v="pve" aria-pressed="false">PvE teams</button></div>
       <div class="row" id="e7-filtros"></div>
       <div class="e7-lista" id="e7-lista"><p class="note">Loading…</p></div>
     </div>
@@ -1513,7 +1514,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-03.1';
+  var VERSAO_PC = '2026-11-06.1';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1537,7 +1538,7 @@ body.menu-mini .versao { display: none; }
 
 
   /* ---------- Epic Seven: builds (e7.json + e7img/, lido do Discord Hero Journal) — em inglês, a pedido ---------- */
-  var E7 = null, E7F = 'all', E7A = '';
+  var E7 = null, E7F = 'all', E7A = '', E7V = 'b', E7P = '';
   var E7C = ['Knight', 'Mage', 'Warrior', 'Thief', 'Soul Weaver', 'Ranger'];
   function e7Carregar() {
     if (E7) { e7Desenhar(); return; }
@@ -1551,8 +1552,29 @@ body.menu-mini .versao { display: none; }
       .then(function (bl) { E7IMG[f] = URL.createObjectURL(bl); el.src = E7IMG[f]; }).catch(function () { el.replaceWith(document.createTextNode('')); });
   }
   function e7Num(v, pc) { return v == null ? '–' : (pc ? v + '%' : Number(v).toLocaleString('en-US')); }
+  function e7Pve() {
+    var P = E7.pve || [], q = ($('e7-busca').value || '').toLowerCase().trim();
+    $('e7-st').textContent = P.length ? P.length + ' bosses · ' + P.reduce(function (a, b) { return a + (b.times || []).length; }, 0) + ' teams · source: Hero Journal (Discord)' : 'PvE teams are being read…';
+    var cats = ['all'].concat(P.map(function (b) { return b.cat; }).filter(function (c, i, a) { return a.indexOf(c) === i; }));
+    if (cats.indexOf(E7F) < 0) E7F = 'all';
+    $('e7-filtros').innerHTML = cats.map(function (c) { return '<button class="chip" data-e7f="' + esc(c) + '" aria-pressed="' + (E7F === c) + '">' + (c === 'all' ? 'All' : esc(c)) + '</button>'; }).join('');
+    var L = P.filter(function (b) { return (E7F === 'all' || b.cat === E7F) && (!q || b.n.toLowerCase().indexOf(q) >= 0 || (b.times || []).some(function (t) { return (t.herois || []).join(' ').toLowerCase().indexOf(q) >= 0; })); });
+    $('e7-lista').innerHTML = L.length ? L.map(function (b) {
+      var T = b.times || [], ab = E7P === b.id;
+      var det = ab ? '<div class="e7-builds">' + T.map(function (t, i) {
+        return '<div class="e7-b"><div class="e7-bh">Team ' + (i + 1) + (t.data ? ' · ' + esc(t.data.split('-').reverse().join('/')) : '') + '</div>' +
+          '<div class="e7-alvo"><b>' + (t.herois || []).map(function (h) { var a = t.arts && t.arts[h]; return esc(h) + (a ? ' <small style="color:var(--muted)">(' + esc(a) + ')</small>' : ''); }).join(' · ') + '</b></div>' +
+          (t.obs ? '<div class="e7-bh">' + esc(t.obs) + '</div>' : '') + (t.img ? '<img class="e7-img" alt="Team screenshot" data-e7img="' + esc(t.img) + '">' : '') + '</div>';
+      }).join('') + '</div>' : '';
+      return '<div class="e7-it' + (ab ? ' aberto' : '') + '"><div class="e7-top" data-e7p="' + b.id + '" style="cursor:pointer"><div style="min-width:0"><b>' + esc(b.n) + '</b><small>' + esc(b.cat) + '</small></div>' +
+        (T.length ? '<span class="e7-nb">' + T.length + ' team' + (T.length > 1 ? 's' : '') + '</span>' : '') + '<button class="btn" data-e7dc="' + b.id + '" title="Open the channel on Discord">Discord</button></div>' + det + '</div>';
+    }).join('') : '<p class="note">' + (P.length ? 'Nothing found.' : 'PvE teams are being read from Discord. Check back soon.') + '</p>';
+    document.querySelectorAll('#e7-lista img[data-e7img]').forEach(e7Img);
+  }
   function e7Desenhar() {
     if (!E7) return;
+    document.querySelectorAll('[data-e7v]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.e7v === E7V)); });
+    if (E7V === 'pve') { e7Pve(); return; }
     var q = ($('e7-busca').value || '').toLowerCase().trim(), H = E7.herois || [];
     var com = H.filter(function (h) { return h.b && h.b.length; }).length;
     $('e7-st').textContent = H.length + ' heroes · ' + com + ' with builds · source: Hero Journal (Discord)';
@@ -1579,6 +1601,8 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e7dc]');
     if (b) { location.href = 'discord://-/channels/' + (E7.servidor || '') + '/' + b.dataset.e7dc; return; }
+    b = e.target.closest('[data-e7v]'); if (b) { E7V = b.dataset.e7v; E7F = 'all'; e7Desenhar(); return; }
+    b = e.target.closest('[data-e7p]'); if (b && !e.target.closest('[data-e7dc]')) { E7P = E7P === b.dataset.e7p ? '' : b.dataset.e7p; e7Desenhar(); return; }
     b = e.target.closest('[data-e7f]'); if (b) { E7F = b.dataset.e7f; e7Desenhar(); return; }
     b = e.target.closest('[data-e7]'); if (b) { E7A = E7A === b.dataset.e7 ? '' : b.dataset.e7; e7Desenhar(); return; }
     var m = e.target.closest('.mi[data-sec="e7"]'); if (m) setTimeout(e7Carregar, 30);
