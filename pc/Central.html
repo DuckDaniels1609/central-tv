@@ -789,6 +789,10 @@ body.menu-mini .versao { display: none; }
             <label><span>Nome do jogo (aparece na thumb)</span><input class="in-txt" id="th-jogo" placeholder="Zelda: Ocarina of Time"></label>
             <div class="th-2"><label><span>Arte do jogo</span><select class="in-txt" id="th-arte"><option value="">Sem arte</option></select></label><label><span>Pato</span><select class="in-txt" id="th-pato2"><option value="nenhum">Sem pato</option></select></label></div>
           </div>
+          <div id="th-val" class="th-form" hidden>
+            <div class="th-2"><label><span>Mapa</span><select class="in-txt" id="th-mapa"><option value="">Escolha o mapa</option><optgroup label="Mapas"><option>Abyss</option><option>Ascent</option><option>Bind</option><option>Breeze</option><option>Corrode</option><option>Fracture</option><option>Haven</option><option>Icebox</option><option>Lotus</option><option>Pearl</option><option>Split</option><option>Summit</option><option>Sunset</option></optgroup><optgroup label="Mata-mata (TDM)"><option>District</option><option>Drift</option><option>Glitch</option><option>Kasbah</option><option>Piazza</option></optgroup></select></label><label><span>Partida nº</span><input class="in-txt" id="th-numv" placeholder="03"></label></div>
+            <div class="th-2"><label><span>Agente (foto no círculo)</span><select class="in-txt" id="th-agente"><option value="">Sem agente</option></select></label><label><span>Pato</span><select class="in-txt" id="th-patov"><option value="nenhum">Sem pato</option></select></label></div>
+          </div>
           <div id="th-avulsa" class="th-form">
           <label><span id="th-l-titulo">Título (ex.: Templo do Fogo)</span><input class="in-txt" id="th-titulo"></label>
           <div class="th-2"><label><span>Jogo / subtítulo</span><input class="in-txt" id="th-sub" placeholder="Zelda: Ocarina of Time"></label><label><span>Parte nº</span><input class="in-txt" id="th-numero" placeholder="07"></label></div>
@@ -796,13 +800,14 @@ body.menu-mini .versao { display: none; }
           <label id="th-l-placar"><span>Placar (ex.: 13-7)</span><input class="in-txt" id="th-placar"></label>
           <label><span>Pato</span><select class="in-txt" id="th-pato"><option value="auto">Sortear</option></select></label>
           </div>
+          <label><span>Tamanho do pato: <b id="th-tam-v">100%</b></span><input type="range" id="th-tam" min="40" max="160" step="5" value="100" aria-label="Tamanho do pato"></label>
           <div class="th-2"><label><span>Gravação (imagem de fundo)</span><select class="in-txt" id="th-video"><option value="">Carregando…</option></select></label><label><span>Momento (mm:ss)</span><input class="in-txt" id="th-tempo" placeholder="12:30"></label></div>
           <div class="row"><button class="btn prim" data-a="thGerar">Gerar thumb</button><button class="btn" data-a="thSalvarModelo" id="th-salvar">Salvar como modelo do jogo</button><span class="note" id="th-msg" style="margin:0"></span></div>
         </div>
         <div class="th-prev"><img id="th-img" alt="Prévia da thumbnail" hidden><p class="note" id="th-vazio">A thumb gerada aparece aqui.</p></div>
       </div>
-      <h3 style="margin:6px 0 0">Prontas</h3>
-      <div class="th-grade" id="th-grade"></div>
+      <button class="btn" id="th-prontas-bt" aria-expanded="false" aria-controls="th-grade" style="align-self:flex-start">▸ Mostrar thumbs prontas <span id="th-prontas-n"></span></button>
+      <div class="th-grade" id="th-grade" hidden></div>
     </div>
     <div class="col card meio" id="meio-stream" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>Cenas da stream</h2><span id="obs-st">OBS Studio</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="obs-recarregar">Recarregar</button></div></div>
@@ -1684,7 +1689,7 @@ body.menu-mini .versao { display: none; }
     $('th-l-titulo').textContent = m === 'valorant' ? 'Mapa (ex.: Ascent)' : m === 'sf6' ? 'Título (opcional)' : 'Título (ex.: Templo do Fogo)';
     $('th-l-adv').textContent = m === 'valorant' ? 'Agente' : 'Adversário (ex.: Alex)';
     $('th-extra').hidden = m === 'historia' || m === 'serie'; $('th-l-placar').hidden = m !== 'valorant';
-    $('th-serie').hidden = m !== 'serie'; $('th-avulsa').hidden = m === 'serie'; $('th-salvar').hidden = m !== 'serie';
+    $('th-serie').hidden = m !== 'serie'; $('th-avulsa').hidden = m === 'serie' || m === 'valorant'; $('th-val').hidden = m !== 'valorant'; $('th-salvar').hidden = m !== 'serie';
   }
   function thSeg(t) { t = (t || '').trim(); if (!t) return 0; return t.split(':').reduce(function (a, v) { return a * 60 + (parseFloat(v) || 0); }, 0); }
   function thCarregar() {
@@ -1695,6 +1700,10 @@ body.menu-mini .versao { display: none; }
     fetch(AJ + '/thumbs/patos?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
       var o = (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
       $('th-pato').innerHTML = '<option value="auto">Sortear</option><option value="nenhum">Sem pato</option>' + o; $('th-pato2').innerHTML = '<option value="nenhum">Sem pato</option>' + o;
+      $('th-patov').innerHTML = '<option value="nenhum">Sem pato</option>' + o; if ((v || []).indexOf('pato agente valorant.png') >= 0) $('th-patov').value = 'pato agente valorant.png';
+    }).catch(function () {});
+    fetch(AJ + '/thumbs/agentes?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
+      $('th-agente').innerHTML = '<option value="">Sem agente</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
     }).catch(function () {});
     fetch(AJ + '/thumbs/artes?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
       $('th-arte').innerHTML = '<option value="">Sem arte</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
@@ -1704,7 +1713,7 @@ body.menu-mini .versao { display: none; }
   }
   function thLista() {
     fetch(AJ + '/thumbs/lista?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
-      TH.lista = v || [];
+      TH.lista = v || []; $('th-prontas-n').textContent = '(' + TH.lista.length + ')';
       $('th-grade').innerHTML = TH.lista.length ? TH.lista.map(function (t, i) { return '<button class="th-c" data-thv="' + i + '" title="Abrir"><img loading="lazy" alt="" src="' + thUrl(t.arq) + '"><span>' + (t.pasta ? '<b>' + esc(t.pasta) + '</b> · ' : '') + esc(t.arq.replace(/^.*\//, '').replace(/\.png$/, '')) + '</span></button>'; }).join('') : '<p class="note">Nenhuma thumb ainda.</p>';
     }).catch(function () { $('th-grade').innerHTML = '<p class="note">O ajudante não respondeu.</p>'; });
   }
@@ -1717,8 +1726,10 @@ body.menu-mini .versao { display: none; }
   function thParams() {
     var ps;
     if (TH.modelo === 'serie') ps = { modelo: 'serie', jogo: $('th-jogo').value, numero: $('th-num2').value, arte: $('th-arte').value, pato: $('th-pato2').value, video: $('th-video').value };
+    else if (TH.modelo === 'valorant') ps = { modelo: 'valorant', titulo: $('th-mapa').value, agente: $('th-agente').value, numero: $('th-numv').value, pato: $('th-patov').value, video: $('th-video').value };
     else ps = { modelo: TH.modelo, titulo: $('th-titulo').value, sub: $('th-sub').value, numero: $('th-numero').value, adversario: $('th-adversario').value, resultado: $('th-resultado').value, placar: $('th-placar').value, pato: $('th-pato').value, video: $('th-video').value };
     if (ps.video) ps.tempo = thSeg($('th-tempo').value);
+    if ($('th-tam').value !== '100') ps.pato_tam = $('th-tam').value;
     return Object.keys(ps).filter(function (k) { return ps[k] !== '' && ps[k] != null; }).map(function (k) { return k + '=' + encodeURIComponent(ps[k]); }).join('&');
   }
   // prévia ao vivo: refaz sozinha ~1 s depois de mexer em qualquer campo (não salva em Prontas)
@@ -1741,10 +1752,18 @@ body.menu-mini .versao { display: none; }
       $('th-msg').textContent = 'Pronta ✓'; thMostrar(j.arq); thLista();
     }).catch(function () { b.disabled = false; $('th-msg').textContent = 'O ajudante não respondeu (aperte F5).'; });
   }
+  function thProntas(abrir) {
+    $('th-grade').hidden = !abrir; var b = $('th-prontas-bt'); b.setAttribute('aria-expanded', String(abrir));
+    b.firstChild.textContent = (abrir ? '▾ Esconder' : '▸ Mostrar') + ' thumbs prontas ';
+    try { localStorage.setItem('th-prontas', abrir ? '1' : '0'); } catch (e) {}
+  }
+  document.addEventListener('click', function (e) { if (e.target.closest('#th-prontas-bt')) thProntas($('th-grade').hidden); });
+  try { if (localStorage.getItem('th-prontas') === '1') setTimeout(function () { thProntas(true); }, 0); } catch (e) {}
   ['change', 'input'].forEach(function (ev) {
     document.addEventListener(ev, function (e) {
-      var el = e.target; if (!el || !el.id || !/^th-(jogo|num2|arte|pato2|video|tempo|titulo|sub|numero|adversario|resultado|placar|pato)$/.test(el.id)) return;
+      var el = e.target; if (!el || !el.id || !/^th-(jogo|num2|arte|pato2|video|tempo|titulo|sub|numero|adversario|resultado|placar|pato|mapa|agente|numv|patov|tam)$/.test(el.id)) return;
       if (ev === 'input' && el.tagName === 'SELECT') return;
+      if (el.id === 'th-tam') { $('th-tam-v').textContent = el.value + '%'; if (ev === 'input') return; }
       thPreviaAgendar();
     });
   });
@@ -2058,7 +2077,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 45 && !sessionStorage.getItem('aj-reiniciou-45')) { sessionStorage.setItem('aj-reiniciou-45', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 46 && !sessionStorage.getItem('aj-reiniciou-46')) { sessionStorage.setItem('aj-reiniciou-46', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

@@ -289,7 +289,7 @@ function ThumbsLista {
 }
 function ThumbPedido($q) {
   # monta o pedido do thumbs.py a partir da URL; devolve o hashtable ou uma string de erro
-  $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
+  $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo', 'agente', 'mapa', 'pato_tam')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
   if ($q['video']) { $fv = ThumbsVideoCaminho ([string]$q['video']); if (-not $fv) { return 'vídeo não encontrado' }; $ped['video'] = $fv; $ped['tempo'] = [double]('0' + [string]$q['tempo']) }
   return $ped
 }
@@ -673,6 +673,7 @@ while ($http.IsListening) {
       '/thumbs/lista' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ThumbsLista) -Depth 5 -Compress))) }
       '/thumbs/videos' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ThumbsVideos) -Depth 4 -Compress))) }
       '/thumbs/patos' { $d = Join-Path $THUMBS 'Imagens\pato'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | ForEach-Object { $_.Name }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
+      '/thumbs/agentes' { $d = Join-Path $THUMBS 'Imagens\valorant'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | Sort-Object Name | ForEach-Object { $_.BaseName }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
       '/thumbs/artes' { $d = Join-Path $THUMBS 'Imagens\jogo'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | ForEach-Object { $_.Name }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
       '/thumbs/modelos' {
         $d = Join-Path $THUMBS 'Modelos'; if (-not (Test-Path -LiteralPath $d)) { $null = New-Item -ItemType Directory -Path $d }
@@ -968,7 +969,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 45 } }
+      default  { Json $ctx @{ ok = $true; versao = 46 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
