@@ -349,7 +349,8 @@ function CapturaJogo {
 }
 # ---------- qual imagem de jogo fica ligada nas cenas (uma por vez, senão uma janela parada cobre a outra de preto) ----------
 $script:fonteModo = 'auto'; $script:fonteAplicada = ''
-$FONTES_JOGO = @{ valorant = @('Jogo: Valorant', 'Valorant'); sf6 = @('Jogo: Street Fighter 6'); ps5 = @('Elgato 4k ', 'PS5 (4K Capture)'); tela = @() }
+# a imagem e o SOM do jogo ligam juntos
+$FONTES_JOGO = @{ valorant = @('Jogo: Valorant', 'Valorant', 'Som do jogo: Valorant'); sf6 = @('Jogo: Street Fighter 6', 'Som do jogo: SF6'); ps5 = @('Elgato 4k ', 'PS5 (4K Capture)'); tela = @() }
 function JogoAlvo {
   $p = @(Get-Process -Name 'StreetFighter6', 'VALORANT-Win64-Shipping' -ErrorAction SilentlyContinue | Sort-Object StartTime -Descending)
   if (-not $p.Count) { return 'ps5' }
@@ -717,7 +718,7 @@ while ($http.IsListening) {
           try {
             $r = ObsWs @(@{ t = 'GetCurrentProgramScene' }, @{ t = 'GetStreamStatus' }, @{ t = 'GetRecordStatus' }, @{ t = 'GetSceneList' })
             $cam = $null; try { $ci = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $r[0].responseData.currentProgramSceneName } }))[0].responseData.sceneItems | Where-Object { $_.sourceName -in @('Camera', 'Webcam') }); if ($ci.Count) { $cam = [bool]$ci[0].sceneItemEnabled } } catch {}
-            $amg = $null; try { $ra = (ObsWs @(@{ t = 'GetInputMute'; d = @{ inputName = 'Discord (amigos)' } }))[0]; if ($ra.requestStatus.result) { $amg = [bool]$ra.responseData.inputMuted } } catch {}
+            $amg = $null; try { $ra = (ObsWs @(@{ t = 'GetInputAudioTracks'; d = @{ inputName = 'Discord (amigos)' } }))[0]; if ($ra.requestStatus.result) { $amg = -not [bool]$ra.responseData.inputAudioTracks.'5' } } catch {}
             Json $ctx @{ fonteModo = $script:fonteModo; fonteAtual = $script:fonteAplicada; amigosMudo = $amg; camera = $cam; aberto = $true; cena = $r[0].responseData.currentProgramSceneName; aoVivo = [bool]$r[1].responseData.outputActive; tempo = [string]$r[1].responseData.outputTimecode; gravando = [bool]$r[2].responseData.outputActive; tempoGrav = [string]$r[2].responseData.outputTimecode; cenas = @($r[3].responseData.scenes | ForEach-Object { $_.sceneName }) }
           } catch { Json $ctx @{ aberto = $true; erro = $_.Exception.Message } }
         }
@@ -867,10 +868,15 @@ while ($http.IsListening) {
         else { $e = BkEstado; Json $ctx @{ ok = $true; ultimo = $(if ($e) { $e.ultimo } else { '' }); pasta = $(if ($e) { $e.pasta } else { '' }); jogos = @($(if ($e) { $e.jogos } else { @() })); mb = $(if ($e) { $e.mb } else { 0 }); andamento = [bool]$script:bkFila; faltam = $(if ($script:bkFila) { $script:bkFila.Count } else { 0 }) } }
       }
       '/obs/amigos' {
-        # liga/desliga o som do Discord (fonte "Discord (amigos)") na live e na gravação
+        # liga/desliga o Discord só na LIVE (faixa 5). A gravação sempre guarda o Discord na faixa 4 (separado).
         try {
-          $r = (ObsWs @(@{ t = 'ToggleInputMute'; d = @{ inputName = 'Discord (amigos)' } }))[0]
-          if ($r.requestStatus.result) { Json $ctx @{ ok = $true; mudo = [bool]$r.responseData.inputMuted } } else { Json $ctx @{ ok = $false; msg = 'Não achei a fonte "Discord (amigos)" no OBS.' } }
+          $g = (ObsWs @(@{ t = 'GetInputAudioTracks'; d = @{ inputName = 'Discord (amigos)' } }))[0]
+          if (-not $g.requestStatus.result) { Json $ctx @{ ok = $false; msg = 'Não achei a fonte "Discord (amigos)" no OBS.' } }
+          else {
+            $no = -not [bool]$g.responseData.inputAudioTracks.'5'
+            $null = ObsWs @(@{ t = 'SetInputMute'; d = @{ inputName = 'Discord (amigos)'; inputMuted = $false } }, @{ t = 'SetInputAudioTracks'; d = @{ inputName = 'Discord (amigos)'; inputAudioTracks = @{ '5' = $no } } })
+            Json $ctx @{ ok = $true; mudo = (-not $no) }
+          }
         } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } }
       }
       '/obs/camera' {
@@ -942,7 +948,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 43 } }
+      default  { Json $ctx @{ ok = $true; versao = 44 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
