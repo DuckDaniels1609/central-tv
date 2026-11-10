@@ -289,7 +289,7 @@ function ThumbsLista {
 }
 function ThumbPedido($q) {
   # monta o pedido do thumbs.py a partir da URL; devolve o hashtable ou uma string de erro
-  $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo', 'agente', 'mapa', 'pato_tam')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
+  $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo', 'agente', 'mapa', 'pato_tam', 'pos')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
   if ($q['video']) { $fv = ThumbsVideoCaminho ([string]$q['video']); if (-not $fv) { return 'vídeo não encontrado' }; $ped['video'] = $fv; $ped['tempo'] = [double]('0' + [string]$q['tempo']) }
   return $ped
 }
@@ -673,13 +673,37 @@ while ($http.IsListening) {
       '/thumbs/lista' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ThumbsLista) -Depth 5 -Compress))) }
       '/thumbs/videos' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ThumbsVideos) -Depth 4 -Compress))) }
       '/thumbs/patos' { $d = Join-Path $THUMBS 'Imagens\pato'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | ForEach-Object { $_.Name }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
+      '/thumbs/caixas' {
+        # onde ficou cada elemento na última prévia (para arrastar na Central)
+        $f = Join-Path $env:TEMP 'thumb_previa.caixas.json'; $t = '{}'; if (Test-Path -LiteralPath $f) { $t = [IO.File]::ReadAllText($f) }
+        Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes($t))
+      }
+      '/thumbs/mapas' {
+        # fotos dos mapas do Valorant (Thumbs\Imagens\mapas); acao=baixar busca as que faltam em valorant-api.com
+        $d = Join-Path $THUMBS 'Imagens\mapas'; if (-not (Test-Path -LiteralPath $d)) { $null = New-Item -ItemType Directory -Path $d }
+        $n = 0; $erro = $null
+        if ($q['acao'] -eq 'baixar') {
+          try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            $r = Invoke-RestMethod 'https://valorant-api.com/v1/maps' -TimeoutSec 25
+            foreach ($mp in @($r.data)) {
+              $nm = ([string]$mp.displayName) -replace '[\\/:*?"<>|]', ''; $u = [string]$mp.splash; if (-not $u) { $u = [string]$mp.stylizedBackgroundImage }
+              if (-not $nm -or -not $u) { continue }
+              $f = Join-Path $d ($nm + '.png'); if (Test-Path -LiteralPath $f) { continue }
+              try { Invoke-WebRequest $u -OutFile $f -TimeoutSec 40 -UseBasicParsing; $n++ } catch {}
+            }
+          } catch { $erro = $_.Exception.Message }
+        }
+        $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName })
+        Json $ctx @{ ok = (-not $erro); msg = $erro; baixados = $n; mapas = $l }
+      }
       '/thumbs/agentes' { $d = Join-Path $THUMBS 'Imagens\valorant'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | Sort-Object Name | ForEach-Object { $_.BaseName }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
       '/thumbs/artes' { $d = Join-Path $THUMBS 'Imagens\jogo'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | ForEach-Object { $_.Name }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
       '/thumbs/modelos' {
         $d = Join-Path $THUMBS 'Modelos'; if (-not (Test-Path -LiteralPath $d)) { $null = New-Item -ItemType Directory -Path $d }
         if ($q['acao'] -eq 'salvar') {
           $nm = ([string]$q['jogo']) -replace '[\\/:*?"<>|]', ''; if (-not $nm) { Json $ctx @{ ok = $false; msg = 'jogo' }; continue }
-          $m = @{ modelo = 'serie'; jogo = [string]$q['jogo']; pato = [string]$q['pato']; arte = [string]$q['arte'] }
+          $m = @{ modelo = 'serie'; jogo = [string]$q['jogo']; pato = [string]$q['pato']; arte = [string]$q['arte'] }; if ($q['pato_tam']) { $m['pato_tam'] = [string]$q['pato_tam'] }; if ($q['pos']) { $m['pos'] = [string]$q['pos'] }
           [IO.File]::WriteAllText((Join-Path $d ($nm + '.json')), ($m | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false)); Json $ctx @{ ok = $true; nome = $nm }
         } else {
           $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.json -ErrorAction SilentlyContinue | ForEach-Object { $m = $null; try { $m = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch {}; @{ nome = $_.BaseName; m = $m } })
@@ -969,7 +993,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 46 } }
+      default  { Json $ctx @{ ok = $true; versao = 47 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

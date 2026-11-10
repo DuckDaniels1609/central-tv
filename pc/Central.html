@@ -486,6 +486,9 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 #meio-thumb { overflow-y: auto; overscroll-behavior: contain; }
 #meio-thumb > * { flex-shrink: 0; }
 .th-prev { position: sticky; top: 0; z-index: 1; }
+.th-prev.arrasta { cursor: grab; }
+.th-cx { position: absolute; border: 2px dashed rgba(255,255,255,.85); border-radius: 8px; box-shadow: 0 0 0 2px rgba(0,0,0,.35); pointer-events: none; }
+.th-cx span { position: absolute; left: 4px; top: -22px; font-size: 11px; background: rgba(0,0,0,.7); color: #fff; padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
 .th-c { border: 0; padding: 0; background: rgba(255,255,255,.04); border-radius: 10px; overflow: hidden; cursor: pointer; color: inherit; font: inherit; text-align: left; }
 .th-c img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 .th-c span { display: block; padding: 6px 8px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -790,7 +793,7 @@ body.menu-mini .versao { display: none; }
             <div class="th-2"><label><span>Arte do jogo</span><select class="in-txt" id="th-arte"><option value="">Sem arte</option></select></label><label><span>Pato</span><select class="in-txt" id="th-pato2"><option value="nenhum">Sem pato</option></select></label></div>
           </div>
           <div id="th-val" class="th-form" hidden>
-            <div class="th-2"><label><span>Mapa</span><select class="in-txt" id="th-mapa"><option value="">Escolha o mapa</option><optgroup label="Mapas"><option>Abyss</option><option>Ascent</option><option>Bind</option><option>Breeze</option><option>Corrode</option><option>Fracture</option><option>Haven</option><option>Icebox</option><option>Lotus</option><option>Pearl</option><option>Split</option><option>Summit</option><option>Sunset</option></optgroup><optgroup label="Mata-mata (TDM)"><option>District</option><option>Drift</option><option>Glitch</option><option>Kasbah</option><option>Piazza</option></optgroup></select></label><label><span>Partida nº</span><input class="in-txt" id="th-numv" placeholder="03"></label></div>
+            <div class="th-2"><label><span>Mapa</span><select class="in-txt" id="th-mapa"><option value="">Escolha o mapa</option><optgroup label="Mapas"><option value="Abyss">Abyss</option><option value="Ascent">Ascent</option><option value="Bind">Bind</option><option value="Breeze">Breeze</option><option value="Corrode">Corrode</option><option value="Fracture">Fracture</option><option value="Haven">Haven</option><option value="Icebox">Icebox</option><option value="Lotus">Lotus</option><option value="Pearl">Pearl</option><option value="Split">Split</option><option value="Summit">Summit</option><option value="Sunset">Sunset</option></optgroup><optgroup label="Mata-mata (TDM)"><option value="District">District</option><option value="Drift">Drift</option><option value="Glitch">Glitch</option><option value="Kasbah">Kasbah</option><option value="Piazza">Piazza</option></optgroup></select></label><label><span>Partida nº</span><input class="in-txt" id="th-numv" placeholder="03"></label></div>
             <div class="th-2"><label><span>Agente (foto no círculo)</span><select class="in-txt" id="th-agente"><option value="">Sem agente</option></select></label><label><span>Pato</span><select class="in-txt" id="th-patov"><option value="nenhum">Sem pato</option></select></label></div>
           </div>
           <div id="th-avulsa" class="th-form">
@@ -804,7 +807,8 @@ body.menu-mini .versao { display: none; }
           <div class="th-2"><label><span>Gravação (imagem de fundo)</span><select class="in-txt" id="th-video"><option value="">Carregando…</option></select></label><label><span>Momento (mm:ss)</span><input class="in-txt" id="th-tempo" placeholder="12:30"></label></div>
           <div class="row"><button class="btn prim" data-a="thGerar">Gerar thumb</button><button class="btn" data-a="thSalvarModelo" id="th-salvar">Salvar como modelo do jogo</button><span class="note" id="th-msg" style="margin:0"></span></div>
         </div>
-        <div class="th-prev"><img id="th-img" alt="Prévia da thumbnail" hidden><p class="note" id="th-vazio">A thumb gerada aparece aqui.</p></div>
+        <div class="th-prev" id="th-prev" style="position:sticky"><img id="th-img" alt="Prévia da thumbnail" hidden draggable="false"><p class="note" id="th-vazio">A thumb gerada aparece aqui.</p><div class="th-cx" id="th-cx" hidden><span></span></div></div>
+        <div class="row" style="margin-top:6px"><span class="note" id="th-dica" style="margin:0">Na prévia, arraste o pato, o logo, o agente ou a arte para mudar de lugar.</span><button class="btn" id="th-pos0">Posições padrão</button></div>
       </div>
       <button class="btn" id="th-prontas-bt" aria-expanded="false" aria-controls="th-grade" style="align-self:flex-start">▸ Mostrar thumbs prontas <span id="th-prontas-n"></span></button>
       <div class="th-grade" id="th-grade" hidden></div>
@@ -1685,6 +1689,8 @@ body.menu-mini .versao { display: none; }
   var TH = { modelo: 'serie', lista: [], modelos: [] };
   function thUrl(arq, tipo) { return AJ + '/thumbs/img?k=' + ajK() + '&arq=' + encodeURIComponent(arq) + (tipo ? '&tipo=' + tipo : '') + '&t=' + Date.now(); }
   function thModelo(m) {
+    if (TH.modelo !== m) TH.pos = {};
+    if (m === 'valorant' && !TH.mapas) { TH.mapas = []; setTimeout(function () { thMapas(false); }, 300); }
     TH.modelo = m; document.querySelectorAll('[data-thm]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.thm === m)); });
     $('th-l-titulo').textContent = m === 'valorant' ? 'Mapa (ex.: Ascent)' : m === 'sf6' ? 'Título (opcional)' : 'Título (ex.: Templo do Fogo)';
     $('th-l-adv').textContent = m === 'valorant' ? 'Agente' : 'Adversário (ex.: Alex)';
@@ -1722,7 +1728,7 @@ body.menu-mini .versao { display: none; }
       TH.modelos = v || []; $('th-mj').innerHTML = '<option value="">— novo —</option>' + TH.modelos.map(function (x) { return '<option' + (x.nome === sel ? ' selected' : '') + '>' + esc(x.nome) + '</option>'; }).join('');
     }).catch(function () {});
   }
-  function thMostrar(arq) { var im = $('th-img'); im.src = thUrl(arq); im.hidden = false; $('th-vazio').hidden = true; }
+  function thMostrar(arq) { TH.caixas = null; $('th-prev').classList.remove('arrasta'); var im = $('th-img'); im.src = thUrl(arq); im.hidden = false; $('th-vazio').hidden = true; }
   function thParams() {
     var ps;
     if (TH.modelo === 'serie') ps = { modelo: 'serie', jogo: $('th-jogo').value, numero: $('th-num2').value, arte: $('th-arte').value, pato: $('th-pato2').value, video: $('th-video').value };
@@ -1730,6 +1736,7 @@ body.menu-mini .versao { display: none; }
     else ps = { modelo: TH.modelo, titulo: $('th-titulo').value, sub: $('th-sub').value, numero: $('th-numero').value, adversario: $('th-adversario').value, resultado: $('th-resultado').value, placar: $('th-placar').value, pato: $('th-pato').value, video: $('th-video').value };
     if (ps.video) ps.tempo = thSeg($('th-tempo').value);
     if ($('th-tam').value !== '100') ps.pato_tam = $('th-tam').value;
+    if (TH.pos && Object.keys(TH.pos).length) ps.pos = JSON.stringify(TH.pos);
     return Object.keys(ps).filter(function (k) { return ps[k] !== '' && ps[k] != null; }).map(function (k) { return k + '=' + encodeURIComponent(ps[k]); }).join('&');
   }
   // prévia ao vivo: refaz sozinha ~1 s depois de mexer em qualquer campo (não salva em Prontas)
@@ -1742,6 +1749,7 @@ body.menu-mini .versao { display: none; }
       if (thPrevUrl) URL.revokeObjectURL(thPrevUrl); thPrevUrl = URL.createObjectURL(b);
       var im = $('th-img'); im.src = thPrevUrl; im.hidden = false; $('th-vazio').hidden = true;
       $('th-msg').textContent = 'Prévia (ainda não salva). Gostou? Clique em "Gerar thumb".';
+      fetch(AJ + '/thumbs/caixas?k=' + ajK()).then(function (r) { return r.json(); }).then(function (c) { if (n === thPrevN) { TH.caixas = c || {}; $('th-prev').classList.add('arrasta'); } }).catch(function () {});
     }).catch(function (e) { if (n === thPrevN) $('th-msg').textContent = 'Prévia não saiu: ' + (e.message || 'o ajudante não respondeu (F5)'); });
   }
   function thGerar(b) {
@@ -1759,6 +1767,47 @@ body.menu-mini .versao { display: none; }
   }
   document.addEventListener('click', function (e) { if (e.target.closest('#th-prontas-bt')) thProntas($('th-grade').hidden); });
   try { if (localStorage.getItem('th-prontas') === '1') setTimeout(function () { thProntas(true); }, 0); } catch (e) {}
+  // ---- arrastar elementos na prévia
+  var NOMES_CX = { pato: 'Pato', logo: 'Logo Duck Daniels', selo: 'Agente', arte: 'Arte do jogo' };
+  function thEsc() { var im = $('th-img'); return im.clientWidth ? 1280 / im.clientWidth : 1; }
+  function thCaixaEm(e) {
+    if (!TH.caixas) return null; var im = $('th-img'), r = im.getBoundingClientRect(), k = thEsc();
+    var x = (e.clientX - r.left) * k, y = (e.clientY - r.top) * k, best = null;
+    Object.keys(TH.caixas).forEach(function (nm) { var c = TH.caixas[nm]; if (x >= c[0] && x <= c[0] + c[2] && y >= c[1] && y <= c[1] + c[3] && (!best || c[2] * c[3] < best.a)) best = { nm: nm, c: c, a: c[2] * c[3] }; });
+    return best;
+  }
+  function thMostrarCx(b, dx, dy) {
+    var el = $('th-cx'); if (!b) { el.hidden = true; return; }
+    var im = $('th-img'), pr = $('th-prev').getBoundingClientRect(), r = im.getBoundingClientRect(), k = thEsc();
+    el.hidden = false; el.style.left = (r.left - pr.left + b.c[0] / k + (dx || 0)) + 'px'; el.style.top = (r.top - pr.top + b.c[1] / k + (dy || 0)) + 'px';
+    el.style.width = (b.c[2] / k) + 'px'; el.style.height = (b.c[3] / k) + 'px'; el.firstChild.textContent = NOMES_CX[b.nm] || b.nm;
+  }
+  var thArr = null;
+  document.addEventListener('pointermove', function (e) {
+    if (thArr) { thMostrarCx(thArr.b, e.clientX - thArr.x, e.clientY - thArr.y); return; }
+    if (!e.target.closest || !e.target.closest('#th-prev')) { if (!$('th-cx').hidden && !thArr) $('th-cx').hidden = true; return; }
+    thMostrarCx(thCaixaEm(e));
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!e.target.closest || !e.target.closest('#th-prev')) return; var b = thCaixaEm(e); if (!b) return;
+    e.preventDefault(); thArr = { b: b, x: e.clientX, y: e.clientY };
+  });
+  document.addEventListener('pointerup', function (e) {
+    if (!thArr) return; var a = thArr; thArr = null; var k = thEsc(), dx = Math.round((e.clientX - a.x) * k), dy = Math.round((e.clientY - a.y) * k);
+    if (Math.abs(dx) + Math.abs(dy) < 4) return;
+    TH.pos = TH.pos || {}; var v = TH.pos[a.b.nm] || [0, 0]; TH.pos[a.b.nm] = [v[0] + dx, v[1] + dy];
+    a.b.c[0] += dx; a.b.c[1] += dy; thPrevia();
+  });
+  document.addEventListener('click', function (e) { if (e.target.closest('#th-pos0')) { TH.pos = {}; thPrevia(); } });
+  // ---- fotos dos mapas do Valorant
+  function thMapas(baixar) {
+    fetch(AJ + '/thumbs/mapas?k=' + ajK() + (baixar ? '&acao=baixar' : '')).then(function (r) { return r.json(); }).then(function (j) {
+      TH.mapas = j.mapas || [];
+      if (!baixar && TH.mapas.length < 10) { $('th-msg').textContent = 'Baixando as fotos dos mapas (só na primeira vez)…'; thMapas(true); return; }
+      if (baixar) $('th-msg').textContent = j.ok ? 'Fotos dos mapas prontas ✓ (' + TH.mapas.length + ')' : 'Não consegui baixar as fotos dos mapas: ' + (j.msg || '');
+      [].forEach.call($('th-mapa').options, function (o) { if (o.value) o.textContent = o.value + (TH.mapas.indexOf(o.value) >= 0 ? '' : ' (sem foto)'); });
+    }).catch(function () {});
+  }
   ['change', 'input'].forEach(function (ev) {
     document.addEventListener(ev, function (e) {
       var el = e.target; if (!el || !el.id || !/^th-(jogo|num2|arte|pato2|video|tempo|titulo|sub|numero|adversario|resultado|placar|pato|mapa|agente|numv|patov|tam)$/.test(el.id)) return;
@@ -1769,7 +1818,7 @@ body.menu-mini .versao { display: none; }
   });
   document.addEventListener('change', function (e) {
     if (e.target.id !== 'th-mj') return; var m = (TH.modelos.filter(function (x) { return x.nome === e.target.value; })[0] || {}).m; if (!m) return;
-    $('th-jogo').value = m.jogo || ''; $('th-arte').value = m.arte || ''; $('th-pato2').value = m.pato || 'nenhum'; thPreviaAgendar();
+    $('th-jogo').value = m.jogo || ''; $('th-arte').value = m.arte || ''; $('th-pato2').value = m.pato || 'nenhum'; try { TH.pos = m.pos ? JSON.parse(m.pos) : {}; } catch (er) { TH.pos = {}; } $('th-tam').value = m.pato_tam || 100; $('th-tam-v').textContent = $('th-tam').value + '%'; thPreviaAgendar();
   });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-thm]'); if (b) { thModelo(b.dataset.thm); thPreviaAgendar(); return; }
@@ -1777,7 +1826,7 @@ body.menu-mini .versao { display: none; }
       if (m.modelo) thModelo(m.modelo); ['titulo', 'sub', 'numero', 'adversario', 'placar', 'jogo', 'arte'].forEach(function (k) { if ($('th-' + k)) $('th-' + k).value = m[k] || ''; }); if (m.modelo === 'serie') { $('th-num2').value = m.numero || ''; $('th-pato2').value = m.pato || 'nenhum'; } $('th-resultado').value = m.resultado || ''; return; }
     b = e.target.closest('[data-a="thGerar"]'); if (b) { thGerar(b); return; }
     b = e.target.closest('[data-a="thSalvarModelo"]'); if (b) { var jg = $('th-jogo').value.trim(); if (!jg) { $('th-msg').textContent = 'Escreva o nome do jogo.'; return; }
-      fetch(AJ + '/thumbs/modelos?k=' + ajK() + '&acao=salvar&jogo=' + encodeURIComponent(jg) + '&pato=' + encodeURIComponent($('th-pato2').value) + '&arte=' + encodeURIComponent($('th-arte').value)).then(function (r) { return r.json(); })
+      fetch(AJ + '/thumbs/modelos?k=' + ajK() + '&acao=salvar&jogo=' + encodeURIComponent(jg) + '&pato=' + encodeURIComponent($('th-pato2').value) + '&arte=' + encodeURIComponent($('th-arte').value) + '&pato_tam=' + $('th-tam').value + (TH.pos && Object.keys(TH.pos).length ? '&pos=' + encodeURIComponent(JSON.stringify(TH.pos)) : '')).then(function (r) { return r.json(); })
         .then(function (j) { $('th-msg').textContent = j.ok ? 'Modelo do ' + jg + ' salvo ✓ — as próximas thumbs desse jogo saem assim' : 'Não salvou'; thModelos(j.nome); }).catch(function () {}); return; }
     if (e.target.closest('.mi[data-sec="thumb"]')) setTimeout(thCarregar, 30);
   });
@@ -2077,7 +2126,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 46 && !sessionStorage.getItem('aj-reiniciou-46')) { sessionStorage.setItem('aj-reiniciou-46', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 47 && !sessionStorage.getItem('aj-reiniciou-47')) { sessionStorage.setItem('aj-reiniciou-47', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
