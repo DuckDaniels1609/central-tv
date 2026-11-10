@@ -656,17 +656,29 @@ while ($http.IsListening) {
       '/thumbs/lista' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ThumbsLista) -Depth 5 -Compress))) }
       '/thumbs/videos' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ThumbsVideos) -Depth 4 -Compress))) }
       '/thumbs/patos' { $d = Join-Path $THUMBS 'Imagens\pato'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | ForEach-Object { $_.Name }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
+      '/thumbs/artes' { $d = Join-Path $THUMBS 'Imagens\jogo'; $l = @(); if (Test-Path -LiteralPath $d) { $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.png | ForEach-Object { $_.Name }) }; Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Compress))) }
+      '/thumbs/modelos' {
+        $d = Join-Path $THUMBS 'Modelos'; if (-not (Test-Path -LiteralPath $d)) { $null = New-Item -ItemType Directory -Path $d }
+        if ($q['acao'] -eq 'salvar') {
+          $nm = ([string]$q['jogo']) -replace '[\\/:*?"<>|]', ''; if (-not $nm) { Json $ctx @{ ok = $false; msg = 'jogo' }; continue }
+          $m = @{ modelo = 'serie'; jogo = [string]$q['jogo']; pato = [string]$q['pato']; arte = [string]$q['arte'] }
+          [IO.File]::WriteAllText((Join-Path $d ($nm + '.json')), ($m | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false)); Json $ctx @{ ok = $true; nome = $nm }
+        } else {
+          $l = @(Get-ChildItem -LiteralPath $d -File -Filter *.json -ErrorAction SilentlyContinue | ForEach-Object { $m = $null; try { $m = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } catch {}; @{ nome = $_.BaseName; m = $m } })
+          Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($l) -Depth 4 -Compress)))
+        }
+      }
       '/thumbs/img' {
-        $nm = [string]$q['arq']; $sub = 'Prontas'; if ($q['tipo'] -eq 'pato') { $sub = 'Imagens\pato' }
+        $nm = [string]$q['arq']; $sub = 'Prontas'; if ($q['tipo'] -eq 'pato') { $sub = 'Imagens\pato' } elseif ($q['tipo'] -eq 'jogo') { $sub = 'Imagens\jogo' }
         $f = Join-Path (Join-Path $THUMBS $sub) $nm
         if ((NomeSimples $nm) -and $nm -match '\.png$' -and (Test-Path -LiteralPath $f -PathType Leaf)) { Responder $ctx 200 'image/png' ([IO.File]::ReadAllBytes($f)) } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('thumb')) }
       }
       '/thumbs/gerar' {
         $py = (PyDe $false); $sc = Join-Path $SCR 'thumbs.py'
         if (-not $py -or -not (Test-Path $sc)) { Json $ctx @{ ok = $false; msg = 'Python ou thumbs.py não encontrado' }; continue }
-        $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
+        $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
         if ($q['video']) { $fv = ThumbsVideoCaminho ([string]$q['video']); if (-not $fv) { Json $ctx @{ ok = $false; msg = 'vídeo não encontrado' }; continue }; $ped['video'] = $fv; $ped['tempo'] = [double]('0' + [string]$q['tempo']) }
-        $slug = (([string]$q['titulo'] + ' ' + [string]$q['adversario']).Trim() -replace '[\\/:*?"<>|]', '' -replace '\s+', ' '); if ($slug.Length -gt 50) { $slug = $slug.Substring(0, 50) }
+        $slug = (([string]$q['jogo'] + ' ' + [string]$q['numero'] + ' ' + [string]$q['titulo'] + ' ' + [string]$q['adversario']).Trim() -replace '[\\/:*?"<>|]', '' -replace '\s+', ' '); if ($slug.Length -gt 50) { $slug = $slug.Substring(0, 50) }
         $nomeS = (Get-Date -f 'yyyy-MM-dd HHmmss') + ' ' + $slug + '.png'; $ped['saida'] = Join-Path (Join-Path $THUMBS 'Prontas') $nomeS
         $pf = Join-Path $env:TEMP 'thumb_pedido.json'; [IO.File]::WriteAllText($pf, ($ped | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false))
         $pr = Start-Process $py -ArgumentList ('"' + $sc + '" "' + $pf + '"') -WindowStyle Hidden -PassThru; $null = $pr.WaitForExit(90000)

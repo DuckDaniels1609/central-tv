@@ -779,14 +779,21 @@ body.menu-mini .versao { display: none; }
       <div class="banner slim"><div class="banner-tx"><h2>Thumbnails</h2><span id="th-st">Modelos do canal DuckDaniels (1280×720)</span></div></div>
       <div class="th-wrap">
         <div class="th-form">
-          <div class="row" id="th-modelos"><button class="chip" data-thm="historia" aria-pressed="true">História (Zelda, GTA…)</button><button class="chip" data-thm="sf6" aria-pressed="false">Street Fighter</button><button class="chip" data-thm="valorant" aria-pressed="false">Valorant</button></div>
+          <div class="row" id="th-modelos"><button class="chip" data-thm="serie" aria-pressed="true">Série de gameplay</button><button class="chip" data-thm="historia" aria-pressed="false">Avulsa (título livre)</button><button class="chip" data-thm="sf6" aria-pressed="false">Street Fighter</button><button class="chip" data-thm="valorant" aria-pressed="false">Valorant</button></div>
+          <div id="th-serie" class="th-form">
+            <div class="th-2"><label><span>Modelo salvo do jogo</span><select class="in-txt" id="th-mj"><option value="">— novo —</option></select></label><label><span>Gameplay nº</span><input class="in-txt" id="th-num2" placeholder="07"></label></div>
+            <label><span>Nome do jogo (aparece na thumb)</span><input class="in-txt" id="th-jogo" placeholder="Zelda: Ocarina of Time"></label>
+            <div class="th-2"><label><span>Arte do jogo</span><select class="in-txt" id="th-arte"><option value="">Sem arte</option></select></label><label><span>Pato</span><select class="in-txt" id="th-pato2"><option value="nenhum">Sem pato</option></select></label></div>
+          </div>
+          <div id="th-avulsa" class="th-form">
           <label><span id="th-l-titulo">Título (ex.: Templo do Fogo)</span><input class="in-txt" id="th-titulo"></label>
           <div class="th-2"><label><span>Jogo / subtítulo</span><input class="in-txt" id="th-sub" placeholder="Zelda: Ocarina of Time"></label><label><span>Parte nº</span><input class="in-txt" id="th-numero" placeholder="07"></label></div>
           <div class="th-2" id="th-extra"><label><span id="th-l-adv">Adversário</span><input class="in-txt" id="th-adversario"></label><label><span>Resultado</span><select class="in-txt" id="th-resultado"><option value="">—</option><option value="vitoria">Vitória</option><option value="derrota">Derrota</option></select></label></div>
           <label id="th-l-placar"><span>Placar (ex.: 13-7)</span><input class="in-txt" id="th-placar"></label>
-          <div class="th-2"><label><span>Gravação (imagem de fundo)</span><select class="in-txt" id="th-video"><option value="">Carregando…</option></select></label><label><span>Momento (mm:ss)</span><input class="in-txt" id="th-tempo" placeholder="12:30"></label></div>
           <label><span>Pato</span><select class="in-txt" id="th-pato"><option value="auto">Sortear</option></select></label>
-          <div class="row"><button class="btn prim" data-a="thGerar">Gerar thumb</button><span class="note" id="th-msg" style="margin:0"></span></div>
+          </div>
+          <div class="th-2"><label><span>Gravação (imagem de fundo)</span><select class="in-txt" id="th-video"><option value="">Carregando…</option></select></label><label><span>Momento (mm:ss)</span><input class="in-txt" id="th-tempo" placeholder="12:30"></label></div>
+          <div class="row"><button class="btn prim" data-a="thGerar">Gerar thumb</button><button class="btn" data-a="thSalvarModelo" id="th-salvar">Salvar como modelo do jogo</button><span class="note" id="th-msg" style="margin:0"></span></div>
         </div>
         <div class="th-prev"><img id="th-img" alt="Prévia da thumbnail" hidden><p class="note" id="th-vazio">A thumb gerada aparece aqui.</p></div>
       </div>
@@ -848,6 +855,7 @@ body.menu-mini .versao { display: none; }
         <p class="note" style="margin:0">Escolha o modelo, escreva o texto, escolha a gravação e o momento: o quadro do vídeo vira o fundo e o pato entra como figurinha.</p>
         <p class="note" style="margin:0">As thumbs ficam em <b>Gravações da Stream\Thumbs\Prontas</b>. As poses do pato vêm de <b>Thumbs\Imagens\pato</b> — coloque lá os PNGs do Nano Banana.</p>
         <p class="note" style="margin:0">Quando o Claude cortar um vídeo, ele gera a thumb sozinho com estes mesmos modelos.</p>
+        <p class="note" style="margin:0"><b>A sua câmera nunca aparece:</b> o gerador acha a moldura da câmera (ou o rosto) e corta essa parte do fundo; se não der para cortar, borra.</p>
       </section>
       <section data-s="cht" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Como usar</h3>
@@ -1562,7 +1570,7 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('change', function (e) { if (e.target.id === 'cl-so-pend') clDesenhar(); });
   setTimeout(function () { if (ajK()) clCarregar(); }, 6000);
   /* versão no rodapé do menu: Central (este arquivo) e ajudante */
-  var VERSAO_PC = '2026-11-10.2';
+  var VERSAO_PC = '2026-11-10.3';
   function mostrarVersao(aj) { var el = $('versao'); if (el) el.innerHTML = 'Central ' + VERSAO_PC + (aj ? '<br>Ajudante v' + aj : ''); }
   mostrarVersao(0);
   setTimeout(function () { fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { mostrarVersao(j.versao); }).catch(function () {}); }, 1500);
@@ -1665,13 +1673,14 @@ body.menu-mini .versao { display: none; }
   });
 
   /* ---------- Thumbnails (gera no PC com _scripts\thumbs.py) ---------- */
-  var TH = { modelo: 'historia', lista: [] };
+  var TH = { modelo: 'serie', lista: [], modelos: [] };
   function thUrl(arq, tipo) { return AJ + '/thumbs/img?k=' + ajK() + '&arq=' + encodeURIComponent(arq) + (tipo ? '&tipo=' + tipo : '') + '&t=' + Date.now(); }
   function thModelo(m) {
     TH.modelo = m; document.querySelectorAll('[data-thm]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.thm === m)); });
     $('th-l-titulo').textContent = m === 'valorant' ? 'Mapa (ex.: Ascent)' : m === 'sf6' ? 'Título (opcional)' : 'Título (ex.: Templo do Fogo)';
     $('th-l-adv').textContent = m === 'valorant' ? 'Agente' : 'Adversário (ex.: Alex)';
-    $('th-extra').hidden = m === 'historia'; $('th-l-placar').hidden = m !== 'valorant';
+    $('th-extra').hidden = m === 'historia' || m === 'serie'; $('th-l-placar').hidden = m !== 'valorant';
+    $('th-serie').hidden = m !== 'serie'; $('th-avulsa').hidden = m === 'serie'; $('th-salvar').hidden = m !== 'serie';
   }
   function thSeg(t) { t = (t || '').trim(); if (!t) return 0; return t.split(':').reduce(function (a, v) { return a * 60 + (parseFloat(v) || 0); }, 0); }
   function thCarregar() {
@@ -1680,8 +1689,13 @@ body.menu-mini .versao { display: none; }
       $('th-video').innerHTML = '<option value="">Sem vídeo (fundo azul)</option>' + (v || []).map(function (x) { return '<option value="' + esc(x.rel) + '">' + esc(x.data + ' · ' + x.rel) + '</option>'; }).join('');
     }).catch(function () { $('th-video').innerHTML = '<option value="">Ajudante não respondeu</option>'; });
     fetch(AJ + '/thumbs/patos?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
-      $('th-pato').innerHTML = '<option value="auto">Sortear</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+      var o = (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+      $('th-pato').innerHTML = '<option value="auto">Sortear</option><option value="nenhum">Sem pato</option>' + o; $('th-pato2').innerHTML = '<option value="nenhum">Sem pato</option>' + o;
     }).catch(function () {});
+    fetch(AJ + '/thumbs/artes?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
+      $('th-arte').innerHTML = '<option value="">Sem arte</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+    }).catch(function () {});
+    thModelos();
     thLista();
   }
   function thLista() {
@@ -1690,9 +1704,16 @@ body.menu-mini .versao { display: none; }
       $('th-grade').innerHTML = TH.lista.length ? TH.lista.map(function (t, i) { return '<button class="th-c" data-thv="' + i + '" title="Abrir"><img loading="lazy" alt="" src="' + thUrl(t.arq) + '"><span>' + esc(t.arq.replace(/\.png$/, '')) + '</span></button>'; }).join('') : '<p class="note">Nenhuma thumb ainda.</p>';
     }).catch(function () { $('th-grade').innerHTML = '<p class="note">O ajudante não respondeu.</p>'; });
   }
+  function thModelos(sel) {
+    fetch(AJ + '/thumbs/modelos?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
+      TH.modelos = v || []; $('th-mj').innerHTML = '<option value="">— novo —</option>' + TH.modelos.map(function (x) { return '<option' + (x.nome === sel ? ' selected' : '') + '>' + esc(x.nome) + '</option>'; }).join('');
+    }).catch(function () {});
+  }
   function thMostrar(arq) { var im = $('th-img'); im.src = thUrl(arq); im.hidden = false; $('th-vazio').hidden = true; }
   function thGerar(b) {
-    var ps = { modelo: TH.modelo, titulo: $('th-titulo').value, sub: $('th-sub').value, numero: $('th-numero').value, adversario: $('th-adversario').value, resultado: $('th-resultado').value, placar: $('th-placar').value, pato: $('th-pato').value, video: $('th-video').value };
+    var ps;
+    if (TH.modelo === 'serie') ps = { modelo: 'serie', jogo: $('th-jogo').value, numero: $('th-num2').value, arte: $('th-arte').value, pato: $('th-pato2').value, video: $('th-video').value };
+    else ps = { modelo: TH.modelo, titulo: $('th-titulo').value, sub: $('th-sub').value, numero: $('th-numero').value, adversario: $('th-adversario').value, resultado: $('th-resultado').value, placar: $('th-placar').value, pato: $('th-pato').value, video: $('th-video').value };
     if (ps.video) ps.tempo = thSeg($('th-tempo').value);
     var qs = Object.keys(ps).filter(function (k) { return ps[k] !== '' && ps[k] != null; }).map(function (k) { return k + '=' + encodeURIComponent(ps[k]); }).join('&');
     b.disabled = true; $('th-msg').textContent = 'Gerando…';
@@ -1701,11 +1722,18 @@ body.menu-mini .versao { display: none; }
       $('th-msg').textContent = 'Pronta ✓'; thMostrar(j.arq); thLista();
     }).catch(function () { b.disabled = false; $('th-msg').textContent = 'O ajudante não respondeu (ele é a versão 43?).'; });
   }
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'th-mj') return; var m = (TH.modelos.filter(function (x) { return x.nome === e.target.value; })[0] || {}).m; if (!m) return;
+    $('th-jogo').value = m.jogo || ''; $('th-arte').value = m.arte || ''; $('th-pato2').value = m.pato || 'nenhum';
+  });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-thm]'); if (b) { thModelo(b.dataset.thm); return; }
     b = e.target.closest('[data-thv]'); if (b) { var t = TH.lista[+b.dataset.thv]; if (!t) return; thMostrar(t.arq); var m = t.meta || {};
-      if (m.modelo) thModelo(m.modelo); ['titulo', 'sub', 'numero', 'adversario', 'placar'].forEach(function (k) { $('th-' + k).value = m[k] || ''; }); $('th-resultado').value = m.resultado || ''; return; }
+      if (m.modelo) thModelo(m.modelo); ['titulo', 'sub', 'numero', 'adversario', 'placar', 'jogo', 'arte'].forEach(function (k) { if ($('th-' + k)) $('th-' + k).value = m[k] || ''; }); if (m.modelo === 'serie') { $('th-num2').value = m.numero || ''; $('th-pato2').value = m.pato || 'nenhum'; } $('th-resultado').value = m.resultado || ''; return; }
     b = e.target.closest('[data-a="thGerar"]'); if (b) { thGerar(b); return; }
+    b = e.target.closest('[data-a="thSalvarModelo"]'); if (b) { var jg = $('th-jogo').value.trim(); if (!jg) { $('th-msg').textContent = 'Escreva o nome do jogo.'; return; }
+      fetch(AJ + '/thumbs/modelos?k=' + ajK() + '&acao=salvar&jogo=' + encodeURIComponent(jg) + '&pato=' + encodeURIComponent($('th-pato2').value) + '&arte=' + encodeURIComponent($('th-arte').value)).then(function (r) { return r.json(); })
+        .then(function (j) { $('th-msg').textContent = j.ok ? 'Modelo do ' + jg + ' salvo ✓ — as próximas thumbs desse jogo saem assim' : 'Não salvou'; thModelos(j.nome); }).catch(function () {}); return; }
     if (e.target.closest('.mi[data-sec="thumb"]')) setTimeout(thCarregar, 30);
   });
 
