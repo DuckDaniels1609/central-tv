@@ -685,10 +685,11 @@ while ($http.IsListening) {
         if ($q['acao'] -eq 'baixar') {
           try {
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            $ProgressPreference = 'SilentlyContinue'   # sem isso o download no PowerShell 5 fica muito lento e trava o ajudante
             $r = Invoke-RestMethod 'https://valorant-api.com/v1/maps' -TimeoutSec 25
             foreach ($mp in @($r.data)) {
               $nm = ([string]$mp.displayName) -replace '[\\/:*?"<>|]', ''; $u = [string]$mp.splash; if (-not $u) { $u = [string]$mp.stylizedBackgroundImage }
-              if (-not $nm -or -not $u) { continue }
+              if (-not $nm -or -not $u -or $nm -match '^(Skirmish|Basic Training|The Range|Gauntlet)') { continue }
               $f = Join-Path $d ($nm + '.png'); if (Test-Path -LiteralPath $f) { continue }
               try { Invoke-WebRequest $u -OutFile $f -TimeoutSec 40 -UseBasicParsing; $n++ } catch {}
             }
