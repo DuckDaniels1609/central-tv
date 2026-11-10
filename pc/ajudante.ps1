@@ -279,10 +279,26 @@ function ThumbsVideoCaminho($rel) {
   $f = Join-Path $GRAV $rel; if ((Test-Path -LiteralPath $f -PathType Leaf) -and [IO.Path]::GetExtension($f).ToLower() -in @('.mkv', '.mp4')) { return $f }; return $null
 }
 function ThumbsLista {
+  # thumbs prontas, inclusive as das subpastas (ex.: Prontas\Zelda); "arq" vem como "Zelda/arquivo.png"
   $d = Join-Path $THUMBS 'Prontas'; if (-not (Test-Path -LiteralPath $d)) { return @() }
-  return @(Get-ChildItem -LiteralPath $d -File -Filter *.png -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 60 | ForEach-Object {
+  $fs = @(Get-ChildItem -LiteralPath $d -File -Filter *.png -ErrorAction SilentlyContinue) + @(Get-ChildItem -LiteralPath $d -Directory -ErrorAction SilentlyContinue | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter *.png -ErrorAction SilentlyContinue })
+  return @($fs | Sort-Object LastWriteTime -Descending | Select-Object -First 120 | ForEach-Object {
     $m = $null; $j = [IO.Path]::ChangeExtension($_.FullName, '.json'); try { if (Test-Path -LiteralPath $j) { $m = Get-Content -LiteralPath $j -Raw -Encoding UTF8 | ConvertFrom-Json } } catch {}
-    @{ arq = $_.Name; quando = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm'); meta = $m } })
+    $rel = $_.Name; if ($_.Directory.FullName -ne (Get-Item -LiteralPath $d).FullName) { $rel = $_.Directory.Name + '/' + $_.Name }
+    @{ arq = $rel; pasta = $(if ($rel -like '*/*') { $_.Directory.Name } else { '' }); quando = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm'); meta = $m } })
+}
+function ThumbPedido($q) {
+  # monta o pedido do thumbs.py a partir da URL; devolve o hashtable ou uma string de erro
+  $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
+  if ($q['video']) { $fv = ThumbsVideoCaminho ([string]$q['video']); if (-not $fv) { return 'vídeo não encontrado' }; $ped['video'] = $fv; $ped['tempo'] = [double]('0' + [string]$q['tempo']) }
+  return $ped
+}
+function ThumbRodar($ped, $nomePedido) {
+  $py = (PyDe $false); $sc = Join-Path $SCR 'thumbs.py'
+  if (-not $py -or -not (Test-Path $sc)) { return 'Python ou thumbs.py não encontrado' }
+  $pf = Join-Path $env:TEMP $nomePedido; [IO.File]::WriteAllText($pf, ($ped | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false))
+  $pr = Start-Process $py -ArgumentList ('"' + $sc + '" "' + $pf + '"') -WindowStyle Hidden -PassThru; $null = $pr.WaitForExit(90000)
+  return $null
 }
 # configuração da stream (atalho de marcar momento, troca de cena automática) e encerramento com contagem
 $SCR = Join-Path $GRAV 'Arte da stream\_scripts'
@@ -671,19 +687,23 @@ while ($http.IsListening) {
       }
       '/thumbs/img' {
         $nm = [string]$q['arq']; $sub = 'Prontas'; if ($q['tipo'] -eq 'pato') { $sub = 'Imagens\pato' } elseif ($q['tipo'] -eq 'jogo') { $sub = 'Imagens\jogo' }
-        $f = Join-Path (Join-Path $THUMBS $sub) $nm
-        if ((NomeSimples $nm) -and $nm -match '\.png$' -and (Test-Path -LiteralPath $f -PathType Leaf)) { Responder $ctx 200 'image/png' ([IO.File]::ReadAllBytes($f)) } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('thumb')) }
+        $partes = @($nm -split '/'); $okNome = ($partes.Count -le 2) -and (@($partes | Where-Object { -not (NomeSimples $_) }).Count -eq 0) -and ($sub -eq 'Prontas' -or $partes.Count -eq 1)
+        $f = Join-Path $THUMBS $sub; foreach ($pt in $partes) { if ($okNome) { $f = Join-Path $f $pt } }
+        if ($okNome -and $nm -match '\.png$' -and (Test-Path -LiteralPath $f -PathType Leaf)) { Responder $ctx 200 'image/png' ([IO.File]::ReadAllBytes($f)) } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('thumb')) }
       }
       '/thumbs/gerar' {
-        $py = (PyDe $false); $sc = Join-Path $SCR 'thumbs.py'
-        if (-not $py -or -not (Test-Path $sc)) { Json $ctx @{ ok = $false; msg = 'Python ou thumbs.py não encontrado' }; continue }
-        $ped = @{}; foreach ($k2 in @('modelo', 'titulo', 'sub', 'numero', 'pato', 'adversario', 'resultado', 'placar', 'jogo', 'arte', 'modelo_jogo')) { if ($q[$k2]) { $ped[$k2] = [string]$q[$k2] } }
-        if ($q['video']) { $fv = ThumbsVideoCaminho ([string]$q['video']); if (-not $fv) { Json $ctx @{ ok = $false; msg = 'vídeo não encontrado' }; continue }; $ped['video'] = $fv; $ped['tempo'] = [double]('0' + [string]$q['tempo']) }
+        $ped = ThumbPedido $q; if ($ped -is [string]) { Json $ctx @{ ok = $false; msg = $ped }; continue }
         $slug = (([string]$q['jogo'] + ' ' + [string]$q['numero'] + ' ' + [string]$q['titulo'] + ' ' + [string]$q['adversario']).Trim() -replace '[\\/:*?"<>|]', '' -replace '\s+', ' '); if ($slug.Length -gt 50) { $slug = $slug.Substring(0, 50) }
         $nomeS = (Get-Date -f 'yyyy-MM-dd HHmmss') + ' ' + $slug + '.png'; $ped['saida'] = Join-Path (Join-Path $THUMBS 'Prontas') $nomeS
-        $pf = Join-Path $env:TEMP 'thumb_pedido.json'; [IO.File]::WriteAllText($pf, ($ped | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding $false))
-        $pr = Start-Process $py -ArgumentList ('"' + $sc + '" "' + $pf + '"') -WindowStyle Hidden -PassThru; $null = $pr.WaitForExit(90000)
+        $er = ThumbRodar $ped 'thumb_pedido.json'; if ($er) { Json $ctx @{ ok = $false; msg = $er }; continue }
         if (Test-Path -LiteralPath $ped['saida']) { Json $ctx @{ ok = $true; arq = $nomeS } } else { Json $ctx @{ ok = $false; msg = 'não gerou (veja se o Pillow está instalado)' } }
+      }
+      '/thumbs/previa' {
+        # prévia ao vivo: gera numa pasta temporária (não vai para Prontas) e devolve a imagem
+        $ped = ThumbPedido $q; if ($ped -is [string]) { Responder $ctx 400 'text/plain; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes($ped)); continue }
+        $ped['saida'] = Join-Path $env:TEMP 'thumb_previa.png'; Remove-Item -LiteralPath $ped['saida'] -ErrorAction SilentlyContinue
+        $er = ThumbRodar $ped 'thumb_previa.json'
+        if (-not $er -and (Test-Path -LiteralPath $ped['saida'])) { Responder $ctx 200 'image/png' ([IO.File]::ReadAllBytes($ped['saida'])) } else { Responder $ctx 500 'text/plain; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes([string]$(if ($er) { $er } else { 'não gerou' }))) }
       }
       '/clipes/lista' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ClipesLista) -Depth 6 -Compress))) }
       '/clipes/video' { $f = ClipeArq $q['r'] $q['pasta'] $q['arq']; if ($f) { MandarVideo $ctx $f } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('clipe')) } }
@@ -948,7 +968,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 44 } }
+      default  { Json $ctx @{ ok = $true; versao = 45 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

@@ -1701,7 +1701,7 @@ body.menu-mini .versao { display: none; }
   function thLista() {
     fetch(AJ + '/thumbs/lista?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
       TH.lista = v || [];
-      $('th-grade').innerHTML = TH.lista.length ? TH.lista.map(function (t, i) { return '<button class="th-c" data-thv="' + i + '" title="Abrir"><img loading="lazy" alt="" src="' + thUrl(t.arq) + '"><span>' + esc(t.arq.replace(/\.png$/, '')) + '</span></button>'; }).join('') : '<p class="note">Nenhuma thumb ainda.</p>';
+      $('th-grade').innerHTML = TH.lista.length ? TH.lista.map(function (t, i) { return '<button class="th-c" data-thv="' + i + '" title="Abrir"><img loading="lazy" alt="" src="' + thUrl(t.arq) + '"><span>' + (t.pasta ? '<b>' + esc(t.pasta) + '</b> · ' : '') + esc(t.arq.replace(/^.*\//, '').replace(/\.png$/, '')) + '</span></button>'; }).join('') : '<p class="note">Nenhuma thumb ainda.</p>';
     }).catch(function () { $('th-grade').innerHTML = '<p class="note">O ajudante não respondeu.</p>'; });
   }
   function thModelos(sel) {
@@ -1710,24 +1710,46 @@ body.menu-mini .versao { display: none; }
     }).catch(function () {});
   }
   function thMostrar(arq) { var im = $('th-img'); im.src = thUrl(arq); im.hidden = false; $('th-vazio').hidden = true; }
-  function thGerar(b) {
+  function thParams() {
     var ps;
     if (TH.modelo === 'serie') ps = { modelo: 'serie', jogo: $('th-jogo').value, numero: $('th-num2').value, arte: $('th-arte').value, pato: $('th-pato2').value, video: $('th-video').value };
     else ps = { modelo: TH.modelo, titulo: $('th-titulo').value, sub: $('th-sub').value, numero: $('th-numero').value, adversario: $('th-adversario').value, resultado: $('th-resultado').value, placar: $('th-placar').value, pato: $('th-pato').value, video: $('th-video').value };
     if (ps.video) ps.tempo = thSeg($('th-tempo').value);
-    var qs = Object.keys(ps).filter(function (k) { return ps[k] !== '' && ps[k] != null; }).map(function (k) { return k + '=' + encodeURIComponent(ps[k]); }).join('&');
+    return Object.keys(ps).filter(function (k) { return ps[k] !== '' && ps[k] != null; }).map(function (k) { return k + '=' + encodeURIComponent(ps[k]); }).join('&');
+  }
+  // prévia ao vivo: refaz sozinha ~1 s depois de mexer em qualquer campo (não salva em Prontas)
+  var thPrevT = 0, thPrevN = 0, thPrevUrl = '';
+  function thPreviaAgendar() { clearTimeout(thPrevT); thPrevT = setTimeout(thPrevia, 900); }
+  function thPrevia() {
+    var n = ++thPrevN; $('th-msg').textContent = 'Atualizando a prévia…';
+    fetch(AJ + '/thumbs/previa?k=' + ajK() + '&' + thParams()).then(function (r) { if (!r.ok) return r.text().then(function (t) { throw new Error(t || 'erro'); }); return r.blob(); }).then(function (b) {
+      if (n !== thPrevN) return;
+      if (thPrevUrl) URL.revokeObjectURL(thPrevUrl); thPrevUrl = URL.createObjectURL(b);
+      var im = $('th-img'); im.src = thPrevUrl; im.hidden = false; $('th-vazio').hidden = true;
+      $('th-msg').textContent = 'Prévia (ainda não salva). Gostou? Clique em "Gerar thumb".';
+    }).catch(function (e) { if (n === thPrevN) $('th-msg').textContent = 'Prévia não saiu: ' + (e.message || 'o ajudante não respondeu (F5)'); });
+  }
+  function thGerar(b) {
+    var qs = thParams();
     b.disabled = true; $('th-msg').textContent = 'Gerando…';
     fetch(AJ + '/thumbs/gerar?k=' + ajK() + '&' + qs).then(function (r) { return r.json(); }).then(function (j) {
       b.disabled = false; if (!j.ok) { $('th-msg').textContent = 'Não deu: ' + (j.msg || 'erro'); return; }
       $('th-msg').textContent = 'Pronta ✓'; thMostrar(j.arq); thLista();
-    }).catch(function () { b.disabled = false; $('th-msg').textContent = 'O ajudante não respondeu (ele é a versão 43?).'; });
+    }).catch(function () { b.disabled = false; $('th-msg').textContent = 'O ajudante não respondeu (aperte F5).'; });
   }
+  ['change', 'input'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) {
+      var el = e.target; if (!el || !el.id || !/^th-(jogo|num2|arte|pato2|video|tempo|titulo|sub|numero|adversario|resultado|placar|pato)$/.test(el.id)) return;
+      if (ev === 'input' && el.tagName === 'SELECT') return;
+      thPreviaAgendar();
+    });
+  });
   document.addEventListener('change', function (e) {
     if (e.target.id !== 'th-mj') return; var m = (TH.modelos.filter(function (x) { return x.nome === e.target.value; })[0] || {}).m; if (!m) return;
-    $('th-jogo').value = m.jogo || ''; $('th-arte').value = m.arte || ''; $('th-pato2').value = m.pato || 'nenhum';
+    $('th-jogo').value = m.jogo || ''; $('th-arte').value = m.arte || ''; $('th-pato2').value = m.pato || 'nenhum'; thPreviaAgendar();
   });
   document.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-thm]'); if (b) { thModelo(b.dataset.thm); return; }
+    var b = e.target.closest('[data-thm]'); if (b) { thModelo(b.dataset.thm); thPreviaAgendar(); return; }
     b = e.target.closest('[data-thv]'); if (b) { var t = TH.lista[+b.dataset.thv]; if (!t) return; thMostrar(t.arq); var m = t.meta || {};
       if (m.modelo) thModelo(m.modelo); ['titulo', 'sub', 'numero', 'adversario', 'placar', 'jogo', 'arte'].forEach(function (k) { if ($('th-' + k)) $('th-' + k).value = m[k] || ''; }); if (m.modelo === 'serie') { $('th-num2').value = m.numero || ''; $('th-pato2').value = m.pato || 'nenhum'; } $('th-resultado').value = m.resultado || ''; return; }
     b = e.target.closest('[data-a="thGerar"]'); if (b) { thGerar(b); return; }
@@ -2032,7 +2054,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 44 && !sessionStorage.getItem('aj-reiniciou-44')) { sessionStorage.setItem('aj-reiniciou-44', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 45 && !sessionStorage.getItem('aj-reiniciou-45')) { sessionStorage.setItem('aj-reiniciou-45', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
