@@ -785,6 +785,8 @@ while ($http.IsListening) {
           if ($q['acao'] -eq 'jogo' -or $q['acao'] -eq 'so_jogo') {
             $jg = [string]$q['jogo']; if (-not $jogos.ContainsKey($jg)) { $jg = 'outro' }
             $J = $jogos[$jg]; New-Item -ItemType Directory -Force -Path $J.pasta | Out-Null
+            # liga a imagem E o som desse jogo (e desliga os dos outros) antes de gravar; "outro jogo" = PS5/Elgato
+            $alvoG = @{ sf6 = 'sf6'; valorant = 'valorant'; outro = 'ps5' }[$jg]; $script:fonteModo = $alvoG; try { FonteAplicar $alvoG } catch {}
             $st = ObsWs @(@{ t = 'GetStreamStatus' })
             $ped = @(); if (-not $st[0].responseData.outputActive) { $ped += @{ t = 'SetCurrentProgramScene'; d = @{ sceneName = $cenaSo } } }
             $ped += @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $J.pasta } }; $ped += @{ t = 'StartRecord' }
@@ -794,6 +796,7 @@ while ($http.IsListening) {
             Json $ctx @{ ok = $ok; jogo = $J.nome; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
           } elseif ($q['acao'] -eq 'parar') {
             $r = ObsWs @(@{ t = 'StopRecord' }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $pastaGrav } })
+            $script:fonteModo = 'auto'
             $jg = ''; if (Test-Path $estF) { $jg = (Get-Content $estF -Raw).Trim(); Remove-Item $estF -Force }
             $analise = ''
             if ($jg -and $jogos.ContainsKey($jg) -and $jogos[$jg].bat) {
@@ -994,7 +997,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 47 } }
+      default  { Json $ctx @{ ok = $true; versao = 48 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
