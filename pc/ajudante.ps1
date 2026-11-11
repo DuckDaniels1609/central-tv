@@ -321,6 +321,8 @@ $script:jogoGrav = ''; $script:dirGrav = ''; $script:jogoAnt = ''; $script:cenaQ
 # nas cenas de jogo, por cima da "Tela 1", e oculta a "Tela 1" (assim a Central e outras janelas não aparecem).
 $capOkF = Join-Path $aqui 'captura_jogo_ok4.txt'
 function CapturaJogo {
+  # os jogos agora ficam em pastinhas (grupos) no OBS; se elas existem, não cria fontes soltas de novo
+  $gr = @((ObsWs @(@{ t = 'GetGroupList' }))[0].responseData.groups); if ($gr -contains $GRUPO_V) { Set-Content -Path $capOkF -Value 'grupos' -Encoding UTF8; return @('jogos em grupos: nada a criar') }
   # de baixo para cima (logo acima da Tela 1): tela cheia, PS5 (4K Capture), Valorant, SF6
   $novos = @(
     @{ n = 'Jogo (tela cheia)'; k = 'game_capture'; s = @{ capture_mode = 'any_fullscreen'; capture_cursor = $false; anti_cheat_hook = $true } },
