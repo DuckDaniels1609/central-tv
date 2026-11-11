@@ -790,7 +790,7 @@ body.menu-mini .versao { display: none; }
           <div id="th-serie" class="th-form">
             <div class="th-2"><label><span>Modelo salvo do jogo</span><select class="in-txt" id="th-mj"><option value="">— novo —</option></select></label><label><span>Gameplay nº</span><input class="in-txt" id="th-num2" placeholder="07"></label></div>
             <label><span>Nome do jogo (aparece na thumb)</span><input class="in-txt" id="th-jogo" placeholder="Zelda: Ocarina of Time"></label>
-            <div class="th-2"><label><span>Arte do jogo</span><select class="in-txt" id="th-arte"><option value="">Sem arte</option></select></label><label><span>Pato</span><select class="in-txt" id="th-pato2"><option value="nenhum">Sem pato</option></select></label></div>
+            <div class="th-2"><label><span>Arte do jogo</span><select class="in-txt" id="th-arte"><option value="">Sem arte</option><option value="aleatoria">🎲 Lonk aleatório</option></select></label><label><span>Pato</span><select class="in-txt" id="th-pato2"><option value="nenhum">Sem pato</option></select></label></div>
           </div>
           <div id="th-val" class="th-form" hidden>
             <div class="th-2"><label><span>Mapa</span><select class="in-txt" id="th-mapa"><option value="">Escolha o mapa</option><optgroup label="Mapas"><option value="Abyss">Abyss</option><option value="Ascent">Ascent</option><option value="Bind">Bind</option><option value="Breeze">Breeze</option><option value="Corrode">Corrode</option><option value="Fracture">Fracture</option><option value="Haven">Haven</option><option value="Icebox">Icebox</option><option value="Lotus">Lotus</option><option value="Pearl">Pearl</option><option value="Split">Split</option><option value="Summit">Summit</option><option value="Sunset">Sunset</option></optgroup><optgroup label="Mata-mata (TDM)"><option value="District">District</option><option value="Drift">Drift</option><option value="Glitch">Glitch</option><option value="Kasbah">Kasbah</option><option value="Piazza">Piazza</option></optgroup></select></label><label><span>Partida nº</span><input class="in-txt" id="th-numv" placeholder="03"></label></div>
@@ -1712,7 +1712,7 @@ body.menu-mini .versao { display: none; }
       $('th-agente').innerHTML = '<option value="">Sem agente</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
     }).catch(function () {});
     fetch(AJ + '/thumbs/artes?k=' + ajK()).then(function (r) { return r.json(); }).then(function (v) {
-      $('th-arte').innerHTML = '<option value="">Sem arte</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+      $('th-arte').innerHTML = '<option value="">Sem arte</option><option value="aleatoria">🎲 Lonk aleatório</option>' + (v || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
     }).catch(function () {});
     thModelos();
     thLista();
