@@ -366,7 +366,9 @@ function CapturaJogo {
 # ---------- qual imagem de jogo fica ligada nas cenas (uma por vez, senão uma janela parada cobre a outra de preto) ----------
 $script:fonteModo = 'auto'; $script:fonteAplicada = ''
 # a imagem e o SOM do jogo ligam juntos
-$FONTES_JOGO = @{ valorant = @('Jogo: Valorant', 'Valorant', 'Som do jogo: Valorant'); sf6 = @('Jogo: Street Fighter 6', 'Som do jogo: SF6'); ps5 = @('Elgato 4k ', 'PS5 (4K Capture)'); tela = @() }
+# cada jogo é um GRUPO no OBS (cena "Jogo · ..." com a imagem + o som do jogo); a Central liga um grupo e desliga os outros
+$GRUPO_V = 'Jogo ' + [char]0x00B7 + ' Valorant'; $GRUPO_S = 'Jogo ' + [char]0x00B7 + ' Street Fighter 6'; $GRUPO_P = 'Jogo ' + [char]0x00B7 + ' PS5 (Elgato)'
+$FONTES_JOGO = @{ valorant = @($GRUPO_V, 'Jogo: Valorant', 'Valorant', 'Som do jogo: Valorant'); sf6 = @($GRUPO_S, 'Jogo: Street Fighter 6', 'Som do jogo: SF6'); ps5 = @($GRUPO_P, 'Elgato 4k ', 'PS5 (4K Capture)'); tela = @() }
 function JogoAlvo {
   $p = @(Get-Process -Name 'StreetFighter6', 'VALORANT-Win64-Shipping' -ErrorAction SilentlyContinue | Sort-Object StartTime -Descending)
   if (-not $p.Count) { return 'ps5' }
@@ -998,7 +1000,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 49 } }
+      default  { Json $ctx @{ ok = $true; versao = 50 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

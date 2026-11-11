@@ -2011,7 +2011,7 @@ body.menu-mini .versao { display: none; }
     var j = obsEst, tx = $('obs-ar-tx'), luz = $('obs-luz'), bt = $('obs-trocar'); if (!tx) return;
     var gb0 = $('obs-grav'); if (gb0 && (!j || j.erro)) gb0.innerHTML = '';
     var nomes = j && j.cenas && j.cenas.length ? j.cenas.slice().reverse() : (OBS.d ? (OBS.d.scene_order || []).map(function (x) { return x.name; }) : []);
-    nomes = nomes.filter(function (n) { return n !== 'Base'; });
+    nomes = nomes.filter(function (n) { return n !== 'Base' && n.indexOf('Jogo \u00b7 ') !== 0; });   // os grupos dos jogos não são cenas para pôr no ar
     if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
     if (!j.aberto) {
       tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz';
@@ -2025,9 +2025,9 @@ body.menu-mini .versao { display: none; }
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
     var cam = j.camera === null || j.camera === undefined ? '' : '<button class="btn obs-tr cam' + (j.camera ? ' on' : '') + '" data-obscam="1">' + (j.camera ? '📷 Câmera: ligada' : '📷 Câmera: oculta') + '</button>';
     var amg = j.amigosMudo === null || j.amigosMudo === undefined ? '' : '<button class="btn obs-tr cam' + (j.amigosMudo ? '' : ' on') + '" data-obsamigos="1" title="Som do Discord na LIVE. Na gravação o Discord fica sempre separado (faixa 4), mesmo mutado aqui.">' + (j.amigosMudo ? '🔇 Amigos: mutados' : '🎧 Amigos: no ar') + '</button>';
-    var fnt = j.fonteModo ? [['auto', 'Auto'], ['valorant', 'Valorant'], ['sf6', 'SF6'], ['ps5', 'PS5'], ['tela', 'Tela']].map(function (f) { return '<button class="chip" data-obsfonte="' + f[0] + '" aria-pressed="' + (j.fonteModo === f[0]) + '" title="' + (f[0] === 'auto' ? 'Mostra o jogo aberto por último (ou o PS5, se nenhum estiver aberto)' : 'Deixa só esta imagem ligada nas cenas de jogo') + '">' + f[1] + (j.fonteModo === 'auto' && j.fonteAtual === f[0] ? ' ●' : '') + '</button>'; }).join('') : '';
+    var fnt = j.fonteModo ? [['auto', 'Auto'], ['valorant', 'Valorant'], ['sf6', 'SF6'], ['ps5', 'PS5 / Elgato'], ['tela', 'Tela']].map(function (f) { return '<button class="chip" data-obsfonte="' + f[0] + '" aria-pressed="' + (j.fonteModo === f[0]) + '" title="' + (f[0] === 'auto' ? 'Mostra o jogo aberto por último (ou o PS5, se nenhum estiver aberto)' : 'Liga o grupo deste jogo (imagem + som) e desliga os outros') + '">' + f[1] + (j.fonteModo === 'auto' && j.fonteAtual === f[0] ? ' ●' : '') + '</button>'; }).join('') : '';
     bt.innerHTML = '<div class="ctl-gr"><span class="lbl">Cena no ar</span><div class="row">' + nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div></div>' +
-      (fnt ? '<div class="ctl-gr"><span class="lbl">Imagem do jogo</span><div class="row">' + fnt + '</div><span class="note">Só uma imagem fica ligada por vez, para uma janela parada não cobrir a outra de preto. "Auto" escolhe o jogo aberto por último.</span></div>' : '') +
+      (fnt ? '<div class="ctl-gr"><span class="lbl">Jogo no ar (imagem + som)</span><div class="row">' + fnt + '</div><span class="note">Cada botão liga o grupo do jogo no OBS (imagem e som juntos) e desliga os outros. "Auto" escolhe o jogo aberto por último.</span></div>' : '') +
       (cam || amg ? '<div class="ctl-gr"><span class="lbl">Webcam e Discord</span><div class="row">' + cam + amg + '</div></div>' : '') +
       (obsCam && obsCam.cena === j.cena ? '<div class="ctl-gr"><span class="lbl">Som</span><div class="row">' + (obsCam.sons || []).map(function (x) { return '<button class="chip som' + (x.mudo ? '' : ' on') + '" data-obsmudo="' + esc(x.nome) + '" aria-pressed="' + !x.mudo + '">' + (x.mudo ? '🔇 ' : '🔊 ') + esc(x.nome) + '</button>'; }).join('') + '</div><span class="note">Clique para mutar ou ligar. Gravação: faixa 1 = mix, 2 = jogo, 3 = mic, 4 = Discord.</span></div>' +
         '<div class="ctl-gr"><span class="lbl">Camadas da cena no ar (' + esc(j.cena) + ')</span><div class="row">' + (obsCam.camadas || []).map(function (x) { return '<button class="chip camada" data-obscamada="' + x.id + '" data-on="' + (x.on ? 0 : 1) + '" aria-pressed="' + x.on + '">' + (x.on ? '👁 ' : '🚫 ') + esc(x.nome.trim()) + '</button>'; }).join('') + '</div><span class="note">Ligada = aparece na live/gravação. Em "Imagem do jogo: Auto", as imagens dos jogos são ligadas sozinhas.</span></div>' : '');
@@ -2132,7 +2132,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 49 && !sessionStorage.getItem('aj-reiniciou-49')) { sessionStorage.setItem('aj-reiniciou-49', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 50 && !sessionStorage.getItem('aj-reiniciou-50')) { sessionStorage.setItem('aj-reiniciou-50', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
