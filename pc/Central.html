@@ -2101,8 +2101,14 @@ body.menu-mini .versao { display: none; }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-obsgrav]'); if (!b) return;
     if (!(obsEst && obsEst.aberto && !obsEst.erro)) { var jg0 = b.dataset.jogo, ac0 = b.dataset.obsgrav; comObs(function () { var n = document.querySelector('[data-obsgrav="' + ac0 + '"]' + (jg0 ? '[data-jogo="' + jg0 + '"]' : '')); if (n) n.click(); }); return; }
+    var nomeJ = '';
+    if (b.dataset.jogo === 'outro') {   // pergunta o nome do jogo para os clipes saírem certos (ex.: "Zelda - 2026-11-10 - Chefe 01")
+      var ult = ''; try { ult = localStorage.getItem('grav-outro') || ''; } catch (er) {}
+      nomeJ = window.prompt('Qual jogo você vai gravar? (aparece no nome dos clipes)', ult || 'Zelda'); if (nomeJ === null) return;
+      nomeJ = nomeJ.trim(); try { localStorage.setItem('grav-outro', nomeJ); } catch (er) {}
+    }
     b.disabled = true;
-    fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=' + b.dataset.obsgrav + (b.dataset.jogo ? '&jogo=' + b.dataset.jogo : '')).then(function (r) { return r.json(); }).then(function (j) {
+    fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=' + b.dataset.obsgrav + (b.dataset.jogo ? '&jogo=' + b.dataset.jogo : '') + (nomeJ ? '&nome=' + encodeURIComponent(nomeJ) : '')).then(function (r) { return r.json(); }).then(function (j) {
       if (j.ok && b.dataset.obsgrav === 'jogo') gravJogo = j.jogo;
       if (b.dataset.obsgrav === 'parar') gravJogo = '';
       $('obs-nota').textContent = !j.ok ? 'Não consegui: ' + (j.msg || 'erro') : b.dataset.obsgrav === 'parar' ? 'Gravação salva.' + (j.analise ? ' Em 1 minuto o analisador de ' + j.analise + ' começa sozinho (janela minimizada na barra de tarefas).' : '') : 'Gravando ' + j.jogo + ' (sem transmitir).';
@@ -2126,7 +2132,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 48 && !sessionStorage.getItem('aj-reiniciou-48')) { sessionStorage.setItem('aj-reiniciou-48', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 49 && !sessionStorage.getItem('aj-reiniciou-49')) { sessionStorage.setItem('aj-reiniciou-49', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

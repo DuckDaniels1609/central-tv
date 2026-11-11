@@ -539,7 +539,7 @@ function Tique {
   # clipes de abates do Valorant para o BRB: só com Valorant aberto, ao vivo E gravando (os cortes saem da gravação)
   if ($aoVivoOn -and $jogo -eq 'valorant' -and $vivo -and $grav) { if (-not (ProcRodando $clipPid)) { ProcIniciar (Join-Path $PASTA_VAL '_analisador\clipes_ao_vivo.py') $clipPid } } elseif (Test-Path $clipPid) { ProcParar $clipPid }
   # informa aos leitores onde está a gravação e quando começou (para cortar dela enquanto grava)
-  if ($grav) { try { $dirG = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory; $ini = [DateTimeOffset]::Now.ToUnixTimeSeconds() - [math]::Round($durMs / 1000); [IO.File]::WriteAllText($gravAtualF, (@{ pasta = $dirG; inicio = $ini } | ConvertTo-Json -Compress), [Text.Encoding]::UTF8) } catch {} }
+  if ($grav) { try { $dirG = [string](ObsWs @(@{ t = 'GetRecordDirectory' }))[0].responseData.recordDirectory; $ini = [DateTimeOffset]::Now.ToUnixTimeSeconds() - [math]::Round($durMs / 1000); [IO.File]::WriteAllText($gravAtualF, (@{ pasta = $dirG; inicio = $ini; jogo = $script:gravNome } | ConvertTo-Json -Compress), [Text.Encoding]::UTF8) } catch {} }
   # linha do tempo da gravação (qual jogo em cada trecho). As gravações "por jogo" já têm o próprio fluxo.
   if (Test-Path (Join-Path $aqui 'gravando_jogo.txt')) { return }
   $sess = $null; if (Test-Path $sessF) { try { $sess = [IO.File]::ReadAllText($sessF) | ConvertFrom-Json } catch {} }
@@ -786,6 +786,7 @@ while ($http.IsListening) {
             $jg = [string]$q['jogo']; if (-not $jogos.ContainsKey($jg)) { $jg = 'outro' }
             $J = $jogos[$jg]; New-Item -ItemType Directory -Force -Path $J.pasta | Out-Null
             # liga a imagem E o som desse jogo (e desliga os dos outros) antes de gravar; "outro jogo" = PS5/Elgato
+            $script:gravNome = $J.nome; if ($jg -eq 'outro') { $script:gravNome = $(if ($q['nome']) { ([string]$q['nome']).Trim() } else { $null }) }   # nome do jogo nos clipes (F9/F10/F11)
             $alvoG = @{ sf6 = 'sf6'; valorant = 'valorant'; outro = 'ps5' }[$jg]; $script:fonteModo = $alvoG; try { FonteAplicar $alvoG } catch {}
             $st = ObsWs @(@{ t = 'GetStreamStatus' })
             $ped = @(); if (-not $st[0].responseData.outputActive) { $ped += @{ t = 'SetCurrentProgramScene'; d = @{ sceneName = $cenaSo } } }
@@ -796,7 +797,7 @@ while ($http.IsListening) {
             Json $ctx @{ ok = $ok; jogo = $J.nome; msg = (@($r | ForEach-Object { $_.requestStatus.comment }) -join ' ') }
           } elseif ($q['acao'] -eq 'parar') {
             $r = ObsWs @(@{ t = 'StopRecord' }, @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $pastaGrav } })
-            $script:fonteModo = 'auto'
+            $script:fonteModo = 'auto'; $script:gravNome = $null
             $jg = ''; if (Test-Path $estF) { $jg = (Get-Content $estF -Raw).Trim(); Remove-Item $estF -Force }
             $analise = ''
             if ($jg -and $jogos.ContainsKey($jg) -and $jogos[$jg].bat) {
@@ -997,7 +998,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 48 } }
+      default  { Json $ctx @{ ok = $true; versao = 49 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
