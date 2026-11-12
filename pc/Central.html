@@ -1998,7 +1998,7 @@ body.menu-mini .versao { display: none; }
     $('obs-auto').checked = !!c.autoCena;
     $('obs-auto-info').textContent = c.cenas ? 'SF6 → ' + (c.cenas.sf6 || '—') + ' · Valorant → ' + (c.cenas.valorant || '—') : '';
   }
-  var JOGO_NOME = { sf6: 'Street Fighter 6', valorant: 'Valorant', outro: 'outro jogo' };
+  var JOGO_NOME = { sf6: 'Street Fighter 6', valorant: 'Valorant', lol: 'League of Legends', outro: 'outro jogo' };
   setTimeout(function () { fetch(AJ + '/obs/gravar?k=' + ajK() + '&acao=qual').then(function (r) { return r.json(); }).then(function (j) { gravJogo = JOGO_NOME[j.jogo] || ''; }).catch(function () {}); }, 3000);
   function obsEstado() {
     if ((SEC !== 'stream' && SEC !== 'ctl') || document.hidden) return;
@@ -2017,7 +2017,7 @@ body.menu-mini .versao { display: none; }
       tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz';
       bt.innerHTML = nomes.length ? '<div class="ctl-gr"><span class="lbl">Cena no ar</span><div class="row">' + nomes.map(function (n) { return '<button class="btn obs-tr" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div><span class="note">Clicar numa cena abre o OBS e já coloca ela no ar.</span></div>' +
         '<div class="ctl-gr"><span class="lbl">Imagem do jogo · Câmera · Som · Camadas</span><span class="note">Esses botões aparecem quando o OBS estiver aberto (eles mostram o que está ligado agora).</span><div class="row"><button class="btn prim" data-obsabrir="1">Abrir o OBS</button></div></div>' : '';
-      var gbf = $('obs-grav'); if (gbf && !obsAbrindo) gbf.innerHTML = '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button><span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt();
+      var gbf = $('obs-grav'); if (gbf && !obsAbrindo) gbf.innerHTML = '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button><span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['lol', 'League of Legends'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt();
       return;
     }
     if (j.erro) { tx.textContent = 'OBS aberto, mas não consegui falar com ele (' + j.erro + ')'; luz.className = 'obs-luz amarelo'; bt.innerHTML = ''; return; }
@@ -2025,7 +2025,7 @@ body.menu-mini .versao { display: none; }
     luz.className = 'obs-luz ' + (j.aoVivo ? 'vivo' : 'ok');
     var cam = j.camera === null || j.camera === undefined ? '' : '<button class="btn obs-tr cam' + (j.camera ? ' on' : '') + '" data-obscam="1">' + (j.camera ? '📷 Câmera: ligada' : '📷 Câmera: oculta') + '</button>';
     var amg = j.amigosMudo === null || j.amigosMudo === undefined ? '' : '<button class="btn obs-tr cam' + (j.amigosMudo ? '' : ' on') + '" data-obsamigos="1" title="Som do Discord na LIVE. Na gravação o Discord fica sempre separado (faixa 4), mesmo mutado aqui.">' + (j.amigosMudo ? '🔇 Amigos: mutados' : '🎧 Amigos: no ar') + '</button>';
-    var fnt = j.fonteModo ? [['auto', 'Auto'], ['valorant', 'Valorant'], ['sf6', 'SF6'], ['ps5', 'PS5 / Elgato'], ['tela', 'Tela']].map(function (f) { return '<button class="chip" data-obsfonte="' + f[0] + '" aria-pressed="' + (j.fonteModo === f[0]) + '" title="' + (f[0] === 'auto' ? 'Mostra o jogo aberto por último (ou o PS5, se nenhum estiver aberto)' : 'Liga o grupo deste jogo (imagem + som) e desliga os outros') + '">' + f[1] + (j.fonteModo === 'auto' && j.fonteAtual === f[0] ? ' ●' : '') + '</button>'; }).join('') : '';
+    var fnt = j.fonteModo ? [['auto', 'Auto'], ['valorant', 'Valorant'], ['lol', 'LoL'], ['sf6', 'SF6'], ['ps5', 'PS5 / Elgato'], ['tela', 'Tela']].map(function (f) { return '<button class="chip" data-obsfonte="' + f[0] + '" aria-pressed="' + (j.fonteModo === f[0]) + '" title="' + (f[0] === 'auto' ? 'Mostra o jogo aberto por último (ou o PS5, se nenhum estiver aberto)' : 'Liga o grupo deste jogo (imagem + som) e desliga os outros') + '">' + f[1] + (j.fonteModo === 'auto' && j.fonteAtual === f[0] ? ' ●' : '') + '</button>'; }).join('') : '';
     bt.innerHTML = '<div class="ctl-gr"><span class="lbl">Cena no ar</span><div class="row">' + nomes.map(function (n) { return '<button class="btn obs-tr' + (n === j.cena ? ' no-ar' : '') + '" data-obstroca="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div></div>' +
       (fnt ? '<div class="ctl-gr"><span class="lbl">Jogo no ar (imagem + som)</span><div class="row">' + fnt + '</div><span class="note">Cada botão liga o grupo do jogo no OBS (imagem e som juntos) e desliga os outros. "Auto" escolhe o jogo aberto por último.</span></div>' : '') +
       (cam || amg ? '<div class="ctl-gr"><span class="lbl">Webcam e Discord</span><div class="row">' + cam + amg + '</div></div>' : '') +
@@ -2038,7 +2038,7 @@ body.menu-mini .versao { display: none; }
     if (gb && j.aoVivo) { gb.innerHTML = (enc !== null ? '<span class="obs-enc">Encerrando em ' + Math.floor(enc / 60) + ':' + ('0' + enc % 60).slice(-2) + '</span><button class="btn obs-tr" data-obsenc="cancelar">Cancelar</button><button class="btn obs-tr grav on" data-obsenc="ja">Encerrar já</button>'
         : '<button class="btn obs-tr grav on" data-obsenc="iniciar">🏁 Encerrar live (tela End + 3 min)</button>') + marcar + info + '<span class="note">Vai ao ar a cena que estiver selecionada. No fim: SF6 cortado partida a partida, Valorant com clipes de multi-abate, e os momentos do F9 viram clipes.</span>'; }
     else if (gb) gb.innerHTML = (j.gravando ? marcar : '') + (j.gravando ? '<button class="btn obs-tr grav on" data-obsgrav="parar">■ Parar gravação' + (gravJogo ? ' de ' + esc(gravJogo) : '') + (j.tempoGrav ? ' · ' + esc(j.tempoGrav.slice(0, 8)) : '') + '</button><span class="note">Ao parar, o ajudante vê qual jogo estava aberto: SF6 tem as lutas cortadas, Valorant vira clipes (e o vídeo fica inteiro).' + '</span>'
-      : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt());
+      : '<button class="btn obs-tr live" data-obsstream="iniciar">◉ Stream + gravar</button>' + info + '<span class="sep2"></span><span class="lbl">Só gravar:</span>' + [['sf6', 'Street Fighter 6'], ['valorant', 'Valorant'], ['lol', 'League of Legends'], ['outro', 'Outro jogo']].map(function (g) { return '<button class="btn obs-tr grav" data-obsgrav="jogo" data-jogo="' + g[0] + '">● ' + g[1] + '</button>'; }).join('') + obsCortarBt());
   }
   document.addEventListener('click', function (e) {
     if (e.target.closest('[data-obsabrir]')) { comObs(function () {}); return; }
@@ -2132,7 +2132,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 50 && !sessionStorage.getItem('aj-reiniciou-50')) { sessionStorage.setItem('aj-reiniciou-50', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 51 && !sessionStorage.getItem('aj-reiniciou-51')) { sessionStorage.setItem('aj-reiniciou-51', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

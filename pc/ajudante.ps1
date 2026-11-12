@@ -257,6 +257,7 @@ function JogoAtual {
   $nomes = @(Get-Process -ErrorAction SilentlyContinue | ForEach-Object { $_.ProcessName })
   if ($nomes -contains 'StreetFighter6') { return 'sf6' }
   if ($nomes -contains 'VALORANT-Win64-Shipping') { return 'valorant' }
+  if ($nomes -contains 'League of Legends' -or $nomes -contains 'LeagueClientUx') { return 'lol' }
   return ''
 }
 function LeitorRodando { if (Test-Path $leitorPid) { $id = [int](Get-Content $leitorPid -Raw); return [bool](Get-Process -Id $id -ErrorAction SilentlyContinue) }; return $false }
@@ -369,12 +370,12 @@ function CapturaJogo {
 $script:fonteModo = 'auto'; $script:fonteAplicada = ''
 # a imagem e o SOM do jogo ligam juntos
 # cada jogo é um GRUPO no OBS (cena "Jogo · ..." com a imagem + o som do jogo); a Central liga um grupo e desliga os outros
-$GRUPO_V = 'Jogo ' + [char]0x00B7 + ' Valorant'; $GRUPO_S = 'Jogo ' + [char]0x00B7 + ' Street Fighter 6'; $GRUPO_P = 'Jogo ' + [char]0x00B7 + ' PS5 (Elgato)'
-$FONTES_JOGO = @{ valorant = @($GRUPO_V, 'Jogo: Valorant', 'Valorant', 'Som do jogo: Valorant'); sf6 = @($GRUPO_S, 'Jogo: Street Fighter 6', 'Som do jogo: SF6'); ps5 = @($GRUPO_P, 'Elgato 4k ', 'PS5 (4K Capture)'); tela = @() }
+$GRUPO_V = 'Jogo ' + [char]0x00B7 + ' Valorant'; $GRUPO_S = 'Jogo ' + [char]0x00B7 + ' Street Fighter 6'; $GRUPO_P = 'Jogo ' + [char]0x00B7 + ' PS5 (Elgato)'; $GRUPO_L = 'Jogo ' + [char]0x00B7 + ' League of Legends'
+$FONTES_JOGO = @{ valorant = @($GRUPO_V, 'Jogo: Valorant', 'Valorant', 'Som do jogo: Valorant'); sf6 = @($GRUPO_S, 'Jogo: Street Fighter 6', 'Som do jogo: SF6'); ps5 = @($GRUPO_P, 'Elgato 4k ', 'PS5 (4K Capture)'); lol = @($GRUPO_L, 'Jogo: LoL (partida)', 'Jogo: LoL (cliente)', 'Som do jogo: LoL (partida)', 'Som do jogo: LoL (cliente)'); tela = @() }
 function JogoAlvo {
-  $p = @(Get-Process -Name 'StreetFighter6', 'VALORANT-Win64-Shipping' -ErrorAction SilentlyContinue | Sort-Object StartTime -Descending)
+  $p = @(Get-Process -Name 'StreetFighter6', 'VALORANT-Win64-Shipping', 'League of Legends', 'LeagueClientUx' -ErrorAction SilentlyContinue | Sort-Object StartTime -Descending)
   if (-not $p.Count) { return 'ps5' }
-  if ($p[0].ProcessName -eq 'StreetFighter6') { return 'sf6' } else { return 'valorant' }
+  if ($p[0].ProcessName -eq 'StreetFighter6') { return 'sf6' } elseif ($p[0].ProcessName -like 'League*') { return 'lol' } else { return 'valorant' }
 }
 function FonteAplicar($alvo) {
   $todas = @(); foreach ($k in $FONTES_JOGO.Keys) { $todas += $FONTES_JOGO[$k] }; $todas += 'Jogo (tela cheia)'
@@ -783,6 +784,7 @@ while ($http.IsListening) {
         $cenaSo = 'S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'
         $jogos = @{ sf6 = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o SF6')); bat = 'Analisar partidas.bat'; nome = 'Street Fighter 6' };
                     valorant = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o Valorant')); bat = 'Cortar Valorant.bat'; nome = 'Valorant' };
+                    lol = @{ pasta = (Join-Path $pastaGrav ('Grava' + [char]0x00E7 + [char]0x00E3 + 'o LoL')); bat = ''; nome = 'League of Legends' };
                     outro = @{ pasta = (Join-Path $pastaGrav $cenaSo); bat = ''; nome = 'outro jogo' } }
         $estF = Join-Path $aqui 'gravando_jogo.txt'
         try {
@@ -791,7 +793,7 @@ while ($http.IsListening) {
             $J = $jogos[$jg]; New-Item -ItemType Directory -Force -Path $J.pasta | Out-Null
             # liga a imagem E o som desse jogo (e desliga os dos outros) antes de gravar; "outro jogo" = PS5/Elgato
             $script:gravNome = $J.nome; if ($jg -eq 'outro') { $script:gravNome = $(if ($q['nome']) { ([string]$q['nome']).Trim() } else { $null }) }   # nome do jogo nos clipes (F9/F10/F11)
-            $alvoG = @{ sf6 = 'sf6'; valorant = 'valorant'; outro = 'ps5' }[$jg]; $script:fonteModo = $alvoG; try { FonteAplicar $alvoG } catch {}
+            $alvoG = @{ sf6 = 'sf6'; valorant = 'valorant'; lol = 'lol'; outro = 'ps5' }[$jg]; $script:fonteModo = $alvoG; try { FonteAplicar $alvoG } catch {}
             $st = ObsWs @(@{ t = 'GetStreamStatus' })
             $ped = @(); if (-not $st[0].responseData.outputActive) { $ped += @{ t = 'SetCurrentProgramScene'; d = @{ sceneName = $cenaSo } } }
             $ped += @{ t = 'SetRecordDirectory'; d = @{ recordDirectory = $J.pasta } }; $ped += @{ t = 'StartRecord' }
@@ -851,7 +853,7 @@ while ($http.IsListening) {
       '/obs/fonte' {
         # imagem do jogo nas cenas: auto (o jogo aberto por último) ou fixa (valorant, sf6, ps5, tela)
         $m = [string]$q['modo']
-        if ($m -in @('auto', 'valorant', 'sf6', 'ps5', 'tela')) { $script:fonteModo = $m; $alvoF = $m; if ($m -eq 'auto') { $alvoF = JogoAlvo }; try { FonteAplicar $alvoF } catch {} }
+        if ($m -in @('auto', 'valorant', 'sf6', 'lol', 'ps5', 'tela')) { $script:fonteModo = $m; $alvoF = $m; if ($m -eq 'auto') { $alvoF = JogoAlvo }; try { FonteAplicar $alvoF } catch {} }
         Json $ctx @{ ok = $true; modo = $script:fonteModo; atual = $script:fonteAplicada }
       }
       '/obs/camadas' {
@@ -1002,7 +1004,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 50 } }
+      default  { Json $ctx @{ ok = $true; versao = 51 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
