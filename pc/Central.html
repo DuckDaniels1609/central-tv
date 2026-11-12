@@ -2011,7 +2011,7 @@ body.menu-mini .versao { display: none; }
     var j = obsEst, tx = $('obs-ar-tx'), luz = $('obs-luz'), bt = $('obs-trocar'); if (!tx) return;
     var gb0 = $('obs-grav'); if (gb0 && (!j || j.erro)) gb0.innerHTML = '';
     var nomes = j && j.cenas && j.cenas.length ? j.cenas.slice().reverse() : (OBS.d ? (OBS.d.scene_order || []).map(function (x) { return x.name; }) : []);
-    nomes = nomes.filter(function (n) { return n !== 'Base' && n.indexOf('Jogo \u00b7 ') !== 0; });   // os grupos dos jogos não são cenas para pôr no ar
+    nomes = nomes.filter(function (n) { return n !== 'Base' && n !== 'C\u00e2mera e overlays' && n.indexOf('Jogo \u00b7 ') !== 0; });   // os grupos dos jogos não são cenas para pôr no ar
     if (!j) { tx.textContent = 'O ajudante não respondeu'; luz.className = 'obs-luz'; bt.innerHTML = ''; return; }
     if (!j.aberto) {
       tx.textContent = obsAbrindo ? 'Abrindo o OBS…' : 'OBS fechado · os botões abaixo abrem o OBS sozinhos'; luz.className = 'obs-luz';
@@ -2132,7 +2132,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 51 && !sessionStorage.getItem('aj-reiniciou-51')) { sessionStorage.setItem('aj-reiniciou-51', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 52 && !sessionStorage.getItem('aj-reiniciou-52')) { sessionStorage.setItem('aj-reiniciou-52', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

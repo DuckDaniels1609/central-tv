@@ -313,7 +313,7 @@ function CfgStream {
   if ($null -eq $c.tecla) { $c | Add-Member -NotePropertyName tecla -NotePropertyValue 'F9' -Force }
   if ($null -eq $c.autoCena) { $c | Add-Member -NotePropertyName autoCena -NotePropertyValue $false -Force }
   if ($null -eq $c.leitoresAoVivo) { $c | Add-Member -NotePropertyName leitoresAoVivo -NotePropertyValue $false -Force }
-  if ($null -eq $c.cenas) { $c | Add-Member -NotePropertyName cenas -NotePropertyValue ([pscustomobject]@{ sf6 = 'Jogos de Luta'; valorant = 'Main Right' }) -Force }
+  if ($null -eq $c.cenas) { $c | Add-Member -NotePropertyName cenas -NotePropertyValue ([pscustomobject]@{ sf6 = ('Main Right ' + [char]0x00B7 + ' SF6'); valorant = ('Main Right ' + [char]0x00B7 + ' Valorant'); lol = ('Main Right ' + [char]0x00B7 + ' LoL') }) -Force }
   return $c
 }
 function CfgStreamGravar($c) { New-Item -ItemType Directory -Force -Path $SCR | Out-Null; [IO.File]::WriteAllText($cfgStreamF, ($c | ConvertTo-Json -Depth 4), [Text.Encoding]::UTF8) }
@@ -377,9 +377,14 @@ function JogoAlvo {
   if (-not $p.Count) { return 'ps5' }
   if ($p[0].ProcessName -eq 'StreetFighter6') { return 'sf6' } elseif ($p[0].ProcessName -like 'League*') { return 'lol' } else { return 'valorant' }
 }
+# cenas com câmera: uma por jogo ("Main Right · Valorant", "· LoL", "· Console", "· SF6"), todas com a cena "Câmera e overlays" por cima
+$CENA_JOGO = @{ valorant = ('Main Right ' + [char]0x00B7 + ' Valorant'); lol = ('Main Right ' + [char]0x00B7 + ' LoL'); sf6 = ('Main Right ' + [char]0x00B7 + ' SF6'); ps5 = ('Main Right ' + [char]0x00B7 + ' Console') }
 function FonteAplicar($alvo) {
+  # se a cena no ar é uma "Main Right · ...", troca para a do jogo escolhido
+  try { $agora = [string](ObsWs @(@{ t = 'GetCurrentProgramScene' }))[0].responseData.currentProgramSceneName
+        if ($agora -like 'Main Right*' -and $CENA_JOGO.ContainsKey($alvo) -and $agora -ne $CENA_JOGO[$alvo]) { $null = ObsWs @(@{ t = 'SetCurrentProgramScene'; d = @{ sceneName = $CENA_JOGO[$alvo] } }) } } catch {}
   $todas = @(); foreach ($k in $FONTES_JOGO.Keys) { $todas += $FONTES_JOGO[$k] }; $todas += 'Jogo (tela cheia)'
-  $cenas = @(('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'), 'Main Right', 'Jogos de Luta')
+  $cenas = @(('S' + [char]0x00F3 + ' grava' + [char]0x00E7 + [char]0x00E3 + 'o'))
   foreach ($cena in $cenas) {
     try {
       $its = @((ObsWs @(@{ t = 'GetSceneItemList'; d = @{ sceneName = $cena } }))[0].responseData.sceneItems | Where-Object { $todas -contains $_.sourceName })
@@ -1004,7 +1009,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 51 } }
+      default  { Json $ctx @{ ok = $true; versao = 52 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
