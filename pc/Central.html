@@ -512,6 +512,21 @@ body.cl-on #meio-ctl > :not(.banner):not(#cl-painel) { display: none !important;
 .th-c { border: 0; padding: 0; background: rgba(255,255,255,.04); border-radius: 10px; overflow: hidden; cursor: pointer; color: inherit; font: inherit; text-align: left; }
 .th-c img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 .th-c span { display: block; padding: 6px 8px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p5-rede { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.p5-rede select, .p5-edit input { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid rgba(255,255,255,.12); border-radius: 12px; padding: 8px 12px; min-height: 42px; }
+.p5-rede select { min-width: 260px; font-weight: 700; }
+.p5-edit { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .1)); }
+.p5-edit .ln5 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.p5-edit .ln5 input:first-child { flex: 1; min-width: 140px; }
+.p5-edit .ln5 input:nth-child(2) { width: 170px; font-variant-numeric: tabular-nums; }
+.p5-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-content: start; overflow-y: auto; }
+.p5-app { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.06); }
+.p5-app.on { border-color: rgba(76,199,126,.45); }
+.p5-app b { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.p5-app small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.p5-app .dot { width: 10px; height: 10px; border-radius: 50%; background: #6b6b86; flex: none; }
+.p5-app.on .dot { background: #4cc77e; box-shadow: 0 0 10px #4cc77e; }
+.p5-app .btn { align-self: flex-start; margin-top: auto; }
 .cht-it { padding: 14px 16px; border-radius: 16px; background: rgba(20,18,52,calc(var(--vidro) + .1)); display: flex; flex-direction: column; gap: 8px; }
 .cht-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cht-top > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
@@ -683,6 +698,7 @@ body.menu-mini .versao { display: none; }
         <button class="mi" data-sec="est"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span>Estante</span><i class="bdg" id="bdg-est"></i></button>
         <button class="mi" data-sec="est" data-esf="jogando"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Jogando agora</span></button>
         <button class="mi" data-sec="sf6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v4M18 3v4M4 7h16v13H4z"/><path d="M9 14l2 2 4-4"/></svg><span>Treino SF6</span></button>
+        <button class="mi" data-sec="ps5c"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h4v16H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M13 4h4a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-4z"/><path d="M7.5 9v3M6 10.5h3M16.5 9h.01M16.5 12h.01"/></svg><span>PS5</span><i class="bdg" id="bdg-ps5c"></i></button>
         <button class="mi" data-sec="cht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>PS5: cheats e saves</span></button>
         <button class="mi" data-sec="e7" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.8 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><span>Epic Seven</span></button>
         <button class="mi" data-sec="lanc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg><span>Lançamentos</span><i class="bdg" id="bdg-lanc"></i></button>
@@ -756,6 +772,18 @@ body.menu-mini .versao { display: none; }
       <div class="row" id="e7-abas"><button class="chip" data-e7v="b" aria-pressed="true">Builds</button><button class="chip" data-e7v="pve" aria-pressed="false">PvE teams</button></div>
       <div class="row" id="e7-filtros"></div>
       <div class="e7-lista" id="e7-lista"><p class="note">Loading…</p></div>
+    </div>
+    <div class="col card meio" id="meio-ps5c" hidden>
+      <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>PS5</h2><span id="p5-st">Conferindo o PS5…</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="p5-atualizar">Atualizar</button></div></div>
+      <div class="p5-rede">
+        <label for="p5-sel"><b>Onde o PS5 está</b></label>
+        <select id="p5-sel"></select>
+        <button class="btn" id="p5-procurar">🔍 Procurar o PS5</button>
+        <button class="btn" id="p5-editar">✏️ Editar lista</button>
+      </div>
+      <div class="p5-edit" id="p5-edit" hidden></div>
+      <p class="note" id="p5-msg" style="margin:0"></p>
+      <div class="p5-apps" id="p5-apps"></div>
     </div>
     <div class="col card meio" id="meio-cht" hidden>
       <div class="banner slim row" style="justify-content:space-between;align-items:flex-end"><div class="banner-tx"><h2>PS5: cheats e saves</h2><span id="cht-st">Os cheats que criamos, prontos para o CheatRunner</span></div><div class="row" style="position:relative;z-index:2"><button class="btn" id="cht-recarregar">Atualizar</button></div></div>
@@ -889,6 +917,12 @@ body.menu-mini .versao { display: none; }
         <p class="note" style="margin:0">As thumbs ficam em <b>Gravações da Stream\Thumbs\Prontas</b>. As poses do pato vêm de <b>Thumbs\Imagens\pato</b> — coloque lá os PNGs do Nano Banana.</p>
         <p class="note" style="margin:0">Quando o Claude cortar um vídeo, ele gera a thumb sozinho com estes mesmos modelos.</p>
         <p class="note" style="margin:0"><b>A sua câmera nunca aparece:</b> o gerador acha a moldura da câmera (ou o rosto) e corta essa parte do fundo; se não der para cortar, borra.</p>
+      </section>
+      <section data-s="ps5c" class="sec" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Como usar</h3>
+        <p class="note" style="margin:0">Escolha em <b>Onde o PS5 está</b> o cômodo em que ele está hoje. Todos os apps (e os cheats, o backup de saves e os troféus) passam a usar esse IP.</p>
+        <p class="note" style="margin:0">Mudou de rede e não sabe o IP? <b>Procurar o PS5</b> varre a rede do PC e acha sozinho (o CheatRunner precisa estar aberto).</p>
+        <p class="note" style="margin:0">Em <b>Editar lista</b> você dá nome a cada IP (Sala, Escritório…).</p>
       </section>
       <section data-s="cht" class="sec" style="display:flex;flex-direction:column;gap:10px">
         <h3>Como usar</h3>
@@ -1897,6 +1931,77 @@ body.menu-mini .versao { display: none; }
     var b = e.target.closest('[data-bk]'); if (!b) return; b.disabled = true;
     fetch(AJ + '/ps5/backup?k=' + ajK() + '&acao=agora').then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) $('cht-st').textContent = 'Backup: ' + (j.msg || 'erro'); setTimeout(bkCarregar, 1500); });
   });
+  /* ---------- PS5: ligado?, IP por cômodo e atalhos para os apps do jailbreak (14/11/2026) ---------- */
+  var P5 = { ip: null, redes: [], st: null }, p5Timer = null;
+  var P5APPS = [
+    { k: 'cheatrunner', nome: 'CheatRunner', porta: 9999, desc: 'Cheats ligados/desligados com o jogo aberto.', acao: 'abrir' },
+    { k: 'arquivos', nome: 'Gerenciador de arquivos', porta: 8888, desc: 'Ver e baixar arquivos do PS5 (saves, troféus, jogos).', acao: 'abrir' },
+    { k: 'log', nome: 'Log do sistema (ps5debug)', porta: 3232, desc: 'Grava o log do PS5 por 15 min (para eu investigar travamentos e cheats).', acao: 'log' },
+    { k: 'ftp', nome: 'FTP', porta: 2121, desc: 'Endereço para FileZilla / Explorer.', acao: 'copiar' }
+  ];
+  function p5Url(a) { return (a.acao === 'copiar' ? 'ftp://' : 'http://') + P5.ip + ':' + a.porta; }
+  function p5Rede(ip) { var r = P5.redes.filter(function (x) { return x.ip === ip; })[0]; return r ? r.nome : ''; }
+  function p5Ip() {
+    return fetch(AJ + '/ps5/ip?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { P5.ip = j.atual; P5.redes = j.redes || []; p5Sel(); });
+  }
+  function p5Sel() {
+    var opts = P5.redes.slice(); if (P5.ip && !opts.some(function (r) { return r.ip === P5.ip; })) opts.push({ nome: 'Sem nome', ip: P5.ip });
+    $('p5-sel').innerHTML = opts.map(function (r) { return '<option value="' + esc(r.ip) + '"' + (r.ip === P5.ip ? ' selected' : '') + '>' + esc(r.nome) + ' — ' + esc(r.ip) + '</option>'; }).join('');
+  }
+  function p5Status() {
+    if (!P5.ip) return;
+    fetch(AJ + '/ps5/status?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { P5.st = j; p5Desenhar(); })
+      .catch(function () { $('p5-st').textContent = 'O ajudante não respondeu.'; });
+  }
+  function p5Desenhar() {
+    var j = P5.st || {}, nome = p5Rede(P5.ip), jogo = '';
+    if (j.titleId) { var JJ = (S.es && S.es.jogos) || {}; Object.keys(JJ).forEach(function (k) { var x = JJ[k]; if ((x.titleIds || [x.titleId]).indexOf(j.titleId) >= 0 || x.id === j.titleId) jogo = x.short || x.name; }); }
+    $('p5-st').textContent = (j.ligado ? '🟢 Ligado' : '⚪ Desligado (ou fora desta rede)') + ' · ' + (nome ? nome + ' · ' : '') + P5.ip + (j.titleId ? ' · jogando ' + (jogo || j.titleId) : '');
+    var b = $('bdg-ps5c'); if (b) b.textContent = j.ligado ? '●' : '';
+    $('p5-apps').innerHTML = P5APPS.map(function (a) {
+      var on = !!j[a.k], rot = a.acao === 'abrir' ? 'Abrir' : a.acao === 'log' ? 'Gravar log (15 min)' : 'Copiar endereço';
+      return '<div class="p5-app' + (on ? ' on' : '') + '"><b><i class="dot"></i>' + esc(a.nome) + '</b><small>' + esc(a.desc) + '<br>' + esc(P5.ip + ':' + a.porta) + ' · ' + (on ? 'respondendo' : 'fechado') + '</small>' +
+        '<button class="btn' + (on ? ' prim' : '') + '" data-p5app="' + a.k + '"' + (on ? '' : ' disabled') + '>' + rot + '</button></div>';
+    }).join('');
+  }
+  function p5Carregar() { $('p5-st').textContent = 'Conferindo o PS5…'; p5Ip().then(p5Status).catch(function () { $('p5-st').textContent = 'O ajudante não respondeu.'; }); }
+  function p5Usar(ip) { $('p5-msg').textContent = ''; return fetch(AJ + '/ps5/ip?k=' + ajK() + '&acao=usar&ip=' + encodeURIComponent(ip)).then(function (r) { return r.json(); }).then(function (j) { P5.ip = j.atual; P5.redes = j.redes || []; p5Sel(); P5.st = null; $('p5-st').textContent = 'Conferindo o PS5 em ' + P5.ip + '…'; p5Status(); }); }
+  function p5SalvarRedes(L) { return fetch(AJ + '/ps5/ip?k=' + ajK() + '&acao=salvar&redes=' + encodeURIComponent(JSON.stringify(L))).then(function (r) { return r.json(); }).then(function (j) { P5.ip = j.atual; P5.redes = j.redes || []; p5Sel(); }); }
+  function p5EditDesenhar() {
+    var el = $('p5-edit');
+    el.innerHTML = P5.redes.map(function (r, i) { return '<div class="ln5"><input placeholder="Nome (ex.: Sala)" value="' + esc(r.nome) + '" data-p5n="' + i + '"><input placeholder="192.168.0.10" value="' + esc(r.ip) + '" data-p5i="' + i + '"><button class="btn" data-p5del="' + i + '">Remover</button></div>'; }).join('') +
+      '<div class="row" style="gap:8px"><button class="btn" id="p5-add">+ Adicionar IP</button><button class="btn prim" id="p5-salvar">Salvar</button></div>';
+  }
+  function p5LerEdit() { var L = []; document.querySelectorAll('[data-p5n]').forEach(function (n) { var i = n.dataset.p5n, ip = document.querySelector('[data-p5i="' + i + '"]').value.trim(); if (ip) L.push({ nome: n.value.trim() || 'Sem nome', ip: ip }); }); return L; }
+  document.addEventListener('change', function (e) { if (e.target.id === 'p5-sel') p5Usar(e.target.value); });
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t.closest('.mi[data-sec]')) { var sx = t.closest('.mi[data-sec]').dataset.sec; clearInterval(p5Timer); if (sx === 'ps5c') { setTimeout(p5Carregar, 50); p5Timer = setInterval(function () { if (!$('meio-ps5c').hidden) p5Status(); else clearInterval(p5Timer); }, 20000); } return; }
+    if (t.id === 'p5-atualizar') { p5Carregar(); return; }
+    if (t.id === 'p5-editar') { var ed = $('p5-edit'); ed.hidden = !ed.hidden; if (!ed.hidden) p5EditDesenhar(); return; }
+    if (t.id === 'p5-add') { P5.redes = p5LerEdit(); P5.redes.push({ nome: '', ip: '' }); p5EditDesenhar(); return; }
+    if (t.dataset && t.dataset.p5del !== undefined) { P5.redes = p5LerEdit().filter(function (x, i) { return i !== +t.dataset.p5del; }); p5EditDesenhar(); return; }
+    if (t.id === 'p5-salvar') { var L = p5LerEdit(); p5SalvarRedes(L).then(function () { $('p5-edit').hidden = true; $('p5-msg').textContent = 'Lista salva ✓'; }); return; }
+    if (t.id === 'p5-procurar') {
+      t.disabled = true; $('p5-msg').textContent = 'Procurando o PS5 na rede do PC (uns segundos)…';
+      fetch(AJ + '/ps5/procurar?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) {
+        t.disabled = false; var A = j.achados || [];
+        if (!A.length) { $('p5-msg').textContent = 'Não achei o PS5 nas redes ' + (j.redes || []).join(', ') + '.x — confira se ele está ligado e com o CheatRunner aberto.'; return; }
+        var ip = A[0], ja = P5.redes.some(function (r) { return r.ip === ip; });
+        var fim = function () { p5Usar(ip).then(function () { $('p5-msg').textContent = 'Achei o PS5 em ' + ip + (ja ? ' (' + p5Rede(ip) + ')' : ' — dei o nome "Novo"; troque em Editar lista') + ' ✓'; if (!ja) { $('p5-edit').hidden = false; p5EditDesenhar(); } }); };
+        if (ja) fim(); else p5SalvarRedes(P5.redes.concat([{ nome: 'Novo', ip: ip }])).then(fim);
+      }).catch(function () { t.disabled = false; $('p5-msg').textContent = 'O ajudante não respondeu.'; });
+      return;
+    }
+    var ap = t.closest('[data-p5app]');
+    if (ap) {
+      var a = P5APPS.filter(function (x) { return x.k === ap.dataset.p5app; })[0]; if (!a) return;
+      if (a.acao === 'abrir') window.open(p5Url(a), '_blank');
+      else if (a.acao === 'copiar') { try { navigator.clipboard.writeText(p5Url(a)); $('p5-msg').textContent = 'Copiado: ' + p5Url(a); } catch (er) { $('p5-msg').textContent = p5Url(a); } }
+      else fetch(AJ + '/ps5/log?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { $('p5-msg').textContent = j.ok ? 'Gravando o log do PS5 por 15 min (janela preta aberta). Quando terminar, me avise.' : (j.msg || 'Não deu'); });
+    }
+  });
+
   function obsCarregar(forcar) {
     if (OBS.d && !forcar) { obsDesenhar(); return; }
     $('obs-st').textContent = 'Lendo o OBS…';
@@ -2153,7 +2258,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 53 && !sessionStorage.getItem('aj-reiniciou-53')) { sessionStorage.setItem('aj-reiniciou-53', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 54 && !sessionStorage.getItem('aj-reiniciou-54')) { sessionStorage.setItem('aj-reiniciou-54', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';

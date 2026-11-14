@@ -67,7 +67,7 @@ function ClipesLista {
       if (-not $vs.Count) { continue }
       $man = RevisaoLer $pa.d
       $out += @{ r = $i; grupo = $raizes[$i].n; pasta = $pa.nome; quando = ($vs | Measure-Object -Property LastWriteTime -Maximum).Maximum.ToString('yyyy-MM-ddTHH:mm:ss');
-                 clipes = @($vs | ForEach-Object { @{ arq = $_.Name; mb = [math]::Round($_.Length / 1MB, 1); manter = ($man -contains $_.Name) } }) }
+                 clipes = @($vs | ForEach-Object { @{ arq = $_.Name; mb = [math]::Round($_.Length / 1MB, 1); manter = ($man -contains $_.Name); mini = (Test-Path -LiteralPath ([IO.Path]::ChangeExtension($_.FullName, '.jpg'))) } }) }
     }
   }
   return @($out | Sort-Object { $_.quando } -Descending)
@@ -396,6 +396,22 @@ function FonteAplicar($alvo) {
 }
 # ---------- CheatRunner do PS5 (192.168.7.5:9999): teste de acesso e envio de cheats ----------
 $CR_URL = 'http://192.168.7.5:9999'
+# 14/11/2026: o IP do PS5 muda conforme o cômodo (sala, escritório...). A lista e o IP em uso ficam em ps5_ip.json
+$ps5IpF = Join-Path $aqui 'ps5_ip.json'
+function Ps5IpLer { try { if (Test-Path $ps5IpF) { return ([IO.File]::ReadAllText($ps5IpF, [Text.Encoding]::UTF8) | ConvertFrom-Json) } } catch {}; return [pscustomobject]@{ atual = '192.168.7.5'; redes = @([pscustomobject]@{ nome = 'Sala'; ip = '192.168.7.5' }) } }
+function Ps5IpGravar($o) { [IO.File]::WriteAllText($ps5IpF, ($o | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false)) }
+function Ps5IpAplicar { $o = Ps5IpLer; $ip = [string]$o.atual; if ($ip -notmatch '^\d{1,3}(\.\d{1,3}){3}$') { $ip = '192.168.7.5' }; $script:PS5_IP = $ip; $script:CR_URL = "http://${ip}:9999"; $script:WFM_URL = "http://${ip}:8888" }
+function PortaAberta($ip, $p, $ms = 700) { $c = New-Object Net.Sockets.TcpClient; try { $a = $c.BeginConnect($ip, $p, $null, $null); if ($a.AsyncWaitHandle.WaitOne($ms) -and $c.Connected) { return $true }; return $false } catch { return $false } finally { $c.Close() } }
+function Ps5Procurar {
+  # procura o PS5 nas redes deste PC: quem responde na porta 9999 (CheatRunner)
+  $ips = @([Net.Dns]::GetHostAddresses([Net.Dns]::GetHostName()) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | ForEach-Object { $_.ToString() } | Where-Object { -not $_.StartsWith('169.254') -and -not $_.StartsWith('127.') })
+  $redes = @($ips | ForEach-Object { ($_ -split '\.')[0..2] -join '.' } | Select-Object -Unique)
+  $tent = New-Object System.Collections.ArrayList
+  foreach ($r in $redes) { foreach ($h in 1..254) { $c = New-Object Net.Sockets.TcpClient; try { $ar = $c.BeginConnect("$r.$h", 9999, $null, $null); [void]$tent.Add(@($c, $ar, "$r.$h")) } catch { $c.Close() } } }
+  Start-Sleep -Milliseconds 1800
+  $ach = @(); foreach ($t in $tent) { try { if ($t[1].IsCompleted -and $t[0].Connected) { $ach += $t[2] } } catch {}; try { $t[0].Close() } catch {} }
+  return @{ achados = @($ach); redes = @($redes) }
+}
 $script:crTestado = $false
 function HttpTexto($url, $ms) {
   # GET com tempo limite curto (o WebClient espera 100 s quando o PS5 está desligado e trava o ajudante)
@@ -420,6 +436,7 @@ function CrTeste {
 }
 # ---------- PS5: tempo de jogo (sessões) e exploração para o backup de saves ----------
 $WFM_URL = 'http://192.168.7.5:8888'
+Ps5IpAplicar
 $sessF = Join-Path $aqui 'ps5_sessoes.json'
 $script:ps5Visto = [DateTime]::MinValue
 function WfmList($path) { return (HttpTexto ($WFM_URL + '/api/list?path=' + [Uri]::EscapeDataString($path)) 6000) }
@@ -624,8 +641,8 @@ while ($http.IsListening) {
         if (-not $pp.StartsWith('/user/home/13b5b6f1/trophy2/') -or $pp.Contains('..')) { Responder $ctx 400 'text/plain' ([Text.Encoding]::UTF8.GetBytes('caminho')); continue }
         $wc = New-Object System.Net.WebClient
         try {
-          if ($q['tipo'] -eq 'fs') { $b = $wc.DownloadData('http://192.168.7.5:8888/fs?path=' + [Uri]::EscapeDataString($pp)); Responder $ctx 200 'application/octet-stream' $b }
-          else { $b = $wc.DownloadData('http://192.168.7.5:8888/api/list?path=' + [Uri]::EscapeDataString($pp)); Responder $ctx 200 'application/json; charset=utf-8' $b }
+          if ($q['tipo'] -eq 'fs') { $b = $wc.DownloadData($WFM_URL + '/fs?path=' + [Uri]::EscapeDataString($pp)); Responder $ctx 200 'application/octet-stream' $b }
+          else { $b = $wc.DownloadData($WFM_URL + '/api/list?path=' + [Uri]::EscapeDataString($pp)); Responder $ctx 200 'application/json; charset=utf-8' $b }
         } catch { Responder $ctx 502 'text/plain' ([Text.Encoding]::UTF8.GetBytes('ps5: ' + $_.Exception.Message)) }
       }
       '/pc' {
@@ -742,6 +759,7 @@ while ($http.IsListening) {
         if (-not $er -and (Test-Path -LiteralPath $ped['saida'])) { Responder $ctx 200 'image/png' ([IO.File]::ReadAllBytes($ped['saida'])) } else { Responder $ctx 500 'text/plain; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes([string]$(if ($er) { $er } else { 'não gerou' }))) }
       }
       '/clipes/lista' { Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @(ClipesLista) -Depth 6 -Compress))) }
+      '/clipes/miniatura' { $d = ClipePasta $q['r'] $q['pasta']; $a = [string]$q['arq']; $f = $null; if ($d -and (NomeSimples $a) -and [IO.Path]::GetExtension($a).ToLower() -eq '.jpg') { $f = Join-Path $d $a }; if ($f -and (Test-Path -LiteralPath $f -PathType Leaf)) { Responder $ctx 200 'image/jpeg' ([IO.File]::ReadAllBytes($f)) } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('miniatura')) } }
       '/clipes/video' { $f = ClipeArq $q['r'] $q['pasta'] $q['arq']; if ($f) { MandarVideo $ctx $f } else { Responder $ctx 404 'text/plain' ([Text.Encoding]::UTF8.GetBytes('clipe')) } }
       '/clipes/manter' {
         $f = ClipeArq $q['r'] $q['pasta'] $q['arq']; if (-not $f) { Json $ctx @{ ok = $false; msg = 'clipe não encontrado' }; continue }
@@ -917,6 +935,27 @@ while ($http.IsListening) {
           default { try { CrTeste; Json $ctx @{ ok = $true } } catch { Json $ctx @{ ok = $false; msg = $_.Exception.Message } } }
         }
       }
+      '/ps5/ip' {
+        $o = Ps5IpLer
+        switch ([string]$q['acao']) {
+          'usar' { $ip = [string]$q['ip']; if ($ip -match '^\d{1,3}(\.\d{1,3}){3}$') { $o = [pscustomobject]@{ atual = $ip; redes = @($o.redes) }; Ps5IpGravar $o; Ps5IpAplicar; $script:ps5Visto = [DateTime]::MinValue } }
+          'salvar' { try { $rd = @(([string]$q['redes']) | ConvertFrom-Json | Where-Object { [string]$_.ip -match '^\d{1,3}(\.\d{1,3}){3}$' } | ForEach-Object { [pscustomobject]@{ nome = [string]$_.nome; ip = [string]$_.ip } }); Ps5IpGravar ([pscustomobject]@{ atual = [string]$o.atual; redes = @($rd) }) } catch {} }
+        }
+        $o = Ps5IpLer
+        Responder $ctx 200 'application/json; charset=utf-8' ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @{ atual = [string]$o.atual; redes = @($o.redes) } -Depth 4 -Compress)))
+      }
+      '/ps5/status' {
+        $ip = $script:PS5_IP
+        $r = @{ ip = $ip; cheatrunner = (PortaAberta $ip 9999); arquivos = (PortaAberta $ip 8888); log = (PortaAberta $ip 3232); ftp = (PortaAberta $ip 2121); titleId = '' }
+        if ($r.cheatrunner) { try { $st = (CrGet '/api/status' 2500) | ConvertFrom-Json; $r.titleId = [string](@($st.titleId, $st.title_id) | Where-Object { $_ } | Select-Object -First 1) } catch {} }
+        $r.ligado = [bool]($r.cheatrunner -or $r.arquivos -or $r.log -or $r.ftp)
+        Json $ctx $r
+      }
+      '/ps5/procurar' { Json $ctx (Ps5Procurar) }
+      '/ps5/log' {
+        $bat = 'F:\PS5\log_ps5\ler_log_ps5.bat'
+        if (Test-Path $bat) { Start-Process -FilePath $bat -WorkingDirectory (Split-Path $bat); Json $ctx @{ ok = $true } } else { Json $ctx @{ ok = $false; msg = 'não achei ' + $bat } }
+      }
       '/ps5/jogos' {
         # jogos do PS5 (tempo total do console) + sessões registradas pelo ajudante
         $g = @(); try { $g = @(((CrGet '/api/games' 10000) | ConvertFrom-Json)) } catch {}
@@ -1009,7 +1048,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 52 } }
+      default  { Json $ctx @{ ok = $true; versao = 54 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }
