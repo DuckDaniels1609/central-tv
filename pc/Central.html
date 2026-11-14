@@ -336,6 +336,21 @@ header { align-items: center; }
 .jg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; overflow-y: auto; align-content: start; }
 .jg { font: inherit; color: var(--fg); text-align: left; display: flex; gap: 14px; padding: 12px; border-radius: 18px; background: rgba(36,32,90,calc(var(--vidro) + .1)); border: 2px solid rgba(255,255,255,.08); cursor: pointer; }
 .jg[aria-pressed="true"] { border-color: var(--acc); }
+/* 14/11/2026: jogo platinado = cartão prateado com brilho; zerado = borda dourada discreta */
+.jg { position: relative; }
+.jg-zer { border-color: rgba(255,211,110,.45); }
+.jg-plat { position: relative; overflow: hidden; border: 2px solid transparent; background: linear-gradient(135deg, rgba(58,78,128,.95), rgba(28,34,72,.95)) padding-box, linear-gradient(120deg, #7fa8e8, #ffffff, #c8e4ff, #9fc4ff, #ffffff, #7fa8e8) border-box; background-size: 100% 100%, 300% 300%; animation: jgp-borda 5s linear infinite; box-shadow: 0 0 22px rgba(200,228,255,.35), inset 0 0 30px rgba(200,228,255,.08); }
+.jg-plat::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 48%, rgba(255,255,255,.05) 55%, transparent 65%); background-size: 250% 100%; animation: jgp-reflexo 3.5s ease-in-out infinite; pointer-events: none; border-radius: inherit; }
+.jg-plat .jt b { color: #f2f8ff; text-shadow: 0 0 12px rgba(200,228,255,.6); }
+.jg-plat .jt small { color: #c8e4ff; font-weight: 600; }
+.jg-plat .jt .bar i { background: linear-gradient(90deg, #9fc4ff, #ffffff, #c8e4ff); }
+.jg-plat .capa { box-shadow: 0 0 0 2px #c8e4ff, 0 0 18px rgba(200,228,255,.55); }
+.jg-plat[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--acc), 0 0 26px rgba(200,228,255,.5); }
+.jg-selo { position: absolute; left: 70px; top: 4px; font-size: 26px; filter: grayscale(1) brightness(1.7) drop-shadow(0 0 8px rgba(200,228,255,.9)); animation: jgp-selo 2.4s ease-in-out infinite; z-index: 1; }
+@keyframes jgp-borda { to { background-position: 0 0, 300% 0; } }
+@keyframes jgp-reflexo { 0%, 55% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+@keyframes jgp-selo { 0%, 100% { transform: rotate(-8deg) scale(1); } 50% { transform: rotate(6deg) scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .jg-plat, .jg-plat::after, .jg-selo { animation: none; } }
 .capa { flex: none; width: 84px; height: 112px; border-radius: 12px; background: linear-gradient(160deg, #3A2A7A, #1B1A4A) center/cover; display: grid; place-items: center; }
 .capa.tem b { display: none; }
 .capa b { font-size: 22px; opacity: .6; }
@@ -2536,7 +2551,8 @@ body.menu-mini .versao { display: none; }
     $('es-filtros').innerHTML = [['todos', 'Todos']].concat(STATUS).map(function (s2) { return '<button class="chip" data-a="esFiltro" data-v="' + s2[0] + '" aria-pressed="' + (esFiltro === s2[0]) + '">' + s2[1] + '</button>'; }).join('');
     el.innerHTML = L.filter(function (j) { return esFiltro === 'todos' || (progDe(j.id).status || 'fila') === esFiltro; }).map(function (j) {
       var p = progDe(j.id), T = j.trophies || [], n = T.filter(function (t) { return p.done && p.done[t.id]; }).length, plat = T.some(function (t) { return t.type === 'platina' && p.done && p.done[t.id]; });
-      return '<button class="jg" data-a="esSel" data-v="' + esc(j.id) + '" aria-pressed="' + (esSel === j.id) + '"><span class="capa" data-capa="es-' + esc(j.id) + '"><b>' + esc((j.short || j.name).slice(0, 2)) + '</b></span><span class="jt"><b>' + esc(j.short || j.name) + '</b><small>' + esc((STATUS.filter(function (x) { return x[0] === (p.status || 'fila'); })[0] || [, ''])[1]) + (j.tbd ? ' · ainda não saiu' : '') + '</small>' +
+      var stJ = p.status || 'fila', jaSaiu = !j.tbd || (j.release && j.release <= new Date().toISOString().slice(0, 10));
+      return '<button class="jg' + (stJ === 'platinado' ? ' jg-plat' : stJ === 'zerado' ? ' jg-zer' : '') + '" data-a="esSel" data-v="' + esc(j.id) + '" aria-pressed="' + (esSel === j.id) + '"><span class="capa" data-capa="es-' + esc(j.id) + '"><b>' + esc((j.short || j.name).slice(0, 2)) + '</b></span>' + (stJ === 'platinado' ? '<span class="jg-selo" title="Platinado">🏆</span>' : '') + '<span class="jt"><b>' + esc(j.short || j.name) + '</b><small>' + esc((STATUS.filter(function (x) { return x[0] === (p.status || 'fila'); })[0] || [, ''])[1]) + (jaSaiu ? '' : ' · ainda não saiu') + '</small>' +
         (T.length ? '<span class="bar"><i style="width:' + Math.round(n / T.length * 100) + '%"></i></span><small>' + n + ' de ' + T.length + (plat ? ' · platinado ✓' : '') + '</small>' : '') + (function () { var tp = tempoDe(j.titleId); return tp && (tp.total || tp.semana) ? '<small class="jt-tempo">' + (tp.jogando ? '🟢 jogando agora · ' : '⏱ ') + hm(tp.total || tp.semana) + '</small>' : ''; })() + '</span></button>';
     }).join('') || '<p class="note">Nenhum jogo aqui.</p>';
     if (window.CAPAS) CAPAS.aplicar(el, L.map(function (j) { return { id: 'es-' + j.id, nome: j.name, wiki: j.wiki }; }));
