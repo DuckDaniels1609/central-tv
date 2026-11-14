@@ -398,7 +398,7 @@ function FonteAplicar($alvo) {
 $CR_URL = 'http://192.168.7.5:9999'
 # 14/11/2026: o IP do PS5 muda conforme o cômodo (sala, escritório...). A lista e o IP em uso ficam em ps5_ip.json
 $ps5IpF = Join-Path $aqui 'ps5_ip.json'
-function Ps5IpLer { try { if (Test-Path $ps5IpF) { return ([IO.File]::ReadAllText($ps5IpF, [Text.Encoding]::UTF8) | ConvertFrom-Json) } } catch {}; return [pscustomobject]@{ atual = '192.168.7.5'; redes = @([pscustomobject]@{ nome = 'Sala'; ip = '192.168.7.5' }) } }
+function Ps5IpLer { try { if (Test-Path $ps5IpF) { return ([IO.File]::ReadAllText($ps5IpF, [Text.Encoding]::UTF8) | ConvertFrom-Json) } } catch {}; return [pscustomobject]@{ atual = '192.168.7.5'; redes = @([pscustomobject]@{ nome = 'Escritório'; ip = '192.168.7.5' }) } }
 function Ps5IpGravar($o) { [IO.File]::WriteAllText($ps5IpF, ($o | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false)) }
 function Ps5IpAplicar { $o = Ps5IpLer; $ip = [string]$o.atual; if ($ip -notmatch '^\d{1,3}(\.\d{1,3}){3}$') { $ip = '192.168.7.5' }; $script:PS5_IP = $ip; $script:CR_URL = "http://${ip}:9999"; $script:WFM_URL = "http://${ip}:8888" }
 function PortaAberta($ip, $p, $ms = 700) { $c = New-Object Net.Sockets.TcpClient; try { $a = $c.BeginConnect($ip, $p, $null, $null); if ($a.AsyncWaitHandle.WaitOne($ms) -and $c.Connected) { return $true }; return $false } catch { return $false } finally { $c.Close() } }
