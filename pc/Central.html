@@ -1964,7 +1964,17 @@ body.menu-mini .versao { display: none; }
         '<button class="btn' + (on ? ' prim' : '') + '" data-p5app="' + a.k + '"' + (on ? '' : ' disabled') + '>' + rot + '</button></div>';
     }).join('');
   }
-  function p5Carregar() { $('p5-st').textContent = 'Conferindo o PS5…'; p5Ip().then(p5Status).catch(function () { $('p5-st').textContent = 'O ajudante não respondeu.'; }); }
+  /* a lista de IPs também fica em central-dados/ps5.json, para o celular usar a mesma */
+  function p5Nuvem(soSobe) {
+    if (!ghTok()) return Promise.resolve();
+    return ghGet('ps5.json').then(function (c) {
+      var n = c ? JSON.parse(ghDec(c.content)) : { redes: [] }, L = P5.redes.slice(), mud = false;
+      if (!soSobe) (n.redes || []).forEach(function (r) { if (r.ip && !L.some(function (x) { return x.ip === r.ip; })) { L.push(r); mud = true; } });
+      var sobe = !c || L.length !== (n.redes || []).length || L.some(function (r) { return !(n.redes || []).some(function (x) { return x.ip === r.ip && x.nome === r.nome; }); });
+      return (mud ? p5SalvarRedes(L) : Promise.resolve()).then(function () { if (sobe) return ghPut('ps5.json', { atual: P5.ip, redes: P5.redes, atualizado: new Date().toISOString() }, 'Central no PC: ps5.json', c && c.sha); });
+    }).catch(function () {});
+  }
+  function p5Carregar() { $('p5-st').textContent = 'Conferindo o PS5…'; p5Ip().then(function () { p5Status(); return p5Nuvem(); }).catch(function () { $('p5-st').textContent = 'O ajudante não respondeu.'; }); }
   function p5Usar(ip) { $('p5-msg').textContent = ''; return fetch(AJ + '/ps5/ip?k=' + ajK() + '&acao=usar&ip=' + encodeURIComponent(ip)).then(function (r) { return r.json(); }).then(function (j) { P5.ip = j.atual; P5.redes = j.redes || []; p5Sel(); P5.st = null; $('p5-st').textContent = 'Conferindo o PS5 em ' + P5.ip + '…'; p5Status(); }); }
   function p5SalvarRedes(L) { return fetch(AJ + '/ps5/ip?k=' + ajK() + '&acao=salvar&redes=' + encodeURIComponent(JSON.stringify(L))).then(function (r) { return r.json(); }).then(function (j) { P5.ip = j.atual; P5.redes = j.redes || []; p5Sel(); }); }
   function p5EditDesenhar() {
@@ -1981,7 +1991,7 @@ body.menu-mini .versao { display: none; }
     if (t.id === 'p5-editar') { var ed = $('p5-edit'); ed.hidden = !ed.hidden; if (!ed.hidden) p5EditDesenhar(); return; }
     if (t.id === 'p5-add') { P5.redes = p5LerEdit(); P5.redes.push({ nome: '', ip: '' }); p5EditDesenhar(); return; }
     if (t.dataset && t.dataset.p5del !== undefined) { P5.redes = p5LerEdit().filter(function (x, i) { return i !== +t.dataset.p5del; }); p5EditDesenhar(); return; }
-    if (t.id === 'p5-salvar') { var L = p5LerEdit(); p5SalvarRedes(L).then(function () { $('p5-edit').hidden = true; $('p5-msg').textContent = 'Lista salva ✓'; }); return; }
+    if (t.id === 'p5-salvar') { var L = p5LerEdit(); p5SalvarRedes(L).then(function () { $('p5-edit').hidden = true; $('p5-msg').textContent = 'Lista salva ✓'; return p5Nuvem(true); }); return; }
     if (t.id === 'p5-procurar') {
       t.disabled = true; $('p5-msg').textContent = 'Procurando o PS5 na rede do PC (uns segundos)…';
       fetch(AJ + '/ps5/procurar?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) {

@@ -275,6 +275,21 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
     <div id="est-dados"></div>
   </section>
 
+  <section class="pag" id="p-ps5" hidden>
+    <header class="top"><div><span class="tag">プレステ · PS5</span><h1>PS5</h1><div class="data">Apps do PS5 desbloqueado (o celular precisa estar no mesmo Wi-Fi do PS5)</div></div></header>
+    <div class="stack">
+      <div class="card"><h2>Onde o PS5 está</h2>
+        <select id="p5c-sel" style="width:100%;font:inherit;font-size:17px;font-weight:700;color:inherit;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 14px;-webkit-appearance:none;appearance:none"></select>
+        <p class="aviso" style="margin:8px 0 0" id="p5c-ip"></p></div>
+      <div class="card"><h2>Apps</h2><div class="btns dois" id="p5c-apps">
+        <button class="b sel" data-p5c="9999">CheatRunner</button><button class="b sel" data-p5c="8888">Arquivos</button></div>
+        <p class="aviso" style="margin:10px 0 0">Abre no navegador do celular. Se não abrir, o PS5 está desligado, sem o CheatRunner aberto ou em outro Wi-Fi.</p></div>
+      <div class="card"><h2>Lista de IPs</h2><div id="p5c-lista"></div>
+        <div class="btns dois" style="margin-top:10px"><button class="b" id="p5c-add">+ Adicionar IP</button><button class="b sel" id="p5c-salvar">Salvar</button></div>
+        <p class="aviso" style="margin:8px 0 0" id="p5c-msg">A mesma lista da Central do PC fica salva nos seus dados.</p></div>
+    </div>
+  </section>
+
   <section class="pag" id="p-tv" hidden>
     <header class="top"><div><span class="tag">リモコン · Controle</span><h1>Controle da TV</h1><div class="data" id="tv-sub">Funciona com a TV ligada</div></div></header>
     <div class="stack">
@@ -329,6 +344,7 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
       <button data-ir="treino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12a4 4 0 0 1 0 9H6a4 4 0 0 1 0-9zM7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg><span>Evo Brazil</span></button>
       <button data-ir="gym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/></svg><span>Academia</span></button>
       <button data-ir="lanc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4zM4 9h16M9 13l2 2 4-4"/></svg><span>Lançamentos</span></button>
+      <button data-ir="ps5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h4v16H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3zM13 4h4a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-4zM7.5 9v3M6 10.5h3M16.5 9h.01M16.5 12h.01"/></svg><span>PS5</span></button>
       <button data-ir="tv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v11H3zM8 21h8M12 17v4"/></svg><span>Controle da TV</span></button>
     </div>
   </div>
@@ -337,7 +353,7 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
 <script>
 /* atualização automática: se o site tem versão nova, recarrega sem usar a cópia guardada pelo iPhone */
 (function () {
-  var V = '2026-10-31.14';
+  var V = '2026-11-14.1';
   function checa() {
     fetch('../versao.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !j.v || j.v === V) return;
@@ -570,6 +586,50 @@ body.com-banner header.top { background: linear-gradient(0deg, rgba(8,6,26,.78),
     }
   });
   aplicar();
+})();
+</script>
+<script>
+/* PS5: escolher o cômodo (IP) e abrir os apps do PS5. A lista fica em central-dados/ps5.json. */
+(function () {
+  var URL = 'https://api.github.com/repos/DuckDaniels1609/central-dados/contents/ps5.json';
+  var $ = function (i) { return document.getElementById(i); };
+  function ler(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function grava(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function hdr() { return { Authorization: 'Bearer ' + ler('gh-token', ''), Accept: 'application/vnd.github+json' }; }
+  var D = ler('p5c', { atual: '192.168.0.36', redes: [{ nome: 'Sala', ip: '192.168.0.36' }, { nome: 'Escritório', ip: '192.168.7.5' }] }), sha = null;
+  function desenha() {
+    $('p5c-sel').innerHTML = D.redes.map(function (r) { return '<option value="' + esc(r.ip) + '"' + (r.ip === D.atual ? ' selected' : '') + '>' + esc(r.nome) + ' — ' + esc(r.ip) + '</option>'; }).join('');
+    $('p5c-ip').textContent = 'Usando ' + D.atual;
+    $('p5c-lista').innerHTML = D.redes.map(function (r, i) { return '<div style="display:flex;gap:6px;margin-bottom:6px"><input class="cod" style="flex:1;letter-spacing:0;text-align:left;font-size:16px" data-n="' + i + '" value="' + esc(r.nome) + '" placeholder="Nome"><input class="cod" style="width:140px;letter-spacing:0;font-size:16px" inputmode="decimal" data-i="' + i + '" value="' + esc(r.ip) + '" placeholder="IP"><button class="b" data-x="' + i + '">✕</button></div>'; }).join('');
+  }
+  function lerLista() { var L = []; document.querySelectorAll('#p5c-lista [data-n]').forEach(function (n) { var ip = document.querySelector('#p5c-lista [data-i="' + n.dataset.n + '"]').value.trim(); if (ip) L.push({ nome: n.value.trim() || 'Sem nome', ip: ip }); }); return L; }
+  function baixa() {
+    if (!ler('gh-token', '')) return;
+    fetch(URL + '?t=' + Date.now(), { headers: hdr(), cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) {
+      sha = j.sha; var bin = atob(j.content.replace(/\s/g, '')), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      var x = JSON.parse(new TextDecoder().decode(u)); if (x && x.redes && x.redes.length) { var at = D.atual; D = x; if (!D.redes.some(function (r) { return r.ip === at; })) at = D.atual; D.atual = at; grava('p5c', D); desenha(); }
+    }).catch(function () {});
+  }
+  function sobe() {
+    var u = new TextEncoder().encode(JSON.stringify(D, null, 1)), s = ''; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+    var body = { message: 'celular: ps5.json', content: btoa(s) }; if (sha) body.sha = sha;
+    return fetch(URL, { method: 'PUT', headers: hdr(), body: JSON.stringify(body) }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { sha = j.content.sha; });
+  }
+  document.addEventListener('change', function (e) { if (e.target.id === 'p5c-sel') { D.atual = e.target.value; grava('p5c', D); desenha(); } });
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.p5c) { window.open('http://' + D.atual + ':' + t.dataset.p5c + '/', '_blank'); return; }
+    if (t.dataset && t.dataset.x !== undefined && t.closest('#p5c-lista')) { D.redes = lerLista().filter(function (x, i) { return i !== +t.dataset.x; }); desenha(); return; }
+    if (t.id === 'p5c-add') { D.redes = lerLista(); D.redes.push({ nome: '', ip: '' }); desenha(); return; }
+    if (t.id === 'p5c-salvar') {
+      D.redes = lerLista(); if (!D.redes.some(function (r) { return r.ip === D.atual; }) && D.redes[0]) D.atual = D.redes[0].ip; grava('p5c', D); desenha();
+      $('p5c-msg').textContent = 'Salvando…';
+      sobe().then(function () { $('p5c-msg').textContent = 'Lista salva ✓'; }).catch(function () { $('p5c-msg').textContent = 'Salvei só neste celular (sem conexão com os dados).'; });
+    }
+    if (t.closest && t.closest('[data-ir="ps5"]')) baixa();
+  });
+  desenha(); baixa();
 })();
 </script>
 </body>
