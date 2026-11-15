@@ -952,6 +952,14 @@ while ($http.IsListening) {
         Json $ctx $r
       }
       '/ps5/procurar' { Json $ctx (Ps5Procurar) }
+      '/ps5/abrir' {
+        # abre um app do PS5 (http://IP:porta) no Google Chrome; se não tiver Chrome, no navegador padrão
+        $u = [string]$q['url']
+        if ($u -notmatch '^https?://[0-9.]+(:\d+)?(/.*)?$') { Json $ctx @{ ok = $false; msg = 'endereço inválido' }; break }
+        $ch = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe", "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe") | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+        if ($ch) { Start-Process -FilePath $ch -ArgumentList $u } else { Start-Process $u }
+        Json $ctx @{ ok = $true; chrome = [bool]$ch }
+      }
       '/ps5/log' {
         $bat = 'F:\PS5\log_ps5\ler_log_ps5.bat'
         if (Test-Path $bat) { Start-Process -FilePath $bat -WorkingDirectory (Split-Path $bat); Json $ctx @{ ok = $true } } else { Json $ctx @{ ok = $false; msg = 'não achei ' + $bat } }
@@ -1048,7 +1056,7 @@ while ($http.IsListening) {
         }
         Json $ctx @{ ok = $true } }
       '/pasta' { (New-Object -ComObject Shell.Application).Open($base); Json $ctx @{ ok = $true } }
-      default  { Json $ctx @{ ok = $true; versao = 54 } }
+      default  { Json $ctx @{ ok = $true; versao = 55 } }
     }
   } catch { try { Responder $ctx 500 'text/plain' ([Text.Encoding]::UTF8.GetBytes($_.Exception.Message)) } catch {} }
 }

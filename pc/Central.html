@@ -1996,7 +1996,7 @@ body.menu-mini .versao { display: none; }
     var ap = t.closest('[data-p5app]');
     if (ap) {
       var a = P5APPS.filter(function (x) { return x.k === ap.dataset.p5app; })[0]; if (!a) return;
-      if (a.acao === 'abrir') window.open(p5Url(a), '_blank');
+      if (a.acao === 'abrir') fetch(AJ + '/ps5/abrir?k=' + ajK() + '&url=' + encodeURIComponent(p5Url(a) + '/')).then(function (r) { return r.json(); }).then(function (j) { $('p5-msg').textContent = j.ok ? (j.chrome ? 'Abrindo no Chrome…' : 'Não achei o Chrome; abri no navegador padrão.') : (j.msg || 'Não deu'); }).catch(function () { window.open(p5Url(a), '_blank'); });
       else if (a.acao === 'copiar') { try { navigator.clipboard.writeText(p5Url(a)); $('p5-msg').textContent = 'Copiado: ' + p5Url(a); } catch (er) { $('p5-msg').textContent = p5Url(a); } }
       else fetch(AJ + '/ps5/log?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { $('p5-msg').textContent = j.ok ? 'Gravando o log do PS5 por 15 min (janela preta aberta). Quando terminar, me avise.' : (j.msg || 'Não deu'); });
     }
@@ -2258,7 +2258,7 @@ body.menu-mini .versao { display: none; }
   window.PC_ICONE = function (f) { return AJ + '/icone?k=' + ajK() + '&f=' + encodeURIComponent(f); };
   /* ajudante antigo? reinicia com a versão nova (que já está no disco) */
   setTimeout(function () {
-    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 54 && !sessionStorage.getItem('aj-reiniciou-54')) { sessionStorage.setItem('aj-reiniciou-54', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
+    fetch(AJ + '/?k=' + ajK()).then(function (r) { return r.json(); }).then(function (j) { if ((j.versao || 0) < 55 && !sessionStorage.getItem('aj-reiniciou-55')) { sessionStorage.setItem('aj-reiniciou-55', '1'); } else return; fetch(AJ + '/reiniciar?k=' + ajK()).then(function () { setTimeout(function () { location.reload(); }, 4000); }); }).catch(function () {});
   }, 3000);
   function pcAbrir(f) { fetch(AJ + '/abrir?k=' + ajK() + '&f=' + encodeURIComponent(f)).catch(function () { status('Não consegui abrir. O ajudante está ligado?', false); }); }
   var SEC = 'hoje';
